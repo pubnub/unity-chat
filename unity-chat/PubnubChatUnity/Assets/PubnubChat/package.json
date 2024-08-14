@@ -1,0 +1,20 @@
+{
+  "name": "com.pubnub.pubnubchat",
+  "version": "0.1.0",
+  "displayName": "Pubnub Chat",
+  "description": "PubNub Unity Chat SDK",
+  "unity": "2022.3",
+  "documentationUrl": "https://www.pubnub.com/docs/chat/unity-chat-sdk/overview/",
+  "licensesUrl": "https://github.com/pubnub/unity-chat/blob/master/LICENSE",
+ "keywords": [
+    "pubnub",
+    "chat",
+    "realtime",
+    "api"
+  ],
+  "author": {
+    "name": "PubNub",
+    "email": "support@pubnub.com",
+    "url": "https://www.pubnub.com"
+  }
+}
