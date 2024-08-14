@@ -15,9 +15,14 @@ public class PubnubChatSample : MonoBehaviour
     {
         //Initialize Chat instance with Pubnub keys + user ID
         var chat = new Chat(configAsset);
-        //Create config-defined user id handle
-        var user = chat.CreateUser(configAsset.UserId);
-        
+
+        //Get config-defined user id handle
+        if (!chat.TryGetCurrentUser(out var user))
+        {
+            Debug.LogError("Wasn't able to get current user! Is the Chat Config set-up correctly?");
+            return;
+        }    
+
         //Create a new channel
         var channel = chat.CreatePublicConversation("MainChannel");
         //Define reaction on receiving new messages
