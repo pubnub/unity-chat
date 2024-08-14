@@ -1,0 +1,1314 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>PubnubChatApi</name>
+    </assembly>
+    <members>
+        <member name="T:PubNubChatAPI.Entities.Channel">
+             <summary>
+             Class <c>Channel</c> represents a chat channel.
+            
+             <para>
+             A channel is a entity that allows users to publish and receive messages.
+             </para>
+             </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Channel.Name">
+             <summary>
+             The name of the channel.
+            
+             <para>
+             The name of the channel that is human meaningful.
+             </para>
+             </summary>
+             <value>The name of the channel.</value>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:PubNubChatAPI.Entities.Channel.Description" -->
+        <member name="P:PubNubChatAPI.Entities.Channel.CustomDataJson">
+             <summary>
+             The custom data of the channel.
+            
+             <para>
+             The custom data that can be used to store additional information about the channel.
+             </para>
+             </summary>
+             <remarks>
+             The custom data is stored in JSON format.
+             </remarks>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Channel.Updated">
+            <summary>
+            The information about the last update of the channel.
+            <para>
+            The time when the channel was last updated.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Channel.Status">
+            <summary>
+            The status of the channel.
+            <para>
+            The last status response received from the server.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Channel.Type">
+            <summary>
+            The type of the channel.
+            <para>
+            The type of the response received from the server when the channel was created.
+            </para>
+            </summary>
+        </member>
+        <member name="E:PubNubChatAPI.Entities.Channel.OnMessageReceived">
+             <summary>
+             Event that is triggered when a message is received.
+            
+             <para>
+             The event is triggered when a message is received in the channel 
+             when the channel is connected.
+             </para>
+             </summary>
+             <value>The event that is triggered when a message is received.</value>
+             <example>
+             <code>
+             var channel = //...
+             channel.OnMessageReceived += (message) => {
+                Console.WriteLine($"Message received: {message.Text}");
+             };
+             channel.Connect();
+             </code>
+             </example>
+        </member>
+        <member name="E:PubNubChatAPI.Entities.Channel.OnChannelUpdate">
+             <summary>
+             Event that is triggered when the channel is updated.
+            
+             <para>
+             The event is triggered when the channel is updated by the user 
+             or by any other entity.
+             </para>
+             </summary>
+             <value>The event that is triggered when the channel is updated.</value>
+             <example>
+             <code>
+             var channel = //...
+             channel.OnChannelUpdate += (channel) => {
+               Console.WriteLine($"Channel updated: {channel.Name}");
+             };
+             channel.Connect();
+             </code>
+             </example>
+        </member>
+        <member name="E:PubNubChatAPI.Entities.Channel.OnPresenceUpdate">
+             <summary>
+             Event that is triggered when any presence update occurs.
+            
+             <para>
+             Presence update occurs when a user joins or leaves the channel.
+             </para>
+             </summary>
+             <value>The event that is triggered when any presence update occurs.</value>
+             <example>
+             <code>
+             var channel = //...
+             channel.OnPresenceUpdate += (users) => {
+               Console.WriteLine($"Users present: {string.Join(", ", users)}");
+             };
+             channel.Connect();
+             </code>
+             </example>
+            
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.Connect">
+            <summary>
+            Connects to the channel.
+            <para>
+            Connects to the channel and starts receiving messages. 
+            After connecting, the <see cref="E:PubNubChatAPI.Entities.Channel.OnMessageReceived"/> event is triggered when a message is received.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var channel = //...
+            channel.OnMessageReceived += (message) => {
+              Console.WriteLine($"Message received: {message.Text}");
+            };
+            channel.Connect();
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while connecting to the channel.</exception>
+            <seealso cref="E:PubNubChatAPI.Entities.Channel.OnMessageReceived"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Disconnect"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.Join">
+            <summary>
+            Joins the channel.
+            <para>
+            Joins the channel and starts receiving messages.
+            After joining, the <see cref="E:PubNubChatAPI.Entities.Channel.OnMessageReceived"/> event is triggered when a message is received.
+            Additionally, there is a possibility to add additional parameters to the join request.
+            It also adds the membership to the channel.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var channel = //...
+            channel.OnMessageReceived += (message) => {
+             Console.WriteLine($"Message received: {message.Text}");
+            };
+            channel.Join();
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while joining the channel.</exception>
+            <seealso cref="E:PubNubChatAPI.Entities.Channel.OnMessageReceived"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Connect"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Disconnect"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.Disconnect">
+            <summary>
+            Disconnects from the channel.
+            <para>
+            Disconnects from the channel and stops receiving messages.
+            Additionally, all the other listeners gets the presence update that the user has left the channel.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var channel = //...
+            channel.Connect();
+            //...
+            channel.Disconnect();
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while disconnecting from the channel.</exception>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Connect"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.Leave">
+            <summary>
+            Leaves the channel.
+            <para>
+            Leaves the channel and stops receiving messages.
+            Additionally, all the other listeners gets the presence update that the user has left the channel.
+            The membership is also removed from the channel.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var channel = //...
+            channel.Join();
+            //...
+            channel.Leave();
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while leaving the channel.</exception>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Connect"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Disconnect"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.SetRestrictions(System.String,System.Boolean,System.Boolean,System.String)">
+            <summary>
+            Sets the restrictions for the user.
+            <para>
+            Sets the information about the restrictions for the user.
+            The restrictions include banning and muting the user.
+            </para>
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <param name="banUser">if set to <c>true</c> the user is banned.</param>
+            <param name="muteUser">if set to <c>true</c> the user is muted.</param>
+            <param name="reason">The reason for the restrictions.</param>
+            <example>
+            <code>
+            var channel = //...
+            channel.SetRestrictions("user1", true, false, "Spamming");
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while setting the restrictions.</exception>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.GetUserRestrictions(PubNubChatAPI.Entities.User)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.SendText(System.String)">
+            <summary>
+            Sends the text message.
+            <para>
+            Sends the text message to the channel.
+            The message is sent in the form of a text.
+            </para>
+            </summary>
+            <param name="message">The message to be sent.</param>
+            <example>
+            <code>
+            var channel = //...
+            channel.SendText("Hello, World!");
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while sending the message.</exception>
+            <seealso cref="E:PubNubChatAPI.Entities.Channel.OnMessageReceived"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.Update(PubnubChatApi.Entities.Data.ChatChannelData)">
+            <summary>
+            Updates the channel.
+            <para>
+            Updates the channel with the new data.
+            The data includes the name, description, custom data, and type of the channel.
+            </para>
+            </summary>
+            <param name="updatedData">The updated data of the channel.</param>
+            <example>
+            <code>
+            var channel = //...
+            channel.UpdateChannel(new ChatChannelData {
+             Name = "newName",
+             Description = "newDescription",
+             CustomDataJson = "{\"key\": \"value\"}",
+             Type = "newType"
+            });
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while updating the channel.</exception>
+            <seealso cref="E:PubNubChatAPI.Entities.Channel.OnChannelUpdate"/>
+            <seealso cref="T:PubnubChatApi.Entities.Data.ChatChannelData"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.Delete">
+            <summary>
+            Deletes the channel.
+            <para>
+            Deletes the channel and removes all the messages and memberships from the channel.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var channel = //...
+            channel.DeleteChannel();
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while deleting the channel.</exception>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.GetUserRestrictions(PubNubChatAPI.Entities.User)">
+            <summary>
+            Gets the user restrictions.
+            <para>
+            Gets the user restrictions that include the information about the bans and mutes.
+            </para>
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <param name="limit">The maximum amount of the restrictions received.</param>
+            <param name="startTimetoken">The start timetoken of the restrictions.</param>
+            <param name="endTimetoken">The end timetoken of the restrictions.</param>
+            <returns>The user restrictions in JSON format.</returns>
+            <example>
+            <code>
+            var channel = //...
+            var restrictions = channel.GetUserRestrictions(
+                "user1",
+                10,
+                "16686902600029072"
+                "16686902600028961",
+            );
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while getting the user restrictions.</exception>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.SetRestrictions(System.String,System.Boolean,System.Boolean,System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.IsUserPresent(System.String)">
+            <summary>
+            Determines whether the user is present in the channel.
+            <para>
+            The method checks whether the user is present in the channel.
+            </para>
+            </summary>
+            <param name="userId">The user identifier.</param>
+            <returns><c>true</c> if the user is present in the channel; otherwise, <c>false</c>.</returns>
+            <example>
+            <code>
+            var channel = //...
+            var isUserPresent = channel.IsUserPresent("user1");
+            Console.WriteLine($"User present: {isUserPresent}");
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while checking the presence of the user.</exception>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.WhoIsPresent"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.WhoIsPresent">
+            <summary>
+            Gets the list of users present in the channel.
+            <para>
+            Gets all the users that are present in the channel.
+            </para>
+            </summary>
+            <returns>The list of users present in the channel.</returns>
+            <example>
+            <code>
+            var channel = //...
+            var users = channel.WhoIsPresent();
+            foreach (var user in users) {
+             Console.WriteLine($"User present: {user}");
+            }
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while getting the list of users present in the channel.</exception>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.IsUserPresent(System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.GetMemberships(System.String,System.String,System.Int32,PubnubChatApi.Entities.Data.Page)">
+            <summary>
+            Gets the list of the <c>Membership</c> objects.
+            <para>
+            Gets the list of the <c>Membership</c> objects that represent the users that are members 
+            of the channel and the relationships between the users and the channel.
+            </para>
+            </summary>
+            <param name="limit">The maximum amount of the memberships received.</param>
+            <param name="startTimeToken">The start timetoken of the memberships.</param>
+            <param name="endTimeToken">The end timetoken of the memberships.</param>
+            <returns>The list of the <c>Membership</c> objects.</returns>
+            <example>
+            <code>
+            var channel = //...
+            var memberships = channel.GetMemberships(10, "16686902600029072", "16686902600028961");
+            foreach (var membership in memberships) {
+              Console.WriteLine($"Membership: {membership.UserId}");
+            }
+            </code>
+            </example>
+            <exception cref="!:PubnubCCoreException">Thrown when an error occurs while getting the list of memberships.</exception>
+            <seealso cref="T:PubNubChatAPI.Entities.Membership"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.TryGetMessage(System.String,PubNubChatAPI.Entities.Message@)">
+            <summary>
+            Gets the <c>Message</c> object for the given timetoken.
+            <para>
+            Gets the <c>Message</c> object for the given timetoken.
+            The timetoken is used to identify the message.
+            </para>
+            </summary>
+            <param name="timeToken">The timetoken of the message.</param>
+            <param name="message">The out parameter that contains the <c>Message</c> object.</param>
+            <returns><c>true</c> if the message is found; otherwise, <c>false</c>.</returns>
+            <example>
+            <code>
+            var channel = //...
+            if (channel.TryGetMessage("16686902600029072", out var message)) {
+             Console.WriteLine($"Message: {message.Text}");
+            }
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Message"/>
+        </member>
+        <member name="T:PubNubChatAPI.Entities.Chat">
+            <summary>
+            Main class for the chat.
+            <para>
+            Contains all the methods to interact with the chat.
+            It should be treated as a root of the chat system.
+            </para>
+            </summary>
+            <remarks>
+            The class is responsible for creating and managing channels, users, and messages.
+            </remarks>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.#ctor(PubnubChatApi.Entities.Data.PubnubChatConfig)">
+            <summary>
+            Initializes a new instance of the <see cref="T:PubNubChatAPI.Entities.Chat"/> class.
+            <para>
+            Creates a new chat instance.
+            </para>
+            </summary>
+            <param name="config">Config with PubNub keys and values</param>
+            <remarks>
+            The constructor initializes the chat instance with the provided keys and user ID from the Config.
+            </remarks>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.CreatePublicConversation(System.String)">
+            <summary>
+            Creates a new public conversation.
+            <para>
+            Creates a new public conversation with the provided channel ID.
+            Conversation allows users to interact with each other.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <returns>The created channel.</returns>
+            <remarks>
+            The method creates a chat channel with the provided channel ID.
+            </remarks>
+            <example>
+            <code>
+            var chat = // ...
+            var channel = chat.CreatePublicConversation("channel_id");
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Channel"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.CreatePublicConversation(System.String,PubnubChatApi.Entities.Data.ChatChannelData)">
+            <summary>
+            Creates a new public conversation.
+            <para>
+            Creates a new public conversation with the provided channel ID.
+            Conversation allows users to interact with each other.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <param name="additionalData">The additional data for the channel.</param>
+            <returns>The created channel.</returns>
+            <remarks>
+            The method creates a chat channel with the provided channel ID.
+            </remarks>
+            <example>
+            <code>
+            var chat = // ...
+            var channel = chat.CreatePublicConversation("channel_id");
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Channel"/>
+            <seealso cref="T:PubnubChatApi.Entities.Data.ChatChannelData"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.TryGetChannel(System.String,PubNubChatAPI.Entities.Channel@)">
+            <summary>
+            Gets the channel by the provided channel ID.
+            <para>
+            Tries to get the channel by the provided channel ID.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <param name="channel">The out channel.</param>
+            <returns>True if the channel was found, false otherwise.</returns>
+            <example>
+            <code>
+            var chat = // ...
+            if (chat.TryGetChannel("channel_id", out var channel)) {
+               // Channel found
+            }
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Channel"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.UpdateChannel(System.String,PubnubChatApi.Entities.Data.ChatChannelData)">
+            <summary>
+            Updates the channel with the provided channel ID.
+            <para>
+            Updates the channel with the provided channel ID with the provided data.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <param name="updatedData">The updated data for the channel.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            chat.UpdateChannel("channel_id", new ChatChannelData {
+               ChannelName = "new_name"
+               // ...
+             });
+            </code>
+            </example>
+            <seealso cref="T:PubnubChatApi.Entities.Data.ChatChannelData"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.DeleteChannel(System.String)">
+            <summary>
+            Deletes the channel with the provided channel ID.
+            <para>
+            The channel is deleted with all the messages and users.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            chat.DeleteChannel("channel_id");
+            </code>
+            </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.SetRestriction(System.String,System.String,System.Boolean,System.Boolean,System.String)">
+            <summary>
+            Sets the restrictions for the user with the provided user ID.
+            <para>
+            Sets the restrictions for the user with the provided user ID in the provided channel.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <param name="channelId">The channel ID.</param>
+            <param name="banUser">The ban user flag.</param>
+            <param name="muteUser">The mute user flag.</param>
+            <param name="reason">The reason for the restrictions.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            chat.SetRestrictions("user_id", "channel_id", true, true, "Spamming");
+            </code>
+            </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.CreateUser(System.String)">
+            <summary>
+            Creates a new user with the provided user ID.
+            <para>
+            Creates a new user with the empty data and the provided user ID.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <returns>The created user.</returns>
+            <remarks>
+            The data for user is empty.
+            </remarks>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var user = chat.CreateUser("user_id");
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.User"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.CreateUser(System.String,PubnubChatApi.Entities.Data.ChatUserData)">
+            <summary>
+            Creates a new user with the provided user ID.
+            <para>
+            Creates a new user with the provided data and the provided user ID.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <param name="additionalData">The additional data for the user.</param>
+            <returns>The created user.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var user = chat.CreateUser("user_id");
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.User"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.IsPresent(System.String,System.String)">
+            <summary>
+            Checks if the user with the provided user ID is present in the provided channel.
+            <para>
+            Checks if the user with the provided user ID is present in the provided channel.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <param name="channelId">The channel ID.</param>
+            <returns>True if the user is present, false otherwise.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            if (chat.IsPresent("user_id", "channel_id")) {
+              // User is present 
+            }
+            </code>
+            </example>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.WhoIsPresent(System.String)"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.WherePresent(System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.WhoIsPresent(System.String)">
+            <summary>
+            Gets the list of users present in the provided channel.
+            <para>
+            Gets all the users as a list of the strings present in the provided channel.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <returns>The list of the users present in the channel.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var users = chat.WhoIsPresent("channel_id");
+            foreach (var user in users) {
+              // User is present on the channel
+            }
+            </code>
+            </example>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.WherePresent(System.String)"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.IsPresent(System.String,System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.WherePresent(System.String)">
+            <summary>
+            Gets the list of channels where the user with the provided user ID is present.
+            <para>
+            Gets all the channels as a list of the strings where the user with the provided user ID is present.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <returns>The list of the channels where the user is present.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var channels = chat.WherePresent("user_id");
+            foreach (var channel in channels) {
+             // Channel where User is IsPresent
+            };
+            </code>
+            </example>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.WhoIsPresent(System.String)"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.IsPresent(System.String,System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.TryGetUser(System.String,PubNubChatAPI.Entities.User@)">
+            <summary>
+            Gets the user with the provided user ID.
+            <para>
+            Tries to get the user with the provided user ID.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <param name="user">The out user.</param>
+            <returns>True if the user was found, false otherwise.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            if (chat.TryGetUser("user_id", out var user)) {
+              // User found
+            }
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.User"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetUsers(System.String,System.String,System.Int32,PubnubChatApi.Entities.Data.Page)">
+            <summary>
+            Gets the list of users with the provided parameters.
+            <para>
+            Gets all the users that matches the provided parameters.
+            </para>
+            </summary>
+            <param name="include">The include parameter.</param>
+            <param name="limit">The amount of userts to get.</param>
+            <param name="startTimeToken">The start time token of the users.</param>
+            <param name="endTimeToken">The end time token of the users.</param>
+            <returns>The list of the users that matches the provided parameters.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var users = chat.GetUsers(
+                "admin",
+                10,
+                "16686902600029072"
+                "16686902600028961",
+            );
+            foreach (var user in users) {
+             // User found
+            };
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.User"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.UpdateUser(System.String,PubnubChatApi.Entities.Data.ChatUserData)">
+            <summary>
+            Updates the user with the provided user ID.
+            <para>
+            Updates the user with the provided user ID with the provided data.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <param name="updatedData">The updated data for the user.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            chat.UpdateUser("user_id", new ChatUserData {
+              Username = "new_name"
+              // ...
+            });
+            </code>
+            </example>
+            <seealso cref="T:PubnubChatApi.Entities.Data.ChatUserData"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.DeleteUser(System.String)">
+            <summary>
+            Deletes the user with the provided user ID.
+            <para>
+            The user is deleted with all the messages and channels.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            chat.DeleteUser("user_id");
+            </code>
+            </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetUserMemberships(System.String,System.String,System.String,System.Int32,PubnubChatApi.Entities.Data.Page)">
+            <summary>
+            Gets the memberships of the user with the provided user ID.
+            <para>
+            Gets all the memberships of the user with the provided user ID.
+            The memberships are limited by the provided limit and the time tokens.
+            </para>
+            </summary>
+            <param name="userId">The user ID.</param>
+            <param name="limit">The maximum amount of the memberships.</param>
+            <param name="startTimeToken">The start time token of the memberships.</param>
+            <param name="endTimeToken">The end time token of the memberships.</param>
+            <returns>The list of the memberships of the user.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var memberships = chat.GetUserMemberships(
+                    "user_id",
+                    10,
+                    "16686902600029072",
+                    "16686902600028961"
+            );
+            foreach (var membership in memberships) {
+             // Membership found
+            };
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Membership"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetChannelMemberships(System.String,System.String,System.String,System.Int32,PubnubChatApi.Entities.Data.Page)">
+            <summary>
+            Gets the memberships of the channel with the provided channel ID.
+            <para>
+            Gets all the memberships of the channel with the provided channel ID.
+            The memberships are limited by the provided limit and the time tokens.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <param name="limit">The maximum amount of the memberships.</param>
+            <param name="startTimeToken">The start time token of the memberships.</param>
+            <param name="endTimeToken">The end time token of the memberships.</param>
+            <returns>The list of the memberships of the channel.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var memberships = chat.GetChannelMemberships(
+                    "user_id",
+                    10,
+                    "16686902600029072",
+                    "16686902600028961"
+            );
+            foreach (var membership in memberships) {
+             // Membership found
+            };
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Membership"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.TryGetMessage(System.String,System.String,PubNubChatAPI.Entities.Message@)">
+            <summary>
+            Gets the <c>Message</c> object for the given timetoken.
+            <para>
+            Gets the <c>Message</c> object from the channel for the given timetoken.
+            The timetoken is used to identify the message.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <param name="messageTimeToken">The timetoken of the message.</param>
+            <param name="message">The out parameter that contains the <c>Message</c> object.</param>
+            <returns><c>true</c> if the message is found; otherwise, <c>false</c>.</returns>
+            <example>
+            <code>
+            var chat = // ...
+            if (chat.TryGetMessage("channel_id", "timetoken", out var message)) {
+             // Message found
+            };
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Message"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetChannelMessageHistory(System.String,System.String,System.String,System.Int32)">
+            <summary>
+            Gets the channel message history.
+            <para>
+            Gets the list of the messages that were sent in the channel with the provided parameters.
+            The history is limited by the provided count of messages, start time token, and end time token.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <param name="startTimeToken">The start time token of the messages.</param>
+            <param name="endTimeToken">The end time token of the messages.</param>
+            <param name="count">The maximum amount of the messages.</param>
+            <returns>The list of the messages that were sent in the channel.</returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
+            <example>
+            <code>
+            var chat = // ...
+            var messages = chat.GetChannelMessageHistory("channel_id", "start_time_token", "end_time_token", 10);
+            foreach (var message in messages) {
+             // Message found
+            };
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Message"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.ListenForEvents(System.String,PubnubChatApi.Enums.PubnubChatEventType)">
+            <summary>
+            Starts listening for events.
+            <para>
+            Starts listening for channel events. 
+            It allows to receive different events without the need to 
+            connect to any channel.
+            </para>
+            </summary>
+            <param name="channelId">The channel ID.</param>
+            <example>
+            <code>
+            var chat = // ...
+            chat.ListenForEvents();
+            chat.OnEvent += (event) => {
+             // Event received
+            };
+            </code>
+            </example>
+            <seealso cref="!:OnEvent"/>
+        </member>
+        <member name="T:PubNubChatAPI.Entities.Membership">
+            <summary>
+            Represents a membership of a user in a channel.
+            <para>
+            Memberships are relations between users and channels. They are used to determine
+            which users are allowed to send messages to which channels.
+            </para>
+            </summary>
+            <remarks>
+            Memberships are created when a user joins a channel and are deleted when a user leaves a channel.
+            </remarks>
+            <seealso cref="T:PubNubChatAPI.Entities.Chat"/>
+            <seealso cref="T:PubNubChatAPI.Entities.User"/>
+            <seealso cref="T:PubNubChatAPI.Entities.Channel"/>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Membership.UserId">
+            <summary>
+            The user ID of the user that this membership belongs to.
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Membership.ChannelId">
+            <summary>
+            The channel ID of the channel that this membership belongs to.
+            </summary>
+        </member>
+        <member name="E:PubNubChatAPI.Entities.Membership.OnMembershipUpdated">
+            <summary>
+            Event that is triggered when the membership is updated.
+            <para>
+            This event is triggered when the membership is updated by the server.
+            Every time the membership is updated, this event is triggered.
+            </para>
+            </summary>
+            <example>
+            <code>
+            membership.OnMembershipUpdated += (membership) =>
+            {
+               Console.WriteLine("Membership updated!");
+            };
+            </code>
+            </example>
+            <seealso cref="M:PubNubChatAPI.Entities.Membership.Update(System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Membership.Update(System.String)">
+            <summary>
+            Updates the membership with a custom JSON object.
+            <para>
+            This method updates the membership with a custom JSON object. This object can be used to store
+            additional information about the membership.
+            </para>
+            </summary>
+            <param name="customJsonObject">The custom JSON object to update the membership with.</param>
+            <example>
+            <code>
+            membership.Update("{\"key\": \"value\"}");
+            </code>
+            </example>
+            <seealso cref="E:PubNubChatAPI.Entities.Membership.OnMembershipUpdated"/>
+        </member>
+        <member name="T:PubNubChatAPI.Entities.Message">
+            <summary>
+            Represents a message in a chat channel.
+            <para>
+            Messages are sent by users to chat channels. They can contain text
+            and other data, such as metadata or message actions.
+            </para>
+            </summary>
+            <seealso cref="T:PubNubChatAPI.Entities.Chat"/>
+            <seealso cref="T:PubNubChatAPI.Entities.Channel"/>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.MessageText">
+            <summary>
+            The text content of the message.
+            <para>
+            This is the main content of the message. It can be any text that the user wants to send.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.TimeToken">
+            <summary>
+            The time token of the message.
+            <para>
+            The time token is a unique identifier for the message.
+            It is used to identify the message in the chat.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.ChannelId">
+            <summary>
+            The channel ID of the channel that the message belongs to.
+            <para>
+            This is the ID of the channel that the message was sent to.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.UserId">
+            <summary>
+            The user ID of the user that sent the message.
+            <para>
+            This is the unique ID of the user that sent the message.
+            Do not confuse this with the username of the user.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.Meta">
+            <summary>
+            The metadata of the message.
+            <para>
+            The metadata is additional data that can be attached to the message.
+            It can be used to store additional information about the message.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.IsDeleted">
+            <summary>
+            Whether the message has been deleted.
+            <para>
+            This property indicates whether the message has been deleted.
+            If the message has been deleted, this property will be true.
+            It means that all the deletions are soft deletions.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.Message.Type">
+            <summary>
+            The data type of the message.
+            <para>
+            This is the type of the message data.
+            It can be used to determine the type of the message.
+            </para>
+            </summary>
+            <seealso cref="!:pubnub_chat_message_type"/>
+        </member>
+        <member name="E:PubNubChatAPI.Entities.Message.OnMessageUpdated">
+            <summary>
+            Event that is triggered when the message is updated.
+            <para>
+            This event is triggered when the message is updated by the server.
+            Every time the message is updated, this event is triggered.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var message = // ...;
+            message.OnMessageUpdated += (message) =>
+            {
+              Console.WriteLine("Message updated!");
+            };
+            </code>
+            </example>
+            <seealso cref="M:PubNubChatAPI.Entities.Message.EditMessageText(System.String)"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Message.Delete(System.Boolean)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Message.EditMessageText(System.String)">
+            <summary>
+            Edits the text of the message.
+            <para>
+            This method edits the text of the message.
+            It changes the text of the message to the new text provided.
+            </para>
+            </summary>
+            <param name="newText">The new text of the message.</param>
+            <example>
+            <code>
+            var message = // ...;
+            message.EditMessageText("New text");
+            </code>
+            </example>
+            <seealso cref="E:PubNubChatAPI.Entities.Message.OnMessageUpdated"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Message.Delete(System.Boolean)">
+            <summary>
+            Deletes the message.
+            <para>
+            This method deletes the message.
+            It marks the message as deleted.
+            It means that the message will not be visible to other users, but the 
+            message is treated as soft deleted.
+            </para>
+            </summary>
+            <example>
+            <code>
+            var message = // ...;
+            message.DeleteMessage();
+            </code>
+            </example>
+            <seealso cref="P:PubNubChatAPI.Entities.Message.IsDeleted"/>
+            <seealso cref="E:PubNubChatAPI.Entities.Message.OnMessageUpdated"/>
+        </member>
+        <member name="T:PubNubChatAPI.Entities.User">
+            <summary>
+            Represents a user in the chat. 
+            <para>
+            You can get information about the user, update the user's data, delete the user, set restrictions on the user,
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.UserName">
+            <summary>
+            The user's user name. 
+            <para>
+            This might be user's display name in the chat.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.ExternalId">
+            <summary>
+            The user's external id.
+            <para>
+            This might be user's id in the external system (e.g. Database, CRM, etc.)
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.ProfileUrl">
+            <summary>
+            The user's profile url.
+            <para>
+            This might be user's profile url to download the profile picture.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.Email">
+            <summary>
+            The user's email.
+            <para>
+            This should be user's email address.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.CustomData">
+            <summary>
+            The user's custom data.
+            <para>
+            This might be any custom data that you want to store for the user.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.Status">
+            <summary>
+            The user's status.
+            <para>
+            This is a string that represents the user's status.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.User.DataType">
+            <summary>
+            The user's data type.
+            <para>
+            This is a string that represents the user's data type.
+            </para>
+            </summary>
+        </member>
+        <member name="E:PubNubChatAPI.Entities.User.OnUserUpdated">
+            <summary>
+            Event that is triggered when the user is updated.
+            <para>
+            This event is triggered when the user's data is updated.
+            You can subscribe to this event to get notified when the user is updated.
+            </para>
+            </summary>
+            <example>
+            <code>
+            // var user = // ...;
+            user.OnUserUpdated += (user) =>
+            {
+               Console.WriteLine($"User {user.UserName} is updated.");
+            };
+            </code>
+            </example>
+            <seealso cref="M:PubNubChatAPI.Entities.User.Update(PubnubChatApi.Entities.Data.ChatUserData)"/>
+            <seealso cref="T:PubNubChatAPI.Entities.User"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.User.Update(PubnubChatApi.Entities.Data.ChatUserData)">
+            <summary>
+            Updates the user.
+            <para>
+            This method updates the user's data.
+            </para>
+            </summary>
+            <param name="updatedData">The updated data for the user.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException">
+            This exception might be thrown when any error occurs while updating the user.
+            </exception>
+            <example>
+            <code>
+            var user = // ...;
+            user.UpdateUser(new ChatUserData
+            {
+               UserName = "New User Name",
+            });
+            </code>
+            </example>
+            <seealso cref="T:PubnubChatApi.Entities.Data.ChatUserData"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.User.DeleteUser">
+            <summary>
+            Deletes the user.
+            <para>
+            This method deletes the user from the chat.
+            It will remove the user from all the channels and delete the user's data.
+            </para>
+            </summary>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException">
+            This exception might be thrown when any error occurs while deleting the user.
+            </exception>
+            <example>
+            <code>
+            var user = // ...;
+            user.DeleteUser();
+            </code>
+            </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.User.SetRestriction(System.String,System.Boolean,System.Boolean,System.String)">
+            <summary>
+            Sets restrictions on the user.
+            <para>
+            This method sets the restrictions on the user.
+            You can ban the user from a channel, mute the user on the channel, or set the restrictions on the user.
+            </para>
+            </summary>
+            <param name="channelId">The channel id on which the restrictions are set.</param>
+            <param name="banUser">If set to <c>true</c>, the user is banned from the channel.</param>
+            <param name="muteUser">If set to <c>true</c>, the user is muted on the channel.</param>
+            <param name="reason">The reason for setting the restrictions on the user.</param>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException">
+            This exception might be thrown when any error occurs while setting the restrictions on the user.
+            </exception>
+            <example>
+            <code>
+            var user = // ...;
+            user.SetRestrictions("channel_id", true, false, "Banned from the channel");
+            </code>
+            </example>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:PubNubChatAPI.Entities.User.GetChannelRestrictions(PubNubChatAPI.Entities.Channel)" -->
+        <member name="M:PubNubChatAPI.Entities.User.IsPresentOn(System.String)">
+            <summary>
+            Checks if the user is present on the channel.
+            <para>
+            This method checks if the user is present on the channel.
+            </para>
+            </summary>
+            <param name="channelId">The channel id on which the user's presence is to be checked.</param>
+            <returns>
+            <c>true</c> if the user is present on the channel; otherwise, <c>false</c>.
+            </returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException">
+            This exception might be thrown when any error occurs while checking if the user is present on the channel.
+            </exception>
+            <example>
+            <code>
+            var user = // ...;
+            if (user.IsPresentOn("channel_id")) {
+              // User is present on the channel
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.User.WherePresent">
+            <summary>
+            Gets the list of channels where the user is present.
+            <para>
+            This method gets the list of channels where the user is present.
+            </para>
+            </summary>
+            <returns>
+            The list of channels where the user is present.
+            </returns>
+            <remarks>
+            The list is kept as a list of channel ids.
+            </remarks>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException">
+            This exception might be thrown when any error occurs while getting the list of channels where the user is present.
+            </exception>
+            <example>
+            <code>
+            var user = // ...;
+            var channels = user.WherePresent();
+            foreach (var channel in channels) {
+             Console.WriteLine(channel);
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.User.GetMemberships(System.String,System.String,System.Int32,PubnubChatApi.Entities.Data.Page)">
+            <summary>
+            Gets the list of memberships of the user.
+            <para>
+            This methods gets the list of memberships of the user.
+            All the relationships of the user with the channels are considered as memberships.
+            </para>
+            </summary>
+            <param name="limit">The limit on the number of memberships to be fetched.</param>
+            <param name="startTimeToken">The start time token from which the memberships are to be fetched.</param>
+            <param name="endTimeToken">The end time token till which the memberships are to be fetched.</param>
+            <returns>
+            The list of memberships of the user.
+            </returns>
+            <exception cref="T:PubnubChatApi.Utilities.PubNubCCoreException">
+            This exception might be thrown when any error occurs while getting the list of memberships of the user.
+            </exception>
+            <example>
+            <code>
+            var user = // ...;
+            var memberships = user.GetMemberships(50, "99999999999999999", "00000000000000000");
+            foreach (var membership in memberships) {
+            Console.WriteLine(membership.ChannelId);
+            }
+            </code>
+            </example>
+            <seealso cref="T:PubNubChatAPI.Entities.Membership"/>
+        </member>
+        <member name="T:PubnubChatApi.Entities.Data.ChatChannelData">
+            <summary>
+            Data class for the chat channel.
+            <para>
+            Contains all the data related to the chat channel.
+            </para>
+            </summary>
+            <remarks>
+            By default, all the properties are set to empty strings.
+            </remarks>
+        </member>
+        <member name="T:PubnubChatApi.Entities.Data.ChatUserData">
+            <summary>
+            Data class for the chat user.
+            <para>
+            Contains all the data related to the chat user.
+            </para>
+            </summary>
+            <remarks>
+            By default, all the properties are set to empty strings.
+            </remarks>
+        </member>
+        <member name="T:PubnubChatApi.Entities.Data.Restriction">
+            <summary>
+            Data struct for restriction.
+            </summary>
+        </member>
+        <member name="T:PubnubChatApi.Enums.PubnubChatMessageType">
+            <summary>
+            Represents the type of a chat message.
+            <para>
+            Chat messages can have different types, such as text messages or message actions.
+            </para>
+            </summary>
+        </member>
+    </members>
+</doc>
