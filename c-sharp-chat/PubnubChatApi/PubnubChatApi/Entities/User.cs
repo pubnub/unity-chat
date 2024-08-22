@@ -179,6 +179,23 @@ namespace PubNubChatAPI.Entities
             }
         }
 
+        public bool Active
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public string LastActiveTimeStamp
+        {
+            get
+            {
+                var buffer = new StringBuilder(64);
+                throw new NotImplementedException();
+            }
+        }
+
         private Chat chat;
 
         /// <summary>

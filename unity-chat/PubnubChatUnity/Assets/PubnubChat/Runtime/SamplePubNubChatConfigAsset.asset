@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f49ad429cc8e63d48b23fada9b67dd4a, type: 3}
   m_Name: SamplePubNubChatConfigAsset
   m_EditorClassIdentifier: 
-  <PublishKey>k__BackingField: pub-c-79961364-c3e6-4e48-8d8d-fe4f34e228bf
-  <SubscribeKey>k__BackingField: sub-c-2b4db8f2-c025-4a76-9e23-326123298667
+  <PublishKey>k__BackingField: 
+  <SubscribeKey>k__BackingField: 
   <UserId>k__BackingField: unity_sample_user
-  <SecretKey>k__BackingField: 
   <AuthKey>k__BackingField: 
+  <TypingTimeout>k__BackingField: 5000
+  <TypingTimeoutDifference>k__BackingField: 1000

@@ -18,7 +18,10 @@ public class ChatEventTests
             "event_tests_user")
         );
         channel = chat.CreatePublicConversation("event_tests_channel");
-        user = chat.CreateUser("event_tests_user");
+        if (!chat.TryGetCurrentUser(out user))
+        {
+            Assert.Fail();
+        }
         channel.Join();
     }
     

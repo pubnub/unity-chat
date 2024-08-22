@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -8,7 +9,7 @@ public class ChatTests
 {
     private Chat chat;
     private Channel channel;
-    private User user;
+    private User currentUser;
 
     [SetUp]
     public void Setup()
@@ -16,15 +17,39 @@ public class ChatTests
         chat = new Chat(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "chats_tests_user_10_no_calkiem_nowy"));
+            "chats_tests_user_10_no_calkiem_nowy_2"));
         channel = chat.CreatePublicConversation("chat_tests_channel");
+        if (!chat.TryGetCurrentUser(out currentUser))
+        {
+            Assert.Fail();
+        }
         channel.Join();
+    }
+    
+    [Test]
+    public async Task TestGetCurrentUserMentions()
+    {
+        var messageContent = "wololo";
+        channel.SendText(messageContent, new SendTextParams()
+        {
+            MentionedUsers = new Dictionary<int, User>()
+            {
+                {0, currentUser}
+            }
+        });
+
+        await Task.Delay(3000);
+
+        var mentions = chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10);
+        
+        Assert.True(mentions != null);
+        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText == messageContent));
     }
 
     [Test]
     public void TestGetCurrentUser()
     {
-        Assert.True(chat.TryGetCurrentUser(out var currentUser) && currentUser.Id == user.Id);
+        Assert.True(chat.TryGetCurrentUser(out var currentUser) && currentUser.Id == this.currentUser.Id);
     }
 
     [Test]
@@ -70,7 +95,7 @@ public class ChatTests
     public void TestGetUsers()
     {
         var users = chat.GetUsers();
-        Assert.True(users.Users.Any(x => x.Id == user.Id));
+        Assert.True(users.Users.Any(x => x.Id == currentUser.Id));
     }
 
     [Test]
@@ -87,7 +112,7 @@ public class ChatTests
         var directConversation =
             chat.CreateDirectConversation(convoUser, "direct_conversation_test");
         Assert.True(directConversation.CreatedChannel is { Id: "direct_conversation_test" });
-        Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.UserId == user.Id);
+        Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(directConversation.InviteesMemberships != null &&
                     directConversation.InviteesMemberships.First().UserId == convoUser.Id);
     }
@@ -101,7 +126,7 @@ public class ChatTests
         var groupConversation =
             chat.CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
         Assert.True(groupConversation.CreatedChannel is { Id: "group_conversation_test" });
-        Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.UserId == user.Id);
+        Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(groupConversation.InviteesMemberships is { Count: 3 });
         Assert.True(groupConversation.InviteesMemberships.Any(x =>
             x.UserId == convoUser1.Id && x.ChannelId == "group_conversation_test"));
@@ -192,7 +217,7 @@ public class ChatTests
         var receiptReset = new ManualResetEvent(false);
         otherChat.OnReadReceiptEvent += receiptEvent =>
         {
-            Assert.True(receiptEvent.ChannelId == channel.Id && receiptEvent.UserId == user.Id);
+            Assert.True(receiptEvent.ChannelId == channel.Id && receiptEvent.UserId == currentUser.Id);
             receiptReset.Set();
         };
         otherChatChannel.SendText("READ MEEEE");

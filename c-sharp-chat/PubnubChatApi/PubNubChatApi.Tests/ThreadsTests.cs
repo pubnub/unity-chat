@@ -19,6 +19,10 @@ public class ThreadsTests
             "threads_tests_user")
         );
         channel = chat.CreatePublicConversation("threads_tests_channel_37");
+        if (!chat.TryGetCurrentUser(out user))
+        {
+            Assert.Fail();
+        }
         channel.Join();
     }
 
@@ -79,7 +83,7 @@ public class ThreadsTests
     public void TestThreadChannelEmitUserMention()
     {
         var mentionedReset = new ManualResetEvent(false);
-        channel.OnMessageReceived += async message =>
+        channel.OnMessageReceived += message =>
         {
             var thread = message.CreateThread();
             thread.Join();

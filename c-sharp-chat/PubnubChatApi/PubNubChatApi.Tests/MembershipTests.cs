@@ -19,7 +19,10 @@ public class MembershipTests
             "membership_tests_user_54")
         );
         channel = chat.CreatePublicConversation("membership_tests_channel");
-        user = chat.CreateUser("membership_tests_user_54");
+        if (!chat.TryGetCurrentUser(out user))
+        {
+            Assert.Fail();
+        }
         channel.Join();
     }
 
