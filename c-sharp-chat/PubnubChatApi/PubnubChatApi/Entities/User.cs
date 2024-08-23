@@ -179,7 +179,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public bool Active
+        /*public bool Active
         {
             get
             {
@@ -194,7 +194,7 @@ namespace PubNubChatAPI.Entities
                 var buffer = new StringBuilder(64);
                 throw new NotImplementedException();
             }
-        }
+        }*/
 
         private Chat chat;
 
