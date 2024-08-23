@@ -290,6 +290,10 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_deserialize_thread_message_update(IntPtr chat, IntPtr message_update);
 
+        [DllImport("pubnub-chat")]
+        private static extern int pn_chat_get_current_user_mentions(IntPtr chat, string start_timetoken,
+            string end_timetoken, int count, StringBuilder result);
+        
         #endregion
 
         private IntPtr chatPointer;
@@ -918,6 +922,24 @@ namespace PubNubChatAPI.Entities
 
         #region Users
 
+        public UserMentionsWrapper GetCurrentUserMentions(string startTimeToken, string endTimeToken, int count)
+        {
+            var buffer = new StringBuilder(4096);
+            CUtilities.CheckCFunctionResult(pn_chat_get_current_user_mentions(chatPointer, startTimeToken, endTimeToken, count, buffer));
+            var internalWrapperJson = buffer.ToString();
+            var emptyResponse = new UserMentionsWrapper(this, new InternalUserMentionsWrapper());
+            if (!CUtilities.IsValidJson(internalWrapperJson))
+            {
+                return emptyResponse;
+            }
+            var internalWrapper = JsonConvert.DeserializeObject<InternalUserMentionsWrapper>(internalWrapperJson);
+            if (internalWrapper == null)
+            {
+                return emptyResponse;
+            }
+            return new UserMentionsWrapper(this, internalWrapper);
+        } 
+        
         public bool TryGetCurrentUser(out User user)
         {
             var userPointer = pn_chat_current_user(chatPointer);

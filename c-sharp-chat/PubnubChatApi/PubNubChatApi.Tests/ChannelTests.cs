@@ -18,10 +18,10 @@ public class ChannelTests
             PubnubTestsParameters.SubscribeKey,
             "channel_tests_user")
         );
-        user = chat.CreateUser("channel_tests_user", new ChatUserData()
+        if (!chat.TryGetCurrentUser(out user))
         {
-            Username = "the_channel_tests_user"
-        });
+            Assert.Fail();
+        }
         talkUser = chat.CreateUser("talk_user");
     }
     
