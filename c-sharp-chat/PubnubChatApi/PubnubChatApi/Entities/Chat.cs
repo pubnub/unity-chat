@@ -315,6 +315,7 @@ namespace PubNubChatAPI.Entities
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
+        public PubnubChatConfig Config { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
@@ -332,6 +333,7 @@ namespace PubNubChatAPI.Entities
                 config.TypingTimeout, config.TypingTimeoutDifference);
             CUtilities.CheckCFunctionResult(chatPointer);
 
+            Config = config;
             ChatAccessManager = new ChatAccessManager(chatPointer);
 
             fetchUpdatesThread = new Thread(FetchUpdatesLoop) { IsBackground = true };
