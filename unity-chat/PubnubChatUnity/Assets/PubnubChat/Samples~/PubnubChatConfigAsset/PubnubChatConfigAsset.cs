@@ -13,6 +13,8 @@ namespace PubnubChat
         [field: SerializeField] public string AuthKey { get; private set; }
         [field: SerializeField] public int TypingTimeout { get; private set; } = 5000;
         [field: SerializeField] public int TypingTimeoutDifference { get; private set; } = 1000;
+        [field: SerializeField] public bool StoreUserActivityTimestamp { get; private set; }
+        [field: SerializeField] public int StoreUserActivityInterval { get; private set; } = 60000;
 
         public static implicit operator PubnubChatConfig(PubnubChatConfigAsset asset)
         {
@@ -32,7 +34,9 @@ namespace PubnubChat
             }
 
             return new PubnubChatConfig(asset.PublishKey, asset.SubscribeKey, asset.UserId, asset.AuthKey,
-                asset.TypingTimeout, asset.TypingTimeoutDifference);
+                asset.TypingTimeout, asset.TypingTimeoutDifference,
+                storeUserActivityInterval: asset.StoreUserActivityInterval,
+                storeUserActivityTimestamp: asset.StoreUserActivityTimestamp);
         }
     }
 }

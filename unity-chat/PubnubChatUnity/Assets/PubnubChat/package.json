@@ -16,5 +16,17 @@
     "name": "PubNub",
     "email": "support@pubnub.com",
     "url": "https://www.pubnub.com"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Pubnub Chat - Config Asset",
+      "description": "Contains a ScriptableObject with PubnubChatConfig properties that can be used to initialize a new Chat object.",
+      "path": "Samples~/PubnubChatConfigAsset"
+    },
+    {
+      "displayName": "Pubnub Chat - Console Example",
+      "description": "Contains a sample Pubnub Chat MonoBehaviour script that runs a few example tasks in the console.",
+      "path": "Samples~/PubnubChatConsoleExample"
+    }
+  ]
 }
