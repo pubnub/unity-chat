@@ -19,14 +19,9 @@
   },
   "samples": [
     {
-      "displayName": "Pubnub Chat - Config Asset",
-      "description": "Contains a ScriptableObject with PubnubChatConfig properties that can be used to initialize a new Chat object.",
+      "displayName": "Pubnub Chat - Config Asset and Console Example",
+      "description": "Contains a ScriptableObject with PubnubChatConfig properties that can be used to initialize a new Chat object and a sample Pubnub Chat MonoBehaviour script that runs a few example tasks in the console.",
       "path": "Samples~/PubnubChatConfigAsset"
-    },
-    {
-      "displayName": "Pubnub Chat - Console Example",
-      "description": "Contains a sample Pubnub Chat MonoBehaviour script that runs a few example tasks in the console.",
-      "path": "Samples~/PubnubChatConsoleExample"
     }
   ]
 }
