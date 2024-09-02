@@ -74,16 +74,14 @@ namespace PubNubChatAPI.Entities
         {
             var newChannelPointer = pn_thread_message_pin_to_parent_channel(pointer);
             CUtilities.CheckCFunctionResult(newChannelPointer);
-            //TODO: this is to update the pointer of the existing wrapper, but isn't very explicit about the fact it does that
-            chat.TryGetChannel(newChannelPointer, out _);
+            chat.UpdateChannelPointer(newChannelPointer);
         }
 
         public void UnPinMessageFromParentChannel()
         {
             var newChannelPointer = pn_thread_message_unpin_from_parent_channel(pointer);
             CUtilities.CheckCFunctionResult(newChannelPointer);
-            //TODO: this is to update the pointer of the existing wrapper, but isn't very explicit about the fact it does that
-            chat.TryGetChannel(newChannelPointer, out _);
+            chat.UpdateChannelPointer(newChannelPointer);
         }
 
         protected override void DisposePointer()

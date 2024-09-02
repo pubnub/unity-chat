@@ -394,7 +394,6 @@ namespace PubNubChatAPI.Entities
                                 {
                                     failedToInvoke = true;
                                 }
-
                                 break;
                             case PubnubChatEventType.Report:
                                 OnReportEvent?.Invoke(chatEvent);
@@ -405,7 +404,6 @@ namespace PubNubChatAPI.Entities
                                 {
                                     readReceiptChannel.BroadcastReadReceipt(chatEvent);
                                 }
-
                                 break;
                             case PubnubChatEventType.Mention:
                                 OnMentionEvent?.Invoke(chatEvent);
@@ -447,10 +445,6 @@ namespace PubNubChatAPI.Entities
                             messageWrappers[timeToken] = message;
                             channel.BroadcastMessageReceived(message);
                         }
-                        else
-                        {
-                            Debug.WriteLine("BBBBBBBBBBB");
-                        }
 
                         pn_dispose_message(pointer);
                         continue;
@@ -483,10 +477,8 @@ namespace PubNubChatAPI.Entities
                         var id = Message.GetMessageIdFromPtr(updatedThreadMessagePointer);
                         if (messageWrappers.TryGetValue(id, out var existingMessageWrapper))
                         {
-                            Debug.WriteLine("KURWA");
                             if (existingMessageWrapper is ThreadMessage existingThreadMessageWrapper)
                             {
-                                Debug.WriteLine("MAĆ");
                                 existingThreadMessageWrapper.UpdateWithPartialPtr(updatedThreadMessagePointer);
                                 existingThreadMessageWrapper.BroadcastMessageUpdate();
                             }
@@ -495,10 +487,6 @@ namespace PubNubChatAPI.Entities
                                 Debug.WriteLine(
                                     "Thread message was stored as a regular message - SHOULD NEVER HAPPEN!");
                             }
-                        }
-                        else
-                        {
-                            Debug.WriteLine("CHUJ");
                         }
 
                         pn_dispose_message(pointer);
@@ -844,6 +832,16 @@ namespace PubNubChatAPI.Entities
         {
             return TryGetWrapper(channelWrappers, channelId, channelPointer,
                 () => new Channel(this, channelId, channelPointer), out channel);
+        }
+
+        //The TryGetChannel updates the pointer, these methods are for internal logic explicity sake
+        internal void UpdateChannelPointer(IntPtr newPointer)
+        {
+            TryGetChannel(newPointer, out _);
+        }
+        internal void UpdateChannelPointer(string id, IntPtr newPointer)
+        {
+            TryGetChannel(id, newPointer, out _);
         }
 
         public ChannelsResponseWrapper GetChannels(string filter = "", string sort = "", int limit = 0,
