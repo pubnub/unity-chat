@@ -27,6 +27,12 @@ public class UserTests
     }
 
     [Test]
+    public async Task TestUserActive()
+    {
+        Assert.True(user.Active);
+    }
+
+    [Test]
     public async Task TestUserUpdate()
     {
         var updatedReset = new ManualResetEvent(false);
