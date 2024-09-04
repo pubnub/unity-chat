@@ -34,7 +34,9 @@ namespace PubNubChatAPI.Entities
             string user_id,
             string auth_key,
             int typing_timeout,
-            int typing_timeout_difference);
+            int typing_timeout_difference,
+            int store_user_activity_interval,
+            bool store_user_activity_timestamps);
 
         [DllImport("pubnub-chat")]
         private static extern void pn_chat_delete(IntPtr chat);
@@ -330,7 +332,8 @@ namespace PubNubChatAPI.Entities
         public Chat(PubnubChatConfig config)
         {
             chatPointer = pn_chat_new(config.PublishKey, config.SubscribeKey, config.UserId, config.AuthKey,
-                config.TypingTimeout, config.TypingTimeoutDifference);
+                config.TypingTimeout, config.TypingTimeoutDifference, config.StoreUserActivityInterval, 
+                config.StoreUserActivityTimestamp);
             CUtilities.CheckCFunctionResult(chatPointer);
 
             Config = config;
