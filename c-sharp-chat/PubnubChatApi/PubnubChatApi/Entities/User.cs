@@ -64,6 +64,11 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern int pn_user_get_channels_restrictions(IntPtr user, string sort, int limit, string next,
             string prev, StringBuilder result);
+        
+        [DllImport("pubnub-chat")]
+        private static extern int pn_user_active(IntPtr user);
+        [DllImport("pubnub-chat")]
+        private static extern int pn_user_last_active_timestamp(IntPtr user, StringBuilder result);
 
         #endregion
 
@@ -179,11 +184,13 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /*public bool Active
+        public bool Active
         {
             get
             {
-                throw new NotImplementedException();
+                var result = pn_user_active(pointer);
+                CUtilities.CheckCFunctionResult(result);
+                return result == 1;
             }
         }
 
@@ -192,9 +199,10 @@ namespace PubNubChatAPI.Entities
             get
             {
                 var buffer = new StringBuilder(64);
-                throw new NotImplementedException();
+                CUtilities.CheckCFunctionResult(pn_user_last_active_timestamp(pointer, buffer));
+                return buffer.ToString();
             }
-        }*/
+        }
 
         private Chat chat;
 

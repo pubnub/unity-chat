@@ -16,7 +16,8 @@ public class UserTests
         chat = new Chat(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "user_tests_user")
+            "user_tests_user", 
+            storeUserActivityTimestamp: true)
         );
         channel = chat.CreatePublicConversation("user_tests_channel");
         if (!chat.TryGetCurrentUser(out user))
@@ -24,6 +25,13 @@ public class UserTests
             Assert.Fail();
         }
         channel.Join();
+    }
+
+    [Test]
+    public async Task TestUserActive()
+    {
+        await Task.Delay(500);
+        Assert.True(user.Active);
     }
 
     [Test]

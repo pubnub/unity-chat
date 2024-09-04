@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using PubnubChatApi.Entities.Data;
+using PubnubChatApi.Enums;
 using UnityEngine;
 
 namespace PubnubChat
@@ -7,12 +10,27 @@ namespace PubnubChat
     [CreateAssetMenu(fileName = "PubnubChatConfigAsset", menuName = "PubNub/PubNub Chat Config Asset")]
     public class PubnubChatConfigAsset : ScriptableObject
     {
+        [Serializable]
+        private struct ChannelRateLimit
+        {
+            public PubnubChannelType Type;
+            public int Rate;
+        }
+
         [field: SerializeField] public string PublishKey { get; private set; }
         [field: SerializeField] public string SubscribeKey { get; private set; }
         [field: SerializeField] public string UserId { get; private set; }
         [field: SerializeField] public string AuthKey { get; private set; }
         [field: SerializeField] public int TypingTimeout { get; private set; } = 5000;
         [field: SerializeField] public int TypingTimeoutDifference { get; private set; } = 1000;
+        [field: SerializeField] public int RateLimitFactor { get; private set; }
+
+        [SerializeField] private List<ChannelRateLimit> rateLimitPerChannel = new();
+        public Dictionary<PubnubChannelType, int> RateLimitPerChannel =>
+            rateLimitPerChannel.ToDictionary(x => x.Type, y => y.Rate);
+
+        [field: SerializeField] public bool StoreUserActivityTimestamp { get; private set; }
+        [field: SerializeField] public int StoreUserActivityInterval { get; private set; } = 60000;
 
         public static implicit operator PubnubChatConfig(PubnubChatConfigAsset asset)
         {
@@ -32,7 +50,11 @@ namespace PubnubChat
             }
 
             return new PubnubChatConfig(asset.PublishKey, asset.SubscribeKey, asset.UserId, asset.AuthKey,
-                asset.TypingTimeout, asset.TypingTimeoutDifference);
+                asset.TypingTimeout, asset.TypingTimeoutDifference, 
+                rateLimitFactor: asset.RateLimitFactor,
+                rateLimitPerChannel: asset.RateLimitPerChannel,
+                storeUserActivityInterval: asset.StoreUserActivityInterval,
+                storeUserActivityTimestamp: asset.StoreUserActivityTimestamp);
         }
     }
 }

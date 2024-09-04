@@ -417,8 +417,7 @@ namespace PubNubChatAPI.Entities
                 }
 
                 //Create and start new timer
-                //TODO: Get this from config
-                var newTimer = new Timer(5000);
+                var newTimer = new Timer(chat.Config.TypingTimeout);
                 newTimer.Elapsed += (_, _) =>
                 {
                     typingIndicators.Remove(chatEvent.UserId);

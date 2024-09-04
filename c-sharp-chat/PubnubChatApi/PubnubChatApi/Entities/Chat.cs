@@ -34,7 +34,9 @@ namespace PubNubChatAPI.Entities
             string user_id,
             string auth_key,
             int typing_timeout,
-            int typing_timeout_difference);
+            int typing_timeout_difference,
+            int store_user_activity_interval,
+            bool store_user_activity_timestamps);
 
         [DllImport("pubnub-chat")]
         private static extern void pn_chat_delete(IntPtr chat);
@@ -315,6 +317,7 @@ namespace PubNubChatAPI.Entities
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
+        public PubnubChatConfig Config { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
@@ -329,9 +332,11 @@ namespace PubNubChatAPI.Entities
         public Chat(PubnubChatConfig config)
         {
             chatPointer = pn_chat_new(config.PublishKey, config.SubscribeKey, config.UserId, config.AuthKey,
-                config.TypingTimeout, config.TypingTimeoutDifference);
+                config.TypingTimeout, config.TypingTimeoutDifference, config.StoreUserActivityInterval, 
+                config.StoreUserActivityTimestamp);
             CUtilities.CheckCFunctionResult(chatPointer);
 
+            Config = config;
             ChatAccessManager = new ChatAccessManager(chatPointer);
 
             fetchUpdatesThread = new Thread(FetchUpdatesLoop) { IsBackground = true };
@@ -392,7 +397,6 @@ namespace PubNubChatAPI.Entities
                                 {
                                     failedToInvoke = true;
                                 }
-
                                 break;
                             case PubnubChatEventType.Report:
                                 OnReportEvent?.Invoke(chatEvent);
@@ -403,7 +407,6 @@ namespace PubNubChatAPI.Entities
                                 {
                                     readReceiptChannel.BroadcastReadReceipt(chatEvent);
                                 }
-
                                 break;
                             case PubnubChatEventType.Mention:
                                 OnMentionEvent?.Invoke(chatEvent);
@@ -445,10 +448,6 @@ namespace PubNubChatAPI.Entities
                             messageWrappers[timeToken] = message;
                             channel.BroadcastMessageReceived(message);
                         }
-                        else
-                        {
-                            Debug.WriteLine("BBBBBBBBBBB");
-                        }
 
                         pn_dispose_message(pointer);
                         continue;
@@ -481,10 +480,8 @@ namespace PubNubChatAPI.Entities
                         var id = Message.GetMessageIdFromPtr(updatedThreadMessagePointer);
                         if (messageWrappers.TryGetValue(id, out var existingMessageWrapper))
                         {
-                            Debug.WriteLine("KURWA");
                             if (existingMessageWrapper is ThreadMessage existingThreadMessageWrapper)
                             {
-                                Debug.WriteLine("MAĆ");
                                 existingThreadMessageWrapper.UpdateWithPartialPtr(updatedThreadMessagePointer);
                                 existingThreadMessageWrapper.BroadcastMessageUpdate();
                             }
@@ -493,10 +490,6 @@ namespace PubNubChatAPI.Entities
                                 Debug.WriteLine(
                                     "Thread message was stored as a regular message - SHOULD NEVER HAPPEN!");
                             }
-                        }
-                        else
-                        {
-                            Debug.WriteLine("CHUJ");
                         }
 
                         pn_dispose_message(pointer);
@@ -842,6 +835,16 @@ namespace PubNubChatAPI.Entities
         {
             return TryGetWrapper(channelWrappers, channelId, channelPointer,
                 () => new Channel(this, channelId, channelPointer), out channel);
+        }
+
+        //The TryGetChannel updates the pointer, these methods are for internal logic explicity sake
+        internal void UpdateChannelPointer(IntPtr newPointer)
+        {
+            TryGetChannel(newPointer, out _);
+        }
+        internal void UpdateChannelPointer(string id, IntPtr newPointer)
+        {
+            TryGetChannel(id, newPointer, out _);
         }
 
         public ChannelsResponseWrapper GetChannels(string filter = "", string sort = "", int limit = 0,
