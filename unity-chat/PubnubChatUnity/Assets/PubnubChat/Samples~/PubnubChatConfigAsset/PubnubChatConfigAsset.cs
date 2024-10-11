@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Enums;
 using UnityEngine;
 
 namespace PubnubChat
@@ -10,13 +7,6 @@ namespace PubnubChat
     [CreateAssetMenu(fileName = "PubnubChatConfigAsset", menuName = "PubNub/PubNub Chat Config Asset")]
     public class PubnubChatConfigAsset : ScriptableObject
     {
-        [Serializable]
-        private struct ChannelRateLimit
-        {
-            public PubnubChannelType Type;
-            public int Rate;
-        }
-
         [field: SerializeField] public string PublishKey { get; private set; }
         [field: SerializeField] public string SubscribeKey { get; private set; }
         [field: SerializeField] public string UserId { get; private set; }
@@ -24,11 +14,7 @@ namespace PubnubChat
         [field: SerializeField] public int TypingTimeout { get; private set; } = 5000;
         [field: SerializeField] public int TypingTimeoutDifference { get; private set; } = 1000;
         [field: SerializeField] public int RateLimitFactor { get; private set; }
-
-        [SerializeField] private List<ChannelRateLimit> rateLimitPerChannel = new();
-        public Dictionary<PubnubChannelType, int> RateLimitPerChannel =>
-            rateLimitPerChannel.ToDictionary(x => x.Type, y => y.Rate);
-
+        [field: SerializeField] public PubnubChatConfig.RateLimitPerChannel RateLimitPerChannel { get; private set; }
         [field: SerializeField] public bool StoreUserActivityTimestamp { get; private set; }
         [field: SerializeField] public int StoreUserActivityInterval { get; private set; } = 60000;
 
