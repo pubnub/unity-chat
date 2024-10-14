@@ -33,6 +33,16 @@ public class UserTests
         await Task.Delay(500);
         Assert.True(user.Active);
     }
+    
+    [Test]
+    public async Task TestLastUserActive()
+    {
+        await Task.Delay(500);
+        var lastActive = user.LastActiveTimeStamp;
+        Assert.False(string.IsNullOrEmpty(lastActive));
+        Assert.True(long.TryParse(lastActive, out var numberTimeStamp));
+        Assert.True(numberTimeStamp > 0);
+    }
 
     [Test]
     public async Task TestUserUpdate()

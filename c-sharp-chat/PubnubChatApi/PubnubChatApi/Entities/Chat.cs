@@ -442,7 +442,6 @@ namespace PubNubChatAPI.Entities
                         var id = Message.GetChannelIdFromMessagePtr(threadMessagePointer);
                         if (channelWrappers.TryGetValue(id, out var channel))
                         {
-                            Debug.WriteLine("AAAAAAAAAAAAAAAA");
                             var timeToken = Message.GetMessageIdFromPtr(threadMessagePointer);
                             var message = new ThreadMessage(this, threadMessagePointer, timeToken);
                             messageWrappers[timeToken] = message;
@@ -1423,6 +1422,11 @@ namespace PubNubChatAPI.Entities
 
         #region Messages
 
+        public EventsHistoryWrapper GetMessageReportsHistory(string channelId, string startTimeToken, string endTimeToken, int count)
+        {
+            return GetEventsHistory($"PUBNUB_INTERNAL_MODERATION_{channelId}", startTimeToken, endTimeToken, count);
+        }
+        
         /// <summary>
         /// Gets the <c>Message</c> object for the given timetoken.
         /// <para>
