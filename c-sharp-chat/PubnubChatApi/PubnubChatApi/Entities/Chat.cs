@@ -1782,11 +1782,16 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        ~Chat()
+        public void Destroy()
         {
             fetchUpdates = false;
             fetchUpdatesThread.Join();
             pn_chat_delete(chatPointer);
+        }
+
+        ~Chat()
+        {
+            Destroy();
         }
     }
 }
