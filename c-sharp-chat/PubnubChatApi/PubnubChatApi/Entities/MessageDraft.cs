@@ -47,6 +47,13 @@ namespace PubNubChatAPI.Entities
     {
         public MentionTarget MentionTarget { get; set; }
     };
+    
+    public class SuggestedMention {
+        public int Offset;
+        public string ReplaceFrom;
+        public string ReplaceTo;
+        MentionTarget Target;
+    };
 
     //TODO: fix inline documentation format
     public class MessageDraft : ChatEntity
@@ -115,27 +122,7 @@ namespace PubNubChatAPI.Entities
             ChannelLimit = channelLimit;
             QuotedMessage = quotedMessage;
         }
-
-        /**
-         * Can be used to attach files to send with this [MessageDraft].
-         */
-        //val files: MutableList<InputFile>
-
-        //TODO: events
-        /**
-         * Add a [MessageDraftStateListener] to listen for changes to the contents of this [MessageDraft], as well as
-         * to retrieve the current mention suggestions for users and channels (e.g. when the message draft contains
-         * "... @name ..." or "... #chann ...")
-         *
-         * @param callback the [MessageDraftStateListener] that will receive the most current message elements list and
-         * suggestions list.
-         */
-        //fun addMessageElementsListener(callback: MessageDraftStateListener)
-
-        /**
-         * Remove the given [MessageDraftStateListener] from active listeners.
-         */
-        //fun removeMessageElementsListener(callback: MessageDraftStateListener)
+        
 
         /// <summary>
         /// Insert some text into the [MessageDraft] text at the given offset.
@@ -156,20 +143,17 @@ namespace PubNubChatAPI.Entities
         {
             throw new NotImplementedException();
         }
-
-        //TODO: will have to see about the SuggestedMention here
-        /**
-         * Insert mention into the [MessageDraft] according to [SuggestedMention.offset], [SuggestedMention.replaceFrom] and
-         * [SuggestedMention.target].
-         *
-         * The [SuggestedMention] must be up to date with the message text, that is: [SuggestedMention.replaceFrom] must
-         * match the message draft at position [SuggestedMention.replaceFrom], otherwise an exception will be thrown.
-         *
-         * @param mention a [SuggestedMention] that can be obtained from [MessageDraftStateListener]
-         * @param text the text to replace [SuggestedMention.replaceFrom] with. [SuggestedMention.replaceTo] can be used for example.
-         */
-        /*void insertSuggestedMention(mention: SuggestedMention, string text){
-        }*/
+        
+        /// <summary>
+        /// Insert mention into the MessageDraft according to SuggestedMention.Offset, SuggestedMention.ReplaceFrom and
+        /// SuggestedMention.target.
+        /// </summary>
+        /// <param name="mention">A SuggestedMention that can be obtained from MessageDraftStateListener</param>
+        /// <param name="text">The text to replace SuggestedMention.ReplaceFrom with. SuggestedMention.ReplaceTo can be used for example.</param>
+        void InsertSuggestedMention(SuggestedMention mention, string text)
+        {
+            
+        }
         
         /// <summary>
         /// Add a mention to a user, channel or link specified by [target] at the given offset.
@@ -177,49 +161,43 @@ namespace PubNubChatAPI.Entities
         /// <param name="offset">The start of the mention</param>
         /// <param name="length">The number of characters (length) of the mention</param>
         /// <param name="target">The target of the mention, e.g. [MentionTarget.User], [MentionTarget.Channel] or [MentionTarget.Url]</param>
-        /// <exception cref="NotImplementedException"></exception>
         public void AddMention(int offset, int length, MentionTarget target)
         {
             throw new NotImplementedException();
         }
-
-        /**
-         * Remove a mention starting at the given offset, if any.
-         *
-         * @param offset the start of the mention to remove
-         */
+        
+        /// <summary>
+        /// Remove a mention starting at the given offset, if any.
+        /// </summary>
+        /// <param name="offset">Offset the start of the mention to remove</param>
         public void RemoveMention(int offset)
         {
             throw new NotImplementedException();
         }
-
-        /**
-         * Update the whole message draft text with a new value.
-         *
-         * Internally [MessageDraft] will try to calculate the most
-         * optimal set of insertions and removals that will convert the current text to the provided [text], in order to
-         * preserve any mentions. This is a best effort operation, and if any mention text is found to be modified,
-         * the mention will be invalidated and removed.
-         */
+        
+        /// <summary>
+        /// Update the whole message draft text with a new value.
+        /// Internally MessageDraft will try to calculate the most
+        /// optimal set of insertions and removals that will convert the current text to the provided [text], in order to
+        /// preserve any mentions. This is a best effort operation, and if any mention text is found to be modified,
+        /// the mention will be invalidated and removed.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public void Update(string text)
         {
             throw new NotImplementedException();
         }
 
-        /**
-         * Send the [MessageDraft], along with its [files] and [quotedMessage] if any, on the [channel].
-         *
-         * @param meta Publish additional details with the request.
-         * @param shouldStore If true, the messages are stored in Message Persistence if enabled in Admin Portal.
-         * @param usePost Use HTTP POST
-         * @param ttl Defines if / how long (in hours) the message should be stored in Message Persistence.
-         * If shouldStore = true, and ttl = 0, the message is stored with no expiry time.
-         * If shouldStore = true and ttl = X, the message is stored with an expiry time of X hours.
-         * If shouldStore = false, the ttl parameter is ignored.
-         * If ttl is not specified, then the expiration of the message defaults back to the expiry value for the keyset.
-         *
-         * @return [PNFuture] containing [PNPublishResult] that holds the timetoken of the sent message.
-         */
+        /// <summary>
+        /// Send the MessageDraft, along with its quotedMessage if any, on the channel.
+        /// </summary>
+        /// <param name="meta">Any additional information</param>
+        /// <param name="shouldStore">If true, the messages are stored in Message Persistence if enabled in Admin Portal.</param>
+        /// <param name="usePost">Use HTTP POST</param>
+        /// <param name="ttl">Defines if / how long (in hours) the message should be stored in Message Persistence.
+        /// If ttl is not specified, then the expiration of the message defaults back to the expiry value for the keyset.</param>
+        /// <exception cref="NotImplementedException"></exception>
         public async Task Send(
             Dictionary<string, object> meta = null,
             bool shouldStore = true,
