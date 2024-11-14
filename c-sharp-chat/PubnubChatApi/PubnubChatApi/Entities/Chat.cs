@@ -306,6 +306,7 @@ namespace PubNubChatAPI.Entities
         private Dictionary<string, Message> messageWrappers = new();
         private bool fetchUpdates = true;
         private Thread fetchUpdatesThread;
+        private SynchronizationContext context;
 
         public event Action<ChatEvent> OnReportEvent;
         public event Action<ChatEvent> OnModerationEvent;
@@ -319,8 +320,6 @@ namespace PubNubChatAPI.Entities
         public ChatAccessManager ChatAccessManager { get; }
         public PubnubChatConfig Config { get; }
 
-        private SynchronizationContext context;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
         /// <para>
@@ -328,10 +327,12 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="config">Config with PubNub keys and values</param>
+        /// <param name="synchronizationContext">Synchronization context on which the chat callbacks should be called,
+        /// defaults to SynchronizationContext.Current assigned in the Chat constructor.</param>
         /// <remarks>
         /// The constructor initializes the chat instance with the provided keys and user ID from the Config.
         /// </remarks>
-        public Chat(PubnubChatConfig config)
+        public Chat(PubnubChatConfig config, SynchronizationContext? synchronizationContext = null)
         {
             chatPointer = pn_chat_new(config.PublishKey, config.SubscribeKey, config.UserId, config.AuthKey,
                 config.TypingTimeout, config.TypingTimeoutDifference, config.StoreUserActivityInterval, 
@@ -340,7 +341,7 @@ namespace PubNubChatAPI.Entities
 
             Config = config;
             ChatAccessManager = new ChatAccessManager(chatPointer);
-            context = SynchronizationContext.Current;
+            context = synchronizationContext ?? SynchronizationContext.Current;
 
             fetchUpdatesThread = new Thread(FetchUpdatesLoop) { IsBackground = true };
             fetchUpdatesThread.Start();
