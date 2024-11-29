@@ -39,16 +39,6 @@ public class MessageTests
         channel.SendText("Test message text", new SendTextParams()
         {
             MentionedUsers = new Dictionary<int, User>() { { 0, user } },
-            ReferencedChannels = new Dictionary<int, Channel>() { { 0, channel } },
-            TextLinks =
-            [
-                new TextLink()
-                {
-                    StartIndex = 0,
-                    EndIndex = 13,
-                    Link = "www.google.com"
-                }
-            ]
         });
 
         var received = manualReceiveEvent.WaitOne(4000);
@@ -68,16 +58,6 @@ public class MessageTests
                 testChannel.SendText("message_with_data", new SendTextParams()
                 {
                     MentionedUsers = new Dictionary<int, User>() { { 0, user } },
-                    ReferencedChannels = new Dictionary<int, Channel>() { { 0, testChannel } },
-                    TextLinks =
-                    [
-                        new TextLink()
-                        {
-                            StartIndex = 0,
-                            EndIndex = 13,
-                            Link = "www.google.com"
-                        }
-                    ],
                     QuotedMessage = message
                 });
             }

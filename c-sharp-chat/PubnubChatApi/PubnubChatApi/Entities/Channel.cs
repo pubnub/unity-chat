@@ -141,10 +141,6 @@ namespace PubNubChatAPI.Entities
             int mentioned_users_length,
             int[] mentioned_users_indexes,
             IntPtr[] mentioned_users,
-            int referenced_channels_length,
-            int[] referenced_channels_indexes,
-            IntPtr[] referenced_channels,
-            string text_links_json,
             IntPtr quoted_message);
 
         [DllImport("pubnub-chat")]
@@ -693,10 +689,6 @@ namespace PubNubChatAPI.Entities
                 sendTextParams.MentionedUsers.Count,
                 sendTextParams.MentionedUsers.Keys.ToArray(),
                 sendTextParams.MentionedUsers.Values.Select(x => x.Pointer).ToArray(),
-                sendTextParams.ReferencedChannels.Count,
-                sendTextParams.ReferencedChannels.Keys.ToArray(),
-                sendTextParams.ReferencedChannels.Values.Select(x => x.Pointer).ToArray(),
-                JsonConvert.SerializeObject(sendTextParams.TextLinks),
                 sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer));
         }
 
