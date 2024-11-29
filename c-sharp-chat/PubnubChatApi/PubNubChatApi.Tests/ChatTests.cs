@@ -55,7 +55,8 @@ public class ChatTests
     [Test]
     public async Task TestGetUserSuggestions()
     {
-        var suggestedUser = chat.CreateUser("some_guy", new ChatUserData()
+        var suggestedUser = chat.GetOrCreateUser("some_guy");
+        suggestedUser.Update(new ChatUserData()
         {
             Username = "THE_GUY"
         });
@@ -108,7 +109,7 @@ public class ChatTests
     [Test]
     public void TestCreateDirectConversation()
     {
-        var convoUser = chat.CreateUser("direct_conversation_user");
+        var convoUser = chat.GetOrCreateUser("direct_conversation_user");
         var directConversation =
             chat.CreateDirectConversation(convoUser, "direct_conversation_test");
         Assert.True(directConversation.CreatedChannel is { Id: "direct_conversation_test" });
@@ -120,9 +121,9 @@ public class ChatTests
     [Test]
     public void TestCreateGroupConversation()
     {
-        var convoUser1 = chat.CreateUser("group_conversation_user_1");
-        var convoUser2 = chat.CreateUser("group_conversation_user_2");
-        var convoUser3 = chat.CreateUser("group_conversation_user_3");
+        var convoUser1 = chat.GetOrCreateUser("group_conversation_user_1");
+        var convoUser2 = chat.GetOrCreateUser("group_conversation_user_2");
+        var convoUser3 = chat.GetOrCreateUser("group_conversation_user_3");
         var groupConversation =
             chat.CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
         Assert.True(groupConversation.CreatedChannel is { Id: "group_conversation_test" });

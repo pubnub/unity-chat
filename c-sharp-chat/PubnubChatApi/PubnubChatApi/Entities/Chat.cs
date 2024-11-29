@@ -306,7 +306,7 @@ namespace PubNubChatAPI.Entities
         private Dictionary<string, Message> messageWrappers = new();
         private bool fetchUpdates = true;
         private Thread fetchUpdatesThread;
-        private SynchronizationContext context;
+        private SynchronizationContext? context;
 
         public event Action<ChatEvent> OnReportEvent;
         public event Action<ChatEvent> OnModerationEvent;
@@ -361,6 +361,18 @@ namespace PubNubChatAPI.Entities
 
         internal void ParseJsonUpdatePointers(string jsonPointers)
         {
+            void Post(SendOrPostCallback callback, object? state)
+            {
+                if (context != null)
+                {
+                    context.Post(callback, state);
+                }
+                else
+                {
+                    callback.Invoke(state);
+                }
+            }
+            
             if (!string.IsNullOrEmpty(jsonPointers) && jsonPointers != "[]")
             {
                 Debug.WriteLine($"Received pointers JSON to parse: {jsonPointers}");
@@ -395,7 +407,7 @@ namespace PubNubChatAPI.Entities
                                 if (TryGetChannel(chatEvent.ChannelId, out var typingChannel)
                                     && typingChannel.TryParseAndBroadcastTypingEvent(chatEvent))
                                 {
-                                    context.Post(delegate
+                                    Post(delegate
                                     {
                                         OnTypingEvent?.Invoke(chatEvent);
                                     }, null);
@@ -406,44 +418,44 @@ namespace PubNubChatAPI.Entities
                                 }
                                 break;
                             case PubnubChatEventType.Report:
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     OnReportEvent?.Invoke(chatEvent); 
                                 }, null);
                                 break;
                             case PubnubChatEventType.Receipt:
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     OnReadReceiptEvent?.Invoke(chatEvent);
                                 }, null);
                                 if (TryGetChannel(chatEvent.ChannelId, out var readReceiptChannel))
                                 {
-                                    context.Post(delegate
+                                    Post(delegate
                                     {
                                         readReceiptChannel.BroadcastReadReceipt(chatEvent);
                                     }, null);
                                 }
                                 break;
                             case PubnubChatEventType.Mention:
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     OnMentionEvent?.Invoke(chatEvent);
                                 }, null);
                                 break;
                             case PubnubChatEventType.Invite:
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     OnInviteEvent?.Invoke(chatEvent);
                                 }, null);
                                 break;
                             case PubnubChatEventType.Custom:
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     OnCustomEvent?.Invoke(chatEvent);
                                 }, null);
                                 break;
                             case PubnubChatEventType.Moderation:
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     OnModerationEvent?.Invoke(chatEvent);
                                 }, null);
@@ -454,7 +466,7 @@ namespace PubNubChatAPI.Entities
 
                         if (!failedToInvoke)
                         {
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 OnAnyEvent?.Invoke(chatEvent);
                             }, null);
@@ -476,7 +488,7 @@ namespace PubNubChatAPI.Entities
                             var timeToken = Message.GetMessageIdFromPtr(threadMessagePointer);
                             var message = new ThreadMessage(this, threadMessagePointer, timeToken);
                             messageWrappers[timeToken] = message;
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 channel.BroadcastMessageReceived(message);
                             }, null);
@@ -498,7 +510,7 @@ namespace PubNubChatAPI.Entities
                             var timeToken = Message.GetMessageIdFromPtr(messagePointer);
                             var message = new Message(this, messagePointer, timeToken);
                             messageWrappers[timeToken] = message;
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 channel.BroadcastMessageReceived(message);
                             }, null);
@@ -519,7 +531,7 @@ namespace PubNubChatAPI.Entities
                             if (existingMessageWrapper is ThreadMessage existingThreadMessageWrapper)
                             {
                                 existingThreadMessageWrapper.UpdateWithPartialPtr(updatedThreadMessagePointer);
-                                context.Post(delegate
+                                Post(delegate
                                 {
                                     existingThreadMessageWrapper.BroadcastMessageUpdate();
                                 }, null);
@@ -544,7 +556,7 @@ namespace PubNubChatAPI.Entities
                         if (messageWrappers.TryGetValue(id, out var existingMessageWrapper))
                         {
                             existingMessageWrapper.UpdateWithPartialPtr(updatedMessagePointer);
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 existingMessageWrapper.BroadcastMessageUpdate();
                             }, null);
@@ -568,7 +580,7 @@ namespace PubNubChatAPI.Entities
                             //This has a check for "PUBNUB_INTERNAL_THREAD" and will correctly update the pointer
                             TryGetChannel(id, out var existingThreadChannel);
                             //TODO: broadcast thread channel update (very low priority because I don't think they have that in JS chat)
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 existingThreadChannel.BroadcastChannelUpdate();
                             }, null);
@@ -576,7 +588,7 @@ namespace PubNubChatAPI.Entities
                         else if (channelWrappers.TryGetValue(id, out var existingChannelWrapper))
                         {
                             existingChannelWrapper.UpdateWithPartialPtr(channelPointer);
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 existingChannelWrapper.BroadcastChannelUpdate();
                             }, null);
@@ -596,7 +608,7 @@ namespace PubNubChatAPI.Entities
                         if (userWrappers.TryGetValue(id, out var existingUserWrapper))
                         {
                             existingUserWrapper.UpdateWithPartialPtr(userPointer);
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 existingUserWrapper.BroadcastUserUpdate();
                             }, null);
@@ -616,7 +628,7 @@ namespace PubNubChatAPI.Entities
                         if (membershipWrappers.TryGetValue(id, out var existingMembershipWrapper))
                         {
                             existingMembershipWrapper.UpdateWithPartialPtr(membershipPointer);
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 existingMembershipWrapper.BroadcastMembershipUpdate();
                             }, null);
@@ -641,7 +653,7 @@ namespace PubNubChatAPI.Entities
 
                         if (TryGetChannel(channelId, out var channel))
                         {
-                            context.Post(delegate
+                            Post(delegate
                             {
                                 channel.BroadcastPresenceUpdate();
                             }, null);

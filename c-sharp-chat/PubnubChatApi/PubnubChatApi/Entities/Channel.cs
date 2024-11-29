@@ -115,7 +115,7 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_channel_create_message_draft_dirty(IntPtr channel,
-            string user_suggestion_source,
+            int user_suggestion_source,
             bool is_typing_indicator_triggered,
             int user_limit,
             int channel_limit);
@@ -305,6 +305,7 @@ namespace PubNubChatAPI.Entities
             {
                 return;
             }
+
             Connect();
         }
 
@@ -329,7 +330,7 @@ namespace PubNubChatAPI.Entities
         public event Action<List<string>> OnPresenceUpdate;
 
         public event Action<List<string>> OnUsersTyping;
-        
+
         public event Action<ChatEvent> OnReadReceiptEvent;
 
         internal Channel(Chat chat, string channelId, IntPtr channelPointer) : base(channelPointer, channelId)
@@ -500,14 +501,22 @@ namespace PubNubChatAPI.Entities
             return PointerParsers.ParseJsonMembershipPointers(chat, pointers);
         }
 
-        /*public MessageDraft CreateMessageDraft()
+        /// <summary>
+        /// Creates a new MessageDraft.
+        /// </summary>
+        /// <param name="userSuggestionSource">Source of the user suggestions</param>
+        /// <param name="isTypingIndicatorTriggered">Typing indicator trigger status.</param>
+        /// <param name="userLimit">User limit.</param>
+        /// <param name="channelLimit">Channel limit.</param>
+        /// <returns></returns>
+        public MessageDraft CreateMessageDraft(UserSuggestionSource userSuggestionSource = UserSuggestionSource.GLOBAL,
+            bool isTypingIndicatorTriggered = true, int userLimit = 10, int channelLimit = 10)
         {
-            //TODO: hardcoded config
             var draftPointer = pn_channel_create_message_draft_dirty(
-                pointer, "channel", true, 10, 10);
+                pointer, (int)userSuggestionSource, isTypingIndicatorTriggered, userLimit, channelLimit);
             CUtilities.CheckCFunctionResult(draftPointer);
             return new MessageDraft(draftPointer);
-        }*/
+        }
 
         /// <summary>
         /// Connects to the channel.
@@ -778,12 +787,14 @@ namespace PubNubChatAPI.Entities
         {
             page ??= new Page();
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer));
+            CUtilities.CheckCFunctionResult(
+                pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer));
             var restrictionsJson = buffer.ToString();
             if (!CUtilities.IsValidJson(restrictionsJson))
             {
                 return new UsersRestrictionsWrapper();
             }
+
             var wrapper = JsonConvert.DeserializeObject<UsersRestrictionsWrapper>(restrictionsJson);
             wrapper ??= new UsersRestrictionsWrapper();
             return wrapper;
