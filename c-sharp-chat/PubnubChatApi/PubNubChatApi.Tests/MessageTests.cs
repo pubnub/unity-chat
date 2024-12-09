@@ -203,17 +203,21 @@ public class MessageTests
         channel.OnMessageReceived += async message =>
         {
             message.ToggleReaction("happy");
-
-            await Task.Delay(3000);
-
             var has = message.HasUserReaction("happy");
             Assert.True(has);
             var reactions = message.Reactions;
             Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));
+
+            await Task.Delay(3000);
+
+            has = message.HasUserReaction("happy");
+            Assert.True(has);
+            reactions = message.Reactions;
+            Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));
             manualReset.Set();
         };
         channel.SendText("a_message");
-        var reacted = manualReset.WaitOne(7000);
+        var reacted = manualReset.WaitOne(10000);
         Assert.True(reacted);
     }
 
