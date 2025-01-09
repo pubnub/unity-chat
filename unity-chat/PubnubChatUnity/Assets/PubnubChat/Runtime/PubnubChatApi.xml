@@ -120,6 +120,16 @@
              </example>
             
         </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.CreateMessageDraft(PubNubChatAPI.Entities.UserSuggestionSource,System.Boolean,System.Int32,System.Int32)">
+            <summary>
+            Creates a new MessageDraft.
+            </summary>
+            <param name="userSuggestionSource">Source of the user suggestions</param>
+            <param name="isTypingIndicatorTriggered">Typing indicator trigger status.</param>
+            <param name="userLimit">User limit.</param>
+            <param name="channelLimit">Channel limit.</param>
+            <returns></returns>
+        </member>
         <member name="M:PubNubChatAPI.Entities.Channel.Connect">
             <summary>
             Connects to the channel.
@@ -408,7 +418,7 @@
             The class is responsible for creating and managing channels, users, and messages.
             </remarks>
         </member>
-        <member name="M:PubNubChatAPI.Entities.Chat.#ctor(PubnubChatApi.Entities.Data.PubnubChatConfig)">
+        <member name="M:PubNubChatAPI.Entities.Chat.#ctor(PubnubChatApi.Entities.Data.PubnubChatConfig,System.Threading.SynchronizationContext)">
             <summary>
             Initializes a new instance of the <see cref="T:PubNubChatAPI.Entities.Chat"/> class.
             <para>
@@ -416,6 +426,8 @@
             </para>
             </summary>
             <param name="config">Config with PubNub keys and values</param>
+            <param name="synchronizationContext">Synchronization context on which the chat callbacks should be called,
+            defaults to SynchronizationContext.Current assigned in the Chat constructor.</param>
             <remarks>
             The constructor initializes the chat instance with the provided keys and user ID from the Config.
             </remarks>
@@ -1051,61 +1063,31 @@
             <seealso cref="P:PubNubChatAPI.Entities.Message.IsDeleted"/>
             <seealso cref="E:PubNubChatAPI.Entities.Message.OnMessageUpdated"/>
         </member>
-        <member name="T:PubNubChatAPI.Entities.MessageDraft.UserSuggestionSource">
+        <member name="T:PubNubChatAPI.Entities.UserSuggestionSource">
             <summary>
             Enum describing the source for getting user suggestions for mentions.
             </summary>
         </member>
-        <member name="F:PubNubChatAPI.Entities.MessageDraft.UserSuggestionSource.GLOBAL">
+        <member name="F:PubNubChatAPI.Entities.UserSuggestionSource.GLOBAL">
             <summary>
             Search for users globally.
             </summary>
         </member>
-        <member name="F:PubNubChatAPI.Entities.MessageDraft.UserSuggestionSource.CHANNEL">
+        <member name="F:PubNubChatAPI.Entities.UserSuggestionSource.CHANNEL">
             <summary>
             Search only for users that are members of this channel.
             </summary>
         </member>
-        <member name="P:PubNubChatAPI.Entities.MessageDraft.Channel">
-            <summary>
-            The Channel where this MessageDraft will be published.
-            </summary>
-        </member>
-        <member name="P:PubNubChatAPI.Entities.MessageDraft.UserSuggestionSourceSetting">
-            <summary>
-            The scope for searching for suggested users - either [UserSuggestionSource.GLOBAL] or [UserSuggestionSource.CHANNEL].
-            </summary>
-        </member>
-        <member name="P:PubNubChatAPI.Entities.MessageDraft.IsTypingIndicatorTriggered">
-            <summary>
-            Whether modifying the message text triggers the typing indicator on [channel].
-            </summary>
-        </member>
-        <member name="P:PubNubChatAPI.Entities.MessageDraft.UserLimit">
-            <summary>
-            The limit on the number of users returned when searching for users to mention.
-            </summary>
-        </member>
-        <member name="P:PubNubChatAPI.Entities.MessageDraft.ChannelLimit">
-            <summary>
-            The limit on the number of channels returned when searching for channels to reference.
-            </summary>
-        </member>
-        <member name="P:PubNubChatAPI.Entities.MessageDraft.QuotedMessage">
-            <summary>
-            Can be used to set a [Message] to quote when sending this [MessageDraft].
-            </summary>
-        </member>
         <member name="M:PubNubChatAPI.Entities.MessageDraft.InsertText(System.Int32,System.String)">
             <summary>
-            Insert some text into the [MessageDraft] text at the given offset.
+            Insert some text into the MessageDraft text at the given offset.
             </summary>
             <param name="offset">The position from the start of the message draft where insertion will occur</param>
             <param name="text">Text the text to insert at the given offset</param>
         </member>
         <member name="M:PubNubChatAPI.Entities.MessageDraft.RemoveText(System.Int32,System.Int32)">
             <summary>
-            Remove a number of characters from the [MessageDraft] text at the given offset.
+            Remove a number of characters from the MessageDraft text at the given offset.
             </summary>
             <param name="offset">The position from the start of the message draft where removal will occur</param>
             <param name="length">Length the number of characters to remove, starting at the given offset</param>
@@ -1120,11 +1102,11 @@
         </member>
         <member name="M:PubNubChatAPI.Entities.MessageDraft.AddMention(System.Int32,System.Int32,PubNubChatAPI.Entities.MentionTarget)">
             <summary>
-            Add a mention to a user, channel or link specified by [target] at the given offset.
+            Add a mention to a user, channel or link specified by target at the given offset.
             </summary>
             <param name="offset">The start of the mention</param>
             <param name="length">The number of characters (length) of the mention</param>
-            <param name="target">The target of the mention, e.g. [MentionTarget.User], [MentionTarget.Channel] or [MentionTarget.Url]</param>
+            <param name="target">The target of the mention</param>
         </member>
         <member name="M:PubNubChatAPI.Entities.MessageDraft.RemoveMention(System.Int32)">
             <summary>
@@ -1136,23 +1118,92 @@
             <summary>
             Update the whole message draft text with a new value.
             Internally MessageDraft will try to calculate the most
-            optimal set of insertions and removals that will convert the current text to the provided [text], in order to
+            optimal set of insertions and removals that will convert the current text to the provided text, in order to
             preserve any mentions. This is a best effort operation, and if any mention text is found to be modified,
             the mention will be invalidated and removed.
             </summary>
             <param name="text"></param>
-            <exception cref="T:System.NotImplementedException"></exception>
         </member>
-        <member name="M:PubNubChatAPI.Entities.MessageDraft.Send(System.Collections.Generic.Dictionary{System.String,System.Object},System.Boolean,System.Boolean,System.Int32)">
+        <member name="M:PubNubChatAPI.Entities.MessageDraft.Send">
             <summary>
             Send the MessageDraft, along with its quotedMessage if any, on the channel.
             </summary>
-            <param name="meta">Any additional information</param>
-            <param name="shouldStore">If true, the messages are stored in Message Persistence if enabled in Admin Portal.</param>
-            <param name="usePost">Use HTTP POST</param>
-            <param name="ttl">Defines if / how long (in hours) the message should be stored in Message Persistence.
-            If ttl is not specified, then the expiration of the message defaults back to the expiry value for the keyset.</param>
-            <exception cref="T:System.NotImplementedException"></exception>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.MessageDraft.Send(PubnubChatApi.Entities.Data.SendTextParams)">
+            <summary>
+            Send the MessageDraft, along with its quotedMessage if any, on the channel.
+            </summary>
+            <param name="sendTextParams">Additional parameters for sending the message.</param>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.MessageText">
+            <summary>
+            The text content of the message.
+            <para>
+            This is the main content of the message. It can be any text that the user wants to send.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.TimeToken">
+            <summary>
+            The time token of the message.
+            <para>
+            The time token is a unique identifier for the message.
+            It is used to identify the message in the chat.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.ChannelId">
+            <summary>
+            The channel ID of the channel that the message belongs to.
+            <para>
+            This is the ID of the channel that the message was sent to.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.UserId">
+            <summary>
+            The user ID of the user that sent the message.
+            <para>
+            This is the unique ID of the user that sent the message.
+            Do not confuse this with the username of the user.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.Meta">
+            <summary>
+            The metadata of the message.
+            <para>
+            The metadata is additional data that can be attached to the message.
+            It can be used to store additional information about the message.
+            </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.IsDeleted">
+            <summary>
+            Whether the message has been deleted.
+            <para>
+            This property indicates whether the message has been deleted.
+            If the message has been deleted, this property will be true.
+            It means that all the deletions are soft deletions.
+            </para>
+            </summary>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.ThreadMessage.EditMessageText(System.String)">
+            <summary>
+            Edits the text of the message.
+            <para>
+            This method edits the text of the message.
+            It changes the text of the message to the new text provided.
+            </para>
+            </summary>
+            <param name="newText">The new text of the message.</param>
+            <example>
+            <code>
+            var message = // ...;
+            message.EditMessageText("New text");
+            </code>
+            </example>
+            <seealso cref="!:OnMessageUpdated"/>
         </member>
         <member name="T:PubNubChatAPI.Entities.User">
             <summary>
