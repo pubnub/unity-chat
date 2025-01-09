@@ -252,7 +252,7 @@ namespace PubNubChatAPI.Entities
         }
 
         protected Chat chat;
-        private bool connected;
+        protected bool connected;
         private Dictionary<string, Timer> typingIndicators = new();
 
         /// <summary>
@@ -465,10 +465,12 @@ namespace PubNubChatAPI.Entities
         //TODO: currently same result whether error or no pinned message present
         public bool TryGetPinnedMessage(out Message pinnedMessage)
         {
+            //TODO: currently discarding this pointer because it can be either a Message or a ThreadMessage
             var pinnedMessagePointer = pn_channel_get_pinned_message(pointer);
             if (pinnedMessagePointer != IntPtr.Zero)
             {
-                return chat.TryGetMessage(pinnedMessagePointer, out pinnedMessage);
+                var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
+                return chat.TryGetAnyMessage(id, out pinnedMessage);
             }
             else
             {
@@ -567,6 +569,10 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public void Join()
         {
+            /*if (connected)
+            {
+                return;
+            }*/
             connected = true;
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(pn_channel_join(pointer, string.Empty, buffer));
@@ -673,12 +679,12 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while sending the message.</exception>
         /// <seealso cref="OnMessageReceived"/>
-        public void SendText(string message)
+        public virtual void SendText(string message)
         {
             SendText(message, new SendTextParams());
         }
 
-        public void SendText(string message, SendTextParams sendTextParams)
+        public virtual void SendText(string message, SendTextParams sendTextParams)
         {
             CUtilities.CheckCFunctionResult(pn_channel_send_text_dirty(
                 pointer,

@@ -48,7 +48,7 @@ public class UserTests
     public async Task TestUserUpdate()
     {
         var updatedReset = new ManualResetEvent(false);
-        var testUser = chat.CreateUser("wolololo");
+        var testUser = chat.GetOrCreateUser("wolololo");
 
         await Task.Delay(5000);
         

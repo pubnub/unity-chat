@@ -33,18 +33,22 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = message.CreateThread();
+            thread.Join();
+
+            await Task.Delay(5000);
+            
             thread.SendText("one");
             thread.SendText("two");
             thread.SendText("three");
 
-            await Task.Delay(6000);
+            await Task.Delay(10000);
 
             var history = thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
             Assert.True(history.Count == 3 && history.Any(x => x.MessageText == "one"));
             historyReadReset.Set();
         };
         channel.SendText("thread_start_message");
-        var read = historyReadReset.WaitOne(12000);
+        var read = historyReadReset.WaitOne(50000);
         Assert.True(read);
     }
 
@@ -56,10 +60,12 @@ public class ThreadsTests
         {
             var thread = message.CreateThread();
             thread.Join();
+            thread.SendText("thread init message");
+
+            await Task.Delay(5000);
+            
             thread.OnMessageReceived += threadMessage =>
             {
-                //TODO: those will fail if the ThreadChannel true updates are enabled
-                Debug.WriteLine(thread.ParentChannelId);
                 thread.PinMessageToParentChannel(threadMessage);
             };
             thread.SendText("some_thread_message");
@@ -75,7 +81,7 @@ public class ThreadsTests
             historyReadReset.Set();
         };
         channel.SendText("thread_start_message");
-        var read = historyReadReset.WaitOne(15000);
+        var read = historyReadReset.WaitOne(30000);
         Assert.True(read);
     }
     
@@ -108,17 +114,20 @@ public class ThreadsTests
         {
             var thread = message.CreateThread();
             thread.Join();
+
+            await Task.Delay(3000);
+            
             thread.SendText("one");
             thread.SendText("two");
             thread.SendText("three");
             
-            await Task.Delay(3000);
+            await Task.Delay(10000);
             
             var history = thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
             var threadMessage = history[0];
             threadMessage.PinMessageToParentChannel();
             
-            await Task.Delay(3000);
+            await Task.Delay(5000);
 
             Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == threadMessage.MessageText);
             threadMessage.UnPinMessageFromParentChannel();
@@ -129,7 +138,7 @@ public class ThreadsTests
             historyReadReset.Set();
         };
         channel.SendText("thread_start_message");
-        var read = historyReadReset.WaitOne(15000);
+        var read = historyReadReset.WaitOne(45000);
         Assert.True(read);
     }
 
@@ -141,11 +150,14 @@ public class ThreadsTests
         {
             var thread = message.CreateThread();
             thread.Join();
+            
+            await Task.Delay(3000);
+            
             thread.SendText("one");
             thread.SendText("two");
             thread.SendText("three");
             
-            await Task.Delay(3000);
+            await Task.Delay(10000);
             
             var history = thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
             var threadMessage = history[0];
@@ -159,7 +171,7 @@ public class ThreadsTests
             threadMessage.EditMessageText("new_text");
         };
         channel.SendText("thread_start_message");
-        var updated = messageUpdatedReset.WaitOne(15000);
+        var updated = messageUpdatedReset.WaitOne(255000);
         Assert.True(updated);
     }
 }

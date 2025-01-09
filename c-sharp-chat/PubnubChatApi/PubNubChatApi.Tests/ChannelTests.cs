@@ -16,7 +16,7 @@ public class ChannelTests
         chat = new Chat(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "channel_tests_user")
+            "ctuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
         );
         if (!chat.TryGetCurrentUser(out user))
         {
@@ -51,9 +51,9 @@ public class ChannelTests
     }
 
     [Test]
-    public void TestStartTyping()
+    public async Task TestStartTyping()
     {
-        var channel = chat.CreateDirectConversation(talkUser, "start_typing_test_channel").CreatedChannel;
+        var channel = chat.CreateDirectConversation(talkUser, "sttc").CreatedChannel;
         channel.Join();
         
         var typingManualEvent = new ManualResetEvent(false);

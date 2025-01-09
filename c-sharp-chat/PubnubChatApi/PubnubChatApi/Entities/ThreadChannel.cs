@@ -42,6 +42,9 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_thread_channel_unpin_message_from_thread(IntPtr thread_channel);
+
+        [DllImport("pubnub-chat")]
+        private static extern int pn_thread_channel_send_text(IntPtr thread_channel, string text);
         
         #endregion
 
@@ -109,10 +112,10 @@ namespace PubNubChatAPI.Entities
                 return history;
             }
 
-            foreach (var messagePointer in messagePointers)
+            foreach (var threadMessagePointer in messagePointers)
             {
-                var id = ThreadMessage.GetThreadMessageIdFromPtr(messagePointer);
-                if(chat.TryGetMessage(Id, id, out var message) && message is ThreadMessage threadMessage)
+                var id = ThreadMessage.GetThreadMessageIdFromPtr(threadMessagePointer);
+                if(chat.TryGetThreadMessage(id, threadMessagePointer, out var threadMessage))
                 {
                     history.Add(threadMessage);
                 }
@@ -121,7 +124,6 @@ namespace PubNubChatAPI.Entities
                     Debug.WriteLine("Thread history messages aren't found/aren't thread messages - SHOULD BE IMPOSSIBLE!");
                 }
             }
-
             return history;
         }
 
