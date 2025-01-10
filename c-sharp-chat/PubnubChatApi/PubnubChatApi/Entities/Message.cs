@@ -103,7 +103,7 @@ namespace PubNubChatAPI.Entities
         /// This is the main content of the message. It can be any text that the user wants to send.
         /// </para>
         /// </summary>
-        public string MessageText
+        public virtual string MessageText
         {
             get
             {
@@ -120,7 +120,7 @@ namespace PubNubChatAPI.Entities
         /// It is used to identify the message in the chat.
         /// </para>
         /// </summary>
-        public string TimeToken
+        public virtual string TimeToken
         {
             get
             {
@@ -136,7 +136,7 @@ namespace PubNubChatAPI.Entities
         /// This is the ID of the channel that the message was sent to.
         /// </para>
         /// </summary>
-        public string ChannelId
+        public virtual string ChannelId
         {
             get
             {
@@ -153,7 +153,7 @@ namespace PubNubChatAPI.Entities
         /// Do not confuse this with the username of the user.
         /// </para>
         /// </summary>
-        public string UserId
+        public virtual string UserId
         {
             get
             {
@@ -170,7 +170,7 @@ namespace PubNubChatAPI.Entities
         /// It can be used to store additional information about the message.
         /// </para>
         /// </summary>
-        public string Meta
+        public virtual string Meta
         {
             get
             {
@@ -188,7 +188,7 @@ namespace PubNubChatAPI.Entities
         /// It means that all the deletions are soft deletions.
         /// </para>
         /// </summary>
-        public bool IsDeleted
+        public virtual bool IsDeleted
         {
             get
             {
@@ -198,7 +198,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public List<User> MentionedUsers
+        public virtual List<User> MentionedUsers
         {
             get
             {
@@ -218,7 +218,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public List<Channel> ReferencedChannels
+        public virtual List<Channel> ReferencedChannels
         {
             get
             {
@@ -238,7 +238,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public List<TextLink> TextLinks
+        public virtual List<TextLink> TextLinks
         {
             get
             {
@@ -258,7 +258,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        private List<MessageAction> DeserializeMessageActions(string json)
+        protected List<MessageAction> DeserializeMessageActions(string json)
         {
             var reactions = new List<MessageAction>();
             if (CUtilities.IsValidJson(json))
@@ -269,7 +269,7 @@ namespace PubNubChatAPI.Entities
             return reactions;
         }
         
-        public List<MessageAction> MessageActions
+        public virtual List<MessageAction> MessageActions
         {
             get
             {
@@ -279,7 +279,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public List<MessageAction> Reactions
+        public virtual List<MessageAction> Reactions
         {
             get
             {
@@ -297,7 +297,7 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <seealso cref="pubnub_chat_message_type"/>
-        public PubnubChatMessageType Type => (PubnubChatMessageType)pn_message_get_data_type(pointer);
+        public virtual PubnubChatMessageType Type => (PubnubChatMessageType)pn_message_get_data_type(pointer);
 
         protected Chat chat;
 
@@ -355,7 +355,6 @@ namespace PubNubChatAPI.Entities
 
         internal virtual void BroadcastMessageUpdate()
         {
-            Debug.WriteLine($"MESSAGE UPDATE - {MessageText}");
             OnMessageUpdated?.Invoke(this);
         }
 
@@ -374,14 +373,14 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="OnMessageUpdated"/>
-        public void EditMessageText(string newText)
+        public virtual void EditMessageText(string newText)
         {
             var newPointer = pn_message_edit_text(pointer, newText);
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public bool TryGetQuotedMessage(out Message quotedMessage)
+        public virtual bool TryGetQuotedMessage(out Message quotedMessage)
         {
             var quotedMessagePointer = pn_message_quoted_message(pointer);
             if (quotedMessagePointer == IntPtr.Zero)
@@ -420,12 +419,12 @@ namespace PubNubChatAPI.Entities
             CUtilities.CheckCFunctionResult(pn_message_pin(pointer));
         }
 
-        public void Report(string reason)
+        public virtual void Report(string reason)
         {
             CUtilities.CheckCFunctionResult(pn_message_report(pointer, reason));
         }
 
-        public void Forward(string channelId)
+        public virtual void Forward(string channelId)
         {
             if (chat.TryGetChannel(channelId, out var channel))
             {
@@ -433,21 +432,21 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public bool HasUserReaction(string reactionValue)
+        public virtual bool HasUserReaction(string reactionValue)
         {
             var result = pn_message_has_user_reaction(pointer, reactionValue);
             CUtilities.CheckCFunctionResult(result);
             return result == 1;
         }
 
-        public void ToggleReaction(string reactionValue)
+        public virtual void ToggleReaction(string reactionValue)
         {
             var newPointer = pn_message_toggle_reaction(pointer, reactionValue);
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public void Restore()
+        public virtual void Restore()
         {
             var newPointer = pn_message_restore(pointer);
             CUtilities.CheckCFunctionResult(newPointer);
@@ -471,7 +470,7 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
-        public void Delete(bool soft)
+        public virtual void Delete(bool soft)
         {
             if (soft)
             {

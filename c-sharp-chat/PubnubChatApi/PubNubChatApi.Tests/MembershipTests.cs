@@ -62,7 +62,7 @@ public class MembershipTests
     public void TestInvite()
     {
         var testChannel = chat.CreateGroupConversation([user],"test_invite_group_channel").CreatedChannel;
-        var testUser = chat.CreateUser("test_invite_user");
+        var testUser = chat.GetOrCreateUser("test_invite_user");
         var returnedMembership = testChannel.Invite(testUser);
         Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id);
     }
@@ -71,8 +71,8 @@ public class MembershipTests
     public void TestInviteMultiple()
     {
         var testChannel = chat.CreateGroupConversation([user],"invite_multiple_test_group_channel_3").CreatedChannel;
-        var secondUser = chat.CreateUser("second_invite_user");
-        var thirdUser = chat.CreateUser("third_invite_user");
+        var secondUser = chat.GetOrCreateUser("second_invite_user");
+        var thirdUser = chat.GetOrCreateUser("third_invite_user");
         var returnedMemberships = testChannel.InviteMultiple([
             secondUser,
             thirdUser

@@ -115,7 +115,7 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_channel_create_message_draft_dirty(IntPtr channel,
-            string user_suggestion_source,
+            int user_suggestion_source,
             bool is_typing_indicator_triggered,
             int user_limit,
             int channel_limit);
@@ -141,10 +141,6 @@ namespace PubNubChatAPI.Entities
             int mentioned_users_length,
             int[] mentioned_users_indexes,
             IntPtr[] mentioned_users,
-            int referenced_channels_length,
-            int[] referenced_channels_indexes,
-            IntPtr[] referenced_channels,
-            string text_links_json,
             IntPtr quoted_message);
 
         [DllImport("pubnub-chat")]
@@ -256,7 +252,7 @@ namespace PubNubChatAPI.Entities
         }
 
         protected Chat chat;
-        private bool connected;
+        protected bool connected;
         private Dictionary<string, Timer> typingIndicators = new();
 
         /// <summary>
@@ -305,6 +301,7 @@ namespace PubNubChatAPI.Entities
             {
                 return;
             }
+
             Connect();
         }
 
@@ -329,7 +326,7 @@ namespace PubNubChatAPI.Entities
         public event Action<List<string>> OnPresenceUpdate;
 
         public event Action<List<string>> OnUsersTyping;
-        
+
         public event Action<ChatEvent> OnReadReceiptEvent;
 
         internal Channel(Chat chat, string channelId, IntPtr channelPointer) : base(channelPointer, channelId)
@@ -468,10 +465,12 @@ namespace PubNubChatAPI.Entities
         //TODO: currently same result whether error or no pinned message present
         public bool TryGetPinnedMessage(out Message pinnedMessage)
         {
+            //TODO: currently discarding this pointer because it can be either a Message or a ThreadMessage
             var pinnedMessagePointer = pn_channel_get_pinned_message(pointer);
             if (pinnedMessagePointer != IntPtr.Zero)
             {
-                return chat.TryGetMessage(pinnedMessagePointer, out pinnedMessage);
+                var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
+                return chat.TryGetAnyMessage(id, out pinnedMessage);
             }
             else
             {
@@ -500,14 +499,22 @@ namespace PubNubChatAPI.Entities
             return PointerParsers.ParseJsonMembershipPointers(chat, pointers);
         }
 
-        /*public MessageDraft CreateMessageDraft()
+        /// <summary>
+        /// Creates a new MessageDraft.
+        /// </summary>
+        /// <param name="userSuggestionSource">Source of the user suggestions</param>
+        /// <param name="isTypingIndicatorTriggered">Typing indicator trigger status.</param>
+        /// <param name="userLimit">User limit.</param>
+        /// <param name="channelLimit">Channel limit.</param>
+        /// <returns></returns>
+        public MessageDraft CreateMessageDraft(UserSuggestionSource userSuggestionSource = UserSuggestionSource.GLOBAL,
+            bool isTypingIndicatorTriggered = true, int userLimit = 10, int channelLimit = 10)
         {
-            //TODO: hardcoded config
             var draftPointer = pn_channel_create_message_draft_dirty(
-                pointer, "channel", true, 10, 10);
+                pointer, (int)userSuggestionSource, isTypingIndicatorTriggered, userLimit, channelLimit);
             CUtilities.CheckCFunctionResult(draftPointer);
             return new MessageDraft(draftPointer);
-        }*/
+        }
 
         /// <summary>
         /// Connects to the channel.
@@ -668,12 +675,12 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while sending the message.</exception>
         /// <seealso cref="OnMessageReceived"/>
-        public void SendText(string message)
+        public virtual void SendText(string message)
         {
             SendText(message, new SendTextParams());
         }
 
-        public void SendText(string message, SendTextParams sendTextParams)
+        public virtual void SendText(string message, SendTextParams sendTextParams)
         {
             CUtilities.CheckCFunctionResult(pn_channel_send_text_dirty(
                 pointer,
@@ -684,10 +691,6 @@ namespace PubNubChatAPI.Entities
                 sendTextParams.MentionedUsers.Count,
                 sendTextParams.MentionedUsers.Keys.ToArray(),
                 sendTextParams.MentionedUsers.Values.Select(x => x.Pointer).ToArray(),
-                sendTextParams.ReferencedChannels.Count,
-                sendTextParams.ReferencedChannels.Keys.ToArray(),
-                sendTextParams.ReferencedChannels.Values.Select(x => x.Pointer).ToArray(),
-                JsonConvert.SerializeObject(sendTextParams.TextLinks),
                 sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer));
         }
 
@@ -778,12 +781,14 @@ namespace PubNubChatAPI.Entities
         {
             page ??= new Page();
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer));
+            CUtilities.CheckCFunctionResult(
+                pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer));
             var restrictionsJson = buffer.ToString();
             if (!CUtilities.IsValidJson(restrictionsJson))
             {
                 return new UsersRestrictionsWrapper();
             }
+
             var wrapper = JsonConvert.DeserializeObject<UsersRestrictionsWrapper>(restrictionsJson);
             wrapper ??= new UsersRestrictionsWrapper();
             return wrapper;

@@ -306,6 +306,7 @@ namespace PubNubChatAPI.Entities
         private Dictionary<string, Message> messageWrappers = new();
         private bool fetchUpdates = true;
         private Thread fetchUpdatesThread;
+        private SynchronizationContext? context;
 
         public event Action<ChatEvent> OnReportEvent;
         public event Action<ChatEvent> OnModerationEvent;
@@ -326,18 +327,25 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="config">Config with PubNub keys and values</param>
+        /// <param name="synchronizationContext">Synchronization context on which the chat callbacks should be called,
+        /// defaults to SynchronizationContext.Current assigned in the Chat constructor.</param>
         /// <remarks>
         /// The constructor initializes the chat instance with the provided keys and user ID from the Config.
         /// </remarks>
-        public Chat(PubnubChatConfig config)
+        public Chat(PubnubChatConfig config, SynchronizationContext? synchronizationContext = null)
         {
+            var t = new Stopwatch();
+            t.Start();
             chatPointer = pn_chat_new(config.PublishKey, config.SubscribeKey, config.UserId, config.AuthKey,
                 config.TypingTimeout, config.TypingTimeoutDifference, config.StoreUserActivityInterval, 
                 config.StoreUserActivityTimestamp);
             CUtilities.CheckCFunctionResult(chatPointer);
+            t.Stop();
+            Console.WriteLine(t.Elapsed.ToString());
 
             Config = config;
             ChatAccessManager = new ChatAccessManager(chatPointer);
+            context = synchronizationContext ?? SynchronizationContext.Current;
 
             fetchUpdatesThread = new Thread(FetchUpdatesLoop) { IsBackground = true };
             fetchUpdatesThread.Start();
@@ -357,6 +365,18 @@ namespace PubNubChatAPI.Entities
 
         internal void ParseJsonUpdatePointers(string jsonPointers)
         {
+            void Post(SendOrPostCallback callback, object? state)
+            {
+                if (context != null)
+                {
+                    context.Post(callback, state);
+                }
+                else
+                {
+                    callback.Invoke(state);
+                }
+            }
+            
             if (!string.IsNullOrEmpty(jsonPointers) && jsonPointers != "[]")
             {
                 Debug.WriteLine($"Received pointers JSON to parse: {jsonPointers}");
@@ -391,7 +411,10 @@ namespace PubNubChatAPI.Entities
                                 if (TryGetChannel(chatEvent.ChannelId, out var typingChannel)
                                     && typingChannel.TryParseAndBroadcastTypingEvent(chatEvent))
                                 {
-                                    OnTypingEvent?.Invoke(chatEvent);
+                                    Post(delegate
+                                    {
+                                        OnTypingEvent?.Invoke(chatEvent);
+                                    }, null);
                                 }
                                 else
                                 {
@@ -399,26 +422,47 @@ namespace PubNubChatAPI.Entities
                                 }
                                 break;
                             case PubnubChatEventType.Report:
-                                OnReportEvent?.Invoke(chatEvent);
+                                Post(delegate
+                                {
+                                    OnReportEvent?.Invoke(chatEvent); 
+                                }, null);
                                 break;
                             case PubnubChatEventType.Receipt:
-                                OnReadReceiptEvent?.Invoke(chatEvent);
+                                Post(delegate
+                                {
+                                    OnReadReceiptEvent?.Invoke(chatEvent);
+                                }, null);
                                 if (TryGetChannel(chatEvent.ChannelId, out var readReceiptChannel))
                                 {
-                                    readReceiptChannel.BroadcastReadReceipt(chatEvent);
+                                    Post(delegate
+                                    {
+                                        readReceiptChannel.BroadcastReadReceipt(chatEvent);
+                                    }, null);
                                 }
                                 break;
                             case PubnubChatEventType.Mention:
-                                OnMentionEvent?.Invoke(chatEvent);
+                                Post(delegate
+                                {
+                                    OnMentionEvent?.Invoke(chatEvent);
+                                }, null);
                                 break;
                             case PubnubChatEventType.Invite:
-                                OnInviteEvent?.Invoke(chatEvent);
+                                Post(delegate
+                                {
+                                    OnInviteEvent?.Invoke(chatEvent);
+                                }, null);
                                 break;
                             case PubnubChatEventType.Custom:
-                                OnCustomEvent?.Invoke(chatEvent);
+                                Post(delegate
+                                {
+                                    OnCustomEvent?.Invoke(chatEvent);
+                                }, null);
                                 break;
                             case PubnubChatEventType.Moderation:
-                                OnModerationEvent?.Invoke(chatEvent);
+                                Post(delegate
+                                {
+                                    OnModerationEvent?.Invoke(chatEvent);
+                                }, null);
                                 break;
                             default:
                                 throw new ArgumentOutOfRangeException();
@@ -426,7 +470,10 @@ namespace PubNubChatAPI.Entities
 
                         if (!failedToInvoke)
                         {
-                            OnAnyEvent?.Invoke(chatEvent);
+                            Post(delegate
+                            {
+                                OnAnyEvent?.Invoke(chatEvent);
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -440,13 +487,15 @@ namespace PubNubChatAPI.Entities
                         Debug.WriteLine("Deserialized new thread message");
 
                         var id = Message.GetChannelIdFromMessagePtr(threadMessagePointer);
-                        if (channelWrappers.TryGetValue(id, out var channel))
+                        if (channelWrappers.TryGetValue(id, out var channel) && channel is ThreadChannel threadChannel)
                         {
-                            Debug.WriteLine("AAAAAAAAAAAAAAAA");
                             var timeToken = Message.GetMessageIdFromPtr(threadMessagePointer);
                             var message = new ThreadMessage(this, threadMessagePointer, timeToken);
                             messageWrappers[timeToken] = message;
-                            channel.BroadcastMessageReceived(message);
+                            Post(delegate
+                            {
+                                threadChannel.BroadcastMessageReceived(message);
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -465,7 +514,10 @@ namespace PubNubChatAPI.Entities
                             var timeToken = Message.GetMessageIdFromPtr(messagePointer);
                             var message = new Message(this, messagePointer, timeToken);
                             messageWrappers[timeToken] = message;
-                            channel.BroadcastMessageReceived(message);
+                            Post(delegate
+                            {
+                                channel.BroadcastMessageReceived(message);
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -483,7 +535,10 @@ namespace PubNubChatAPI.Entities
                             if (existingMessageWrapper is ThreadMessage existingThreadMessageWrapper)
                             {
                                 existingThreadMessageWrapper.UpdateWithPartialPtr(updatedThreadMessagePointer);
-                                existingThreadMessageWrapper.BroadcastMessageUpdate();
+                                Post(delegate
+                                {
+                                    existingThreadMessageWrapper.BroadcastMessageUpdate();
+                                }, null);
                             }
                             else
                             {
@@ -505,7 +560,10 @@ namespace PubNubChatAPI.Entities
                         if (messageWrappers.TryGetValue(id, out var existingMessageWrapper))
                         {
                             existingMessageWrapper.UpdateWithPartialPtr(updatedMessagePointer);
-                            existingMessageWrapper.BroadcastMessageUpdate();
+                            Post(delegate
+                            {
+                                existingMessageWrapper.BroadcastMessageUpdate();
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -526,12 +584,18 @@ namespace PubNubChatAPI.Entities
                             //This has a check for "PUBNUB_INTERNAL_THREAD" and will correctly update the pointer
                             TryGetChannel(id, out var existingThreadChannel);
                             //TODO: broadcast thread channel update (very low priority because I don't think they have that in JS chat)
-                            existingThreadChannel.BroadcastChannelUpdate();
+                            Post(delegate
+                            {
+                                existingThreadChannel.BroadcastChannelUpdate();
+                            }, null);
                         }
                         else if (channelWrappers.TryGetValue(id, out var existingChannelWrapper))
                         {
                             existingChannelWrapper.UpdateWithPartialPtr(channelPointer);
-                            existingChannelWrapper.BroadcastChannelUpdate();
+                            Post(delegate
+                            {
+                                existingChannelWrapper.BroadcastChannelUpdate();
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -548,7 +612,10 @@ namespace PubNubChatAPI.Entities
                         if (userWrappers.TryGetValue(id, out var existingUserWrapper))
                         {
                             existingUserWrapper.UpdateWithPartialPtr(userPointer);
-                            existingUserWrapper.BroadcastUserUpdate();
+                            Post(delegate
+                            {
+                                existingUserWrapper.BroadcastUserUpdate();
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -565,7 +632,10 @@ namespace PubNubChatAPI.Entities
                         if (membershipWrappers.TryGetValue(id, out var existingMembershipWrapper))
                         {
                             existingMembershipWrapper.UpdateWithPartialPtr(membershipPointer);
-                            existingMembershipWrapper.BroadcastMembershipUpdate();
+                            Post(delegate
+                            {
+                                existingMembershipWrapper.BroadcastMembershipUpdate();
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -587,7 +657,10 @@ namespace PubNubChatAPI.Entities
 
                         if (TryGetChannel(channelId, out var channel))
                         {
-                            channel.BroadcastPresenceUpdate();
+                            Post(delegate
+                            {
+                                channel.BroadcastPresenceUpdate();
+                            }, null);
                         }
 
                         pn_dispose_message(pointer);
@@ -622,7 +695,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public List<Channel> GetChannelSuggestions(string text, int limit = 10)
+        /*public List<Channel> GetChannelSuggestions(string text, int limit = 10)
         {
             var buffer = new StringBuilder(2048);
             CUtilities.CheckCFunctionResult(pn_chat_get_channel_suggestions(chatPointer, text, limit, buffer));
@@ -636,7 +709,7 @@ namespace PubNubChatAPI.Entities
 
             channels = PointerParsers.ParseJsonChannelPointers(this, pointers);
             return channels;
-        }
+        }*/
 
         /// <summary>
         /// Creates a new public conversation.
@@ -950,7 +1023,7 @@ namespace PubNubChatAPI.Entities
             return TryGetUser(userPointer, out user);
         }
 
-        public List<User> GetUserSuggestions(string text, int limit = 10)
+        /*public List<User> GetUserSuggestions(string text, int limit = 10)
         {
             var buffer = new StringBuilder(2048);
             CUtilities.CheckCFunctionResult(pn_chat_get_user_suggestions(chatPointer, text, limit, buffer));
@@ -962,7 +1035,7 @@ namespace PubNubChatAPI.Entities
             }
 
             return PointerParsers.ParseJsonUserPointers(this, pointers);
-        }
+        }*/
 
         /// <summary>
         /// Sets the restrictions for the user with the provided user ID.
@@ -1423,6 +1496,11 @@ namespace PubNubChatAPI.Entities
 
         #region Messages
 
+        public EventsHistoryWrapper GetMessageReportsHistory(string channelId, string startTimeToken, string endTimeToken, int count)
+        {
+            return GetEventsHistory($"PUBNUB_INTERNAL_MODERATION_{channelId}", startTimeToken, endTimeToken, count);
+        }
+        
         /// <summary>
         /// Gets the <c>Message</c> object for the given timetoken.
         /// <para>
@@ -1471,6 +1549,27 @@ namespace PubNubChatAPI.Entities
         {
             return TryGetWrapper(messageWrappers, timeToken, messagePointer,
                 () => new Message(this, messagePointer, timeToken), out message);
+        }
+
+        internal bool TryGetAnyMessage(string timeToken, out Message message)
+        {
+            return messageWrappers.TryGetValue(timeToken, out message);
+        }
+
+        internal bool TryGetThreadMessage(string timeToken, IntPtr threadMessagePointer, out ThreadMessage threadMessage)
+        {
+            var found = TryGetWrapper(messageWrappers, timeToken, threadMessagePointer,
+                () => new ThreadMessage(this, threadMessagePointer, timeToken), out var foundMessage);
+            if (!found || foundMessage is not ThreadMessage foundThreadMessage)
+            {
+                threadMessage = null;
+                return false;
+            }
+            else
+            {
+                threadMessage = foundThreadMessage;
+                return true;
+            }
         }
 
         internal bool TryGetMessage(IntPtr messagePointer, out Message message)
@@ -1532,16 +1631,15 @@ namespace PubNubChatAPI.Entities
         {
             var threadId = ThreadChannel.MessageToThreadChannelId(message);
 
-            //No thread
-            if (!message.HasThread())
+            //Getting most up-to-date pointer
+            var threadPointer = pn_message_get_thread(message.Pointer);
+            
+            if (threadPointer == IntPtr.Zero)
             {
                 channelWrappers.Remove(threadId);
                 threadChannel = null;
                 return false;
             }
-
-            //Getting most up-to-date pointer
-            var threadPointer = pn_message_get_thread(message.Pointer);
 
             //Existing thread pointer but not cached as a wrapper
             if (!channelWrappers.TryGetValue(threadId, out var existingChannel))
@@ -1778,11 +1876,16 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        ~Chat()
+        public void Destroy()
         {
             fetchUpdates = false;
             fetchUpdatesThread.Join();
             pn_chat_delete(chatPointer);
+        }
+
+        ~Chat()
+        {
+            Destroy();
         }
     }
 }

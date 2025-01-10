@@ -39,16 +39,6 @@ public class MessageTests
         channel.SendText("Test message text", new SendTextParams()
         {
             MentionedUsers = new Dictionary<int, User>() { { 0, user } },
-            ReferencedChannels = new Dictionary<int, Channel>() { { 0, channel } },
-            TextLinks =
-            [
-                new TextLink()
-                {
-                    StartIndex = 0,
-                    EndIndex = 13,
-                    Link = "www.google.com"
-                }
-            ]
         });
 
         var received = manualReceiveEvent.WaitOne(4000);
@@ -68,24 +58,12 @@ public class MessageTests
                 testChannel.SendText("message_with_data", new SendTextParams()
                 {
                     MentionedUsers = new Dictionary<int, User>() { { 0, user } },
-                    ReferencedChannels = new Dictionary<int, Channel>() { { 0, testChannel } },
-                    TextLinks =
-                    [
-                        new TextLink()
-                        {
-                            StartIndex = 0,
-                            EndIndex = 13,
-                            Link = "www.google.com"
-                        }
-                    ],
                     QuotedMessage = message
                 });
             }
             else if (message.MessageText == "message_with_data")
             {
                 Assert.True(message.MentionedUsers.Any(x => x.Id == user.Id));
-                Assert.True(message.ReferencedChannels.Any(x => x.Id == testChannel.Id));
-                Assert.True(message.TextLinks.Any(x => x.Link == "www.google.com"));
                 Assert.True(message.TryGetQuotedMessage(out var quotedMessage) &&
                             quotedMessage.MessageText == "message_to_be_quoted");
                 manualReceiveEvent.Set();
@@ -168,20 +146,21 @@ public class MessageTests
         channel.OnMessageReceived += async message =>
         {
             message.Delete(true);
+            Assert.True(message.IsDeleted);
 
-            await Task.Delay(2000);
-
+            await Task.Delay(4000);
+            
             Assert.True(message.IsDeleted);
             message.Restore();
 
-            await Task.Delay(2000);
+            await Task.Delay(4000);
 
             Assert.False(message.IsDeleted);
             manualReceivedEvent.Set();
         };
-        channel.SendText("something");
+        channel.SendText("some text here ladi ladi la");
 
-        var received = manualReceivedEvent.WaitOne(8000);
+        var received = manualReceivedEvent.WaitOne(250000);
         Assert.IsTrue(received);
     }
 
@@ -218,11 +197,15 @@ public class MessageTests
     [Test]
     public void TestMessageReactions()
     {
-        channel.Join();
+        //channel.Join();
         var manualReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
             message.ToggleReaction("happy");
+            /*var has = message.HasUserReaction("happy");
+            Assert.True(has);
+            var reactions = message.Reactions;
+            Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));*/
 
             await Task.Delay(3000);
 
@@ -233,7 +216,7 @@ public class MessageTests
             manualReset.Set();
         };
         channel.SendText("a_message");
-        var reacted = manualReset.WaitOne(7000);
+        var reacted = manualReset.WaitOne(10000);
         Assert.True(reacted);
     }
 

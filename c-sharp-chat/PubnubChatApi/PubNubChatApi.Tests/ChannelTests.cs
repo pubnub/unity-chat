@@ -16,13 +16,17 @@ public class ChannelTests
         chat = new Chat(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "channel_tests_user")
+            "ctuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
         );
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        talkUser = chat.CreateUser("talk_user");
+        user.Update(new ChatUserData()
+        {
+            Username = "Testificate"
+        });
+        talkUser = chat.GetOrCreateUser("talk_user");
     }
     
     [Test]
@@ -33,7 +37,7 @@ public class ChannelTests
 
         await Task.Delay(5000);
         
-        var suggestions = channel.GetUserSuggestions("@the");
+        var suggestions = channel.GetUserSuggestions("@Test");
         Assert.True(suggestions.Any(x => x.UserId == user.Id));
     }
     
@@ -47,9 +51,9 @@ public class ChannelTests
     }
 
     [Test]
-    public void TestStartTyping()
+    public async Task TestStartTyping()
     {
-        var channel = chat.CreateDirectConversation(talkUser, "start_typing_test_channel").CreatedChannel;
+        var channel = chat.CreateDirectConversation(talkUser, "sttc").CreatedChannel;
         channel.Join();
         
         var typingManualEvent = new ManualResetEvent(false);
@@ -156,7 +160,7 @@ public class ChannelTests
         Assert.IsTrue(received);
     }
     
-    /*[Test]
+    [Test]
     public void TestCreateMessageDraft()
     {
         var channel = chat.CreatePublicConversation("message_draft_test_channel");
@@ -169,7 +173,7 @@ public class ChannelTests
             Debug.WriteLine(e);
             Assert.Fail();
         }
-    }*/
+    }
 
     [Test]
     public void TestEmitUserMention()

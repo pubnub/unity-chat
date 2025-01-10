@@ -20,7 +20,7 @@ public class RestrictionsTests
     [Test]
     public async Task TestSetRestrictions()
     {
-        var user = chat.CreateUser("user123");
+        var user = chat.GetOrCreateUser("user123");
         var channel = chat.CreatePublicConversation("new_channel");
 
         await Task.Delay(2000);
@@ -50,7 +50,7 @@ public class RestrictionsTests
     [Test]
     public async Task TestGetRestrictionsSets()
     {
-        var user = chat.CreateUser("user1234");
+        var user = chat.GetOrCreateUser("user1234");
         var channel = chat.CreatePublicConversation("new_channel_2");
 
         await Task.Delay(4000);
