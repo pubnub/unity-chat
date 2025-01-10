@@ -26,20 +26,6 @@ public class ChatTests
         channel.Join();
     }
     
-    /*[Test]
-    public void PerfTest()
-    {
-        var t = new Stopwatch();
-        t.Start();
-        chat = new Chat(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "chats_tests_user_10_no_calkiem_nowy_2222"));
-        channel = chat.CreatePublicConversation("chat_tests_channel222");
-        t.Stop();
-        Assert.True(false, t.Elapsed.ToString());
-    }*/
-    
     [Test]
     public async Task TestGetCurrentUserMentions()
     {

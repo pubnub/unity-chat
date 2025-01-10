@@ -569,10 +569,6 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public void Join()
         {
-            /*if (connected)
-            {
-                return;
-            }*/
             connected = true;
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(pn_channel_join(pointer, string.Empty, buffer));
