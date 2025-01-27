@@ -4,7 +4,7 @@ namespace PubNubChatApi.Tests;
 
 public static class TestUtils
 {
-    public static User GetOrCreateUser(this Chat chat, string userId)
+    public static async Task<User> GetOrCreateUser(this Chat chat, string userId)
     {
         if (chat.TryGetUser(userId, out var user))
         {
@@ -12,7 +12,7 @@ public static class TestUtils
         }
         else
         {
-            return chat.CreateUser(userId);
+            return await chat.CreateUser(userId);
         }
     }
 }

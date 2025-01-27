@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace PubNubChatAPI.Entities
 {
@@ -22,7 +23,7 @@ namespace PubNubChatAPI.Entities
 
         protected abstract void DisposePointer();
 
-        public abstract void StartListeningForUpdates();
+        public abstract Task StartListeningForUpdates();
         
         //TODO: only after c-core event engine apparently
         //public abstract void StopListeningForUpdates();

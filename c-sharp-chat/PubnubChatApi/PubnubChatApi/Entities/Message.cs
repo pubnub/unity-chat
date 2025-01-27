@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -321,10 +322,10 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Delete"/>
         public event Action<Message> OnMessageUpdated;
         
-        public override void StartListeningForUpdates()
+        public override async Task StartListeningForUpdates()
         {
             //TODO: hacky way to subscribe to this channel
-            chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
+            await chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
         }
 
         internal Message(Chat chat, IntPtr messagePointer, string timeToken) : base(messagePointer, timeToken)
@@ -373,9 +374,9 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="OnMessageUpdated"/>
-        public virtual void EditMessageText(string newText)
+        public virtual async Task EditMessageText(string newText)
         {
-            var newPointer = pn_message_edit_text(pointer, newText);
+            var newPointer = await Task.Run(() => pn_message_edit_text(pointer, newText));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
@@ -399,9 +400,9 @@ namespace PubNubChatAPI.Entities
             return result == 1;
         }
 
-        public ThreadChannel CreateThread()
+        public async Task<ThreadChannel> CreateThread()
         {
-            return chat.CreateThreadChannel(this);
+            return await chat.CreateThreadChannel(this);
         }
 
         public bool TryGetThread(out ThreadChannel threadChannel)
@@ -409,26 +410,26 @@ namespace PubNubChatAPI.Entities
             return chat.TryGetThreadChannel(this, out threadChannel);
         }
 
-        public void RemoveThread()
+        public async Task RemoveThread()
         {
-            chat.RemoveThreadChannel(this);
+            await chat.RemoveThreadChannel(this);
         }
 
-        public void Pin()
+        public async Task Pin()
         {
-            CUtilities.CheckCFunctionResult(pn_message_pin(pointer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_message_pin(pointer)));
         }
 
-        public virtual void Report(string reason)
+        public virtual async Task Report(string reason)
         {
-            CUtilities.CheckCFunctionResult(pn_message_report(pointer, reason));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_message_report(pointer, reason)));
         }
 
-        public virtual void Forward(string channelId)
+        public virtual async Task Forward(string channelId)
         {
             if (chat.TryGetChannel(channelId, out var channel))
             {
-                chat.ForwardMessage(this, channel);
+                await chat.ForwardMessage(this, channel);
             }
         }
 
@@ -439,16 +440,16 @@ namespace PubNubChatAPI.Entities
             return result == 1;
         }
 
-        public virtual void ToggleReaction(string reactionValue)
+        public virtual async Task ToggleReaction(string reactionValue)
         {
-            var newPointer = pn_message_toggle_reaction(pointer, reactionValue);
+            var newPointer = await Task.Run(() => pn_message_toggle_reaction(pointer, reactionValue));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public virtual void Restore()
+        public virtual async Task Restore()
         {
-            var newPointer = pn_message_restore(pointer);
+            var newPointer = await Task.Run(() => pn_message_restore(pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
@@ -470,18 +471,21 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
-        public virtual void Delete(bool soft)
+        public virtual async Task Delete(bool soft)
         {
-            if (soft)
+            await Task.Run(() =>
             {
-                var newPointer = pn_message_delete_message(pointer);
-                CUtilities.CheckCFunctionResult(newPointer);
-                UpdatePointer(newPointer);
-            }
-            else
-            {
-                CUtilities.CheckCFunctionResult(pn_message_delete_message_hard(pointer));
-            }
+                if (soft)
+                {
+                    var newPointer = pn_message_delete_message(pointer);
+                    CUtilities.CheckCFunctionResult(newPointer);
+                    UpdatePointer(newPointer);
+                }
+                else
+                {
+                    CUtilities.CheckCFunctionResult(pn_message_delete_message_hard(pointer));
+                }
+            });
         }
 
         protected override void DisposePointer()

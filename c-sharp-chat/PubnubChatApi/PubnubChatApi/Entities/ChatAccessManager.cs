@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
@@ -21,9 +22,9 @@ namespace PubNubChatAPI.Entities
             this.chatPointer = chatPointer;
         }
 
-        public bool CanI(PubnubAccessPermission permission, PubnubAccessResourceType resourceType, string resourceName)
+        public async Task<bool> CanI(PubnubAccessPermission permission, PubnubAccessResourceType resourceType, string resourceName)
         {
-            var result = pn_pam_can_i(chatPointer, (byte)permission, (byte)resourceType, resourceName);
+            var result = await Task.Run(() => pn_pam_can_i(chatPointer, (byte)permission, (byte)resourceType, resourceName));
             CUtilities.CheckCFunctionResult(result);
             return result == 1;
         }

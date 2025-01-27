@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Utilities;
@@ -230,18 +231,18 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// Send the MessageDraft, along with its quotedMessage if any, on the channel.
         /// </summary>
-        public void Send()
+        public async Task Send()
         {
-            Send(new SendTextParams());
+            await Send(new SendTextParams());
         }
 
         /// <summary>
         /// Send the MessageDraft, along with its quotedMessage if any, on the channel.
         /// </summary>
         /// <param name="sendTextParams">Additional parameters for sending the message.</param>
-        public void Send(SendTextParams sendTextParams)
+        public async Task Send(SendTextParams sendTextParams)
         {
-            CUtilities.CheckCFunctionResult(pn_message_draft_send(
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_message_draft_send(
                 pointer,
                 sendTextParams.StoreInHistory,
                 sendTextParams.SendByPost,
@@ -249,7 +250,7 @@ namespace PubNubChatAPI.Entities
                 sendTextParams.MentionedUsers.Count,
                 sendTextParams.MentionedUsers.Keys.ToArray(),
                 sendTextParams.MentionedUsers.Values.Select(x => x.Pointer).ToArray(),
-                sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer));
+                sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer)));
         }
 
         public void SetSearchForSuggestions(bool searchForSuggestions)
@@ -263,10 +264,10 @@ namespace PubNubChatAPI.Entities
             return;
         }
 
-        public override void StartListeningForUpdates()
+        public override Task StartListeningForUpdates()
         {
             //Message draft doesn't get updated over-network
-            return;
+            return Task.CompletedTask;
         }
 
         protected override void DisposePointer()

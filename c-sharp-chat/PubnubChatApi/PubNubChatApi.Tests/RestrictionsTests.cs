@@ -8,9 +8,9 @@ public class RestrictionsTests
     private Chat chat;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(
+        chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
             "restrictions_tests_user")
@@ -20,8 +20,8 @@ public class RestrictionsTests
     [Test]
     public async Task TestSetRestrictions()
     {
-        var user = chat.GetOrCreateUser("user123");
-        var channel = chat.CreatePublicConversation("new_channel");
+        var user = await chat.GetOrCreateUser("user123");
+        var channel = await chat.CreatePublicConversation("new_channel");
 
         await Task.Delay(2000);
 
@@ -31,17 +31,16 @@ public class RestrictionsTests
             Mute = true,
             Reason = "Some Reason"
         };
-        channel.SetRestrictions(user.Id, restriction);
+        await channel.SetRestrictions(user.Id, restriction);
 
         await Task.Delay(3000);
 
-        var fetchedRestriction =
-            channel.GetUserRestrictions(user);
+        var fetchedRestriction = await channel.GetUserRestrictions(user);
 
         Assert.True(restriction.Ban == fetchedRestriction.Ban && restriction.Mute == fetchedRestriction.Mute &&
                     restriction.Reason == fetchedRestriction.Reason);
 
-        var restrictionFromUser = user.GetChannelRestrictions(channel);
+        var restrictionFromUser = await user.GetChannelRestrictions(channel);
         
         Assert.True(restriction.Ban == restrictionFromUser.Ban && restriction.Mute == restrictionFromUser.Mute &&
                     restriction.Reason == restrictionFromUser.Reason);
@@ -50,8 +49,8 @@ public class RestrictionsTests
     [Test]
     public async Task TestGetRestrictionsSets()
     {
-        var user = chat.GetOrCreateUser("user1234");
-        var channel = chat.CreatePublicConversation("new_channel_2");
+        var user = await chat.GetOrCreateUser("user1234");
+        var channel = await chat.CreatePublicConversation("new_channel_2");
 
         await Task.Delay(4000);
 
@@ -61,12 +60,12 @@ public class RestrictionsTests
             Mute = true,
             Reason = "Some Reason"
         };
-        channel.SetRestrictions(user.Id, restriction);
+        await channel.SetRestrictions(user.Id, restriction);
 
         await Task.Delay(4000);
 
-        var a = channel.GetUsersRestrictions();
-        var b = user.GetChannelsRestrictions();
+        var a = await channel.GetUsersRestrictions();
+        var b = await user.GetChannelsRestrictions();
         
         Assert.True(a.Restrictions.Any(x => x.UserId == user.Id));
         Assert.True(b.Restrictions.Any(x => x.ChannelId == channel.Id));

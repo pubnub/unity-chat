@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -305,9 +306,9 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="OnMessageUpdated"/>
-        public override void EditMessageText(string newText)
+        public override async Task EditMessageText(string newText)
         {
-            var newPointer = pn_thread_message_edit_text(pointer, newText);
+            var newPointer = await Task.Run(() => pn_thread_message_edit_text(pointer, newText));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
@@ -324,16 +325,16 @@ namespace PubNubChatAPI.Entities
             return chat.TryGetMessage(quotedMessagePointer, out quotedMessage);
         }
         
-        public override void Report(string reason)
+        public override async Task Report(string reason)
         {
-            CUtilities.CheckCFunctionResult(pn_thread_message_report(pointer, reason));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_thread_message_report(pointer, reason)));
         }
 
-        public override void Forward(string channelId)
+        public override async Task Forward(string channelId)
         {
             if (chat.TryGetChannel(channelId, out var channel))
             {
-                chat.ForwardMessage(this, channel);
+                await chat.ForwardMessage(this, channel);
             }
         }
 
@@ -344,32 +345,35 @@ namespace PubNubChatAPI.Entities
             return result == 1;
         }
 
-        public override void ToggleReaction(string reactionValue)
+        public override async Task ToggleReaction(string reactionValue)
         {
-            var newPointer = pn_thread_message_toggle_reaction(pointer, reactionValue);
+            var newPointer = await Task.Run(() => pn_thread_message_toggle_reaction(pointer, reactionValue));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public override void Restore()
+        public override async Task Restore()
         {
-            var newPointer = pn_thread_message_restore(pointer);
+            var newPointer = await Task.Run(() => pn_thread_message_restore(pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
         
-        public override void Delete(bool soft)
+        public override async Task Delete(bool soft)
         {
-            if (soft)
+            await Task.Run(() =>
             {
-                var newPointer = pn_thread_message_delete_message(pointer);
-                CUtilities.CheckCFunctionResult(newPointer);
-                UpdatePointer(newPointer);
-            }
-            else
-            {
-                CUtilities.CheckCFunctionResult(pn_thread_message_delete_message_hard(pointer));
-            }
+                if (soft)
+                {
+                    var newPointer = pn_thread_message_delete_message(pointer);
+                    CUtilities.CheckCFunctionResult(newPointer);
+                    UpdatePointer(newPointer);
+                }
+                else
+                {
+                    CUtilities.CheckCFunctionResult(pn_thread_message_delete_message_hard(pointer));
+                }
+            });
         }
 
         internal override void BroadcastMessageUpdate()
@@ -392,16 +396,16 @@ namespace PubNubChatAPI.Entities
             UpdatePointer(newFullPointer);
         }
 
-        public void PinMessageToParentChannel()
+        public async Task PinMessageToParentChannel()
         {
-            var newChannelPointer = pn_thread_message_pin_to_parent_channel(pointer);
+            var newChannelPointer = await Task.Run(() => pn_thread_message_pin_to_parent_channel(pointer));
             CUtilities.CheckCFunctionResult(newChannelPointer);
             chat.UpdateChannelPointer(newChannelPointer);
         }
 
-        public void UnPinMessageFromParentChannel()
+        public async Task UnPinMessageFromParentChannel()
         {
-            var newChannelPointer = pn_thread_message_unpin_from_parent_channel(pointer);
+            var newChannelPointer = await Task.Run(() => pn_thread_message_unpin_from_parent_channel(pointer));
             CUtilities.CheckCFunctionResult(newChannelPointer);
             chat.UpdateChannelPointer(newChannelPointer);
         }
