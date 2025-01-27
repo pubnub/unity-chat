@@ -805,6 +805,7 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Channel"/>
+        /// <seealso cref="GetChannelAsync"/>
         public bool TryGetChannel(string channelId, out Channel channel)
         {
             //Fetching and updating a ThreadChannel
@@ -833,6 +834,20 @@ namespace PubNubChatAPI.Entities
                 var channelPointer = pn_chat_get_channel(chatPointer, channelId);
                 return TryGetChannel(channelId, channelPointer, out channel);
             }
+        }
+
+        /// <summary>
+        /// Performs an async retrieval of a Channel object with a given ID.
+        /// </summary>
+        /// <param name="channelId">ID of the channel.</param>
+        /// <returns>Channel object if it exists, null otherwise.</returns>
+        public async Task<Channel?> GetChannelAsync(string channelId)
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetChannel(channelId, out var channel);
+                return result ? channel : null;
+            });
         }
 
         internal bool TryGetChannel(IntPtr channelPointer, out Channel channel)
@@ -960,11 +975,30 @@ namespace PubNubChatAPI.Entities
             return new UserMentionsWrapper(this, internalWrapper);
         }
 
+        /// <summary>
+        /// Tries to retrieve the current User object for this chat.
+        /// </summary>
+        /// <param name="user">The retrieved current User object.</param>
+        /// <returns>True if chat has a current user, false otherwise.</returns>
+        /// <seealso cref="GetCurrentUserAsync"/>
         public bool TryGetCurrentUser(out User user)
         {
             var userPointer = pn_chat_current_user(chatPointer);
             CUtilities.CheckCFunctionResult(userPointer);
             return TryGetUser(userPointer, out user);
+        }
+
+        /// <summary>
+        /// Asynchronously tries to retrieve the current User object for this chat.
+        /// </summary>
+        /// <returns>User object if there is a current user, null otherwise.</returns>
+        public async Task<User?> GetCurrentUserAsync()
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetCurrentUser( out var currentUser);
+                return result ? currentUser : null;
+            });
         }
 
         /// <summary>
@@ -1185,10 +1219,25 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="User"/>
+        /// <seealso cref="GetUserAsync"/>
         public bool TryGetUser(string userId, out User user)
         {
             var userPointer = pn_chat_get_user(chatPointer, userId);
             return TryGetUser(userId, userPointer, out user);
+        }
+
+        /// <summary>
+        /// Asynchronously gets the user with the provided user ID.
+        /// </summary>
+        /// <param name="userId">ID of the User to get.</param>
+        /// <returns>User object if one with given ID is found, null otherwise.</returns>
+        public async Task<User?> GetUserAsync(string userId)
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetUser(userId, out var user);
+                return result ? user : null;
+            });
         }
 
         internal bool TryGetUser(IntPtr userPointer, out User user)
@@ -1452,6 +1501,7 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Message"/>
+        /// <seealso cref="GetMessageAsync"/>
         public bool TryGetMessage(string channelId, string messageTimeToken, out Message message)
         {
             if (!TryGetChannel(channelId, out var channel))
@@ -1462,6 +1512,21 @@ namespace PubNubChatAPI.Entities
 
             var messagePointer = pn_channel_get_message(channel.Pointer, messageTimeToken);
             return TryGetMessage(messageTimeToken, messagePointer, out message);
+        }
+        
+        /// <summary>
+        /// Asynchronously gets the <c>Message</c> object for the given timetoken.
+        /// </summary>
+        /// <param name="channelId">ID of the channel on which the message was sent.</param>
+        /// <param name="messageTimeToken">TimeToken of the searched-for message.</param>
+        /// <returns>Message object if one was found, null otherwise.</returns>
+        public async Task<Message?> GetMessageAsync(string channelId, string messageTimeToken)
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetMessage(channelId, messageTimeToken, out var message);
+                return result ? message : null;
+            });
         }
 
         public async Task<MarkMessagesAsReadWrapper> MarkAllMessagesAsRead(string filter = "", string sort = "", int limit = 0,
@@ -1559,6 +1624,13 @@ namespace PubNubChatAPI.Entities
             channelWrappers.Remove(existingThread.Id);
         }
 
+        /// <summary>
+        /// Tries to retrieve a ThreadChannel object from a Message object if there is one.
+        /// </summary>
+        /// <param name="message">Message on which the ThreadChannel is supposed to be.</param>
+        /// <param name="threadChannel">Retrieved ThreadChannel or null if it wasn't found/</param>
+        /// <returns>True if a ThreadChannel was found, false otherwise.</returns>
+        /// <seealso cref="GetThreadChannelAsync"/>
         public bool TryGetThreadChannel(Message message, out ThreadChannel threadChannel)
         {
             var threadId = ThreadChannel.MessageToThreadChannelId(message);
@@ -1593,6 +1665,20 @@ namespace PubNubChatAPI.Entities
             {
                 throw new Exception("Chat wrapper error: cached ThreadChannel was of the wrong type!");
             }
+        }
+        
+        /// <summary>
+        /// Asynchronously tries to retrieve a ThreadChannel object from a Message object if there is one.
+        /// </summary>
+        /// <param name="message">Message on which the ThreadChannel is supposed to be.</param>
+        /// <returns>The ThreadChannel object if one was found, null otherwise.</returns>
+        public async Task<ThreadChannel?> GetThreadChannelAsync(Message message)
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetThreadChannel(message, out var threadChannel);
+                return result ? threadChannel : null;
+            });
         }
 
         public async Task ForwardMessage(Message message, Channel channel)

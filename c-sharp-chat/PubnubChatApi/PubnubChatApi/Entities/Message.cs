@@ -405,9 +405,24 @@ namespace PubNubChatAPI.Entities
             return await chat.CreateThreadChannel(this);
         }
 
+        /// <summary>
+        /// Tries to get the ThreadChannel started on this Message.
+        /// </summary>
+        /// <param name="threadChannel">The retrieved ThreadChannel object, null if one wasn't found.</param>
+        /// <returns>True if a ThreadChannel object has been found, false otherwise.</returns>
+        /// <seealso cref="GetThreadAsync"/>
         public bool TryGetThread(out ThreadChannel threadChannel)
         {
             return chat.TryGetThreadChannel(this, out threadChannel);
+        }
+
+        /// <summary>
+        /// Asynchronously tries to get the ThreadChannel started on this Message.
+        /// </summary>
+        /// <returns>The retrieved ThreadChannel object, null if one wasn't found.</returns>
+        public async Task<ThreadChannel?> GetThreadAsync()
+        {
+            return await chat.GetThreadChannelAsync(this);
         }
 
         public async Task RemoveThread()

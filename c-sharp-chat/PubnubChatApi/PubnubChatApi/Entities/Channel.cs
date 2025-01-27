@@ -463,6 +463,12 @@ namespace PubNubChatAPI.Entities
         }
 
         //TODO: currently same result whether error or no pinned message present
+        /// <summary>
+        /// Tries to get the <c>Message</c> pinned to this <c>Channel</c>.
+        /// </summary>
+        /// <param name="pinnedMessage">The pinned Message object, null if there wasn't one.</param>
+        /// <returns>True of a pinned Message was found, false otherwise.</returns>
+        /// <seealso cref="GetPinnedMessageAsync"/>
         public bool TryGetPinnedMessage(out Message pinnedMessage)
         {
             //TODO: currently discarding this pointer because it can be either a Message or a ThreadMessage
@@ -478,6 +484,19 @@ namespace PubNubChatAPI.Entities
                 Debug.WriteLine(CUtilities.GetErrorMessage());
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Asynchronously tries to get the <c>Message</c> pinned to this <c>Channel</c>.
+        /// </summary>
+        /// <returns>The pinned Message object if there was one, null otherwise.</returns>
+        public async Task<Message?> GetPinnedMessageAsync()
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetPinnedMessage(out var pinnedMessage);
+                return result ? pinnedMessage : null;
+            });
         }
 
         public async Task<List<Membership>> GetUserSuggestions(string text, int limit = 10)
@@ -898,9 +917,20 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Message"/>
+        /// <seealso cref="GetMessageAsync"/>
         public bool TryGetMessage(string timeToken, out Message message)
         {
             return chat.TryGetMessage(Id, timeToken, out message);
+        }
+        
+        /// <summary>
+        /// Asynchronously gets the <c>Message</c> object for the given timetoken sent from this <c>Channel</c>.
+        /// </summary>
+        /// <param name="timeToken">TimeToken of the searched-for message.</param>
+        /// <returns>Message object if one was found, null otherwise.</returns>
+        public async Task<Message?> GetMessageAsync(string timeToken)
+        {
+            return await chat.GetMessageAsync(Id, timeToken);
         }
 
         public async Task<List<Message>> GetMessageHistory(string startTimeToken, string endTimeToken,
