@@ -4,6 +4,7 @@ using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class ChannelTests
 {
     private Chat chat;

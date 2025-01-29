@@ -1,10 +1,10 @@
-using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class ChatTests
 {
     private Chat chat;

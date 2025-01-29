@@ -3,6 +3,7 @@ using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class ChatEventTests
 {
     private Chat chat;
