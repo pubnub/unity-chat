@@ -30,7 +30,7 @@ sdks:
                 supported-operating-systems:
                   Linux:
                     runtime-version:
-                      - Unity Engine 5.x+
+                      - .NET 4.x Equivalent
                     minimum-os-version:
                       - Ubuntu 12.04
                     maximum-os-version:
@@ -39,7 +39,7 @@ sdks:
                       - x86-64
                   macOS:
                     runtime-version:
-                      - Unity Engine 5.x+
+                      - .NET 4.x Equivalent
                     minimum-os-version:
                       - macOS 10.12
                     maximum-os-version:
@@ -48,7 +48,7 @@ sdks:
                       - x86-64
                   Windows:
                     runtime-version:
-                      - Unity Engine 5.x+
+                      - .NET 4.x Equivalent
                     minimum-os-version:
                       - Windows Vista Ultimate
                     maximum-os-version:
