@@ -55,6 +55,9 @@ sdks:
                       - Windows 11 Home
                     target-architecture:
                       - x86-64
+name: unity-chat
+schema: 1
+scm: github.com/pubnub/unity-chat
 features:
   access:
     - ACCESS-OBJECTS-V2-MANAGEMENT
