@@ -15,7 +15,7 @@
       "cleared": false
     }
   ],
-  "PubnubChatUnity/Assets/PubnubChat/package.json": [
+  "unity-chat/PubnubChatUnity/Assets/PubnubChat/package.json": [
     {
       "pattern": "^\\s{2,}\"version\": \"(v?(\\d+\\.?){2,}([a-zA-Z0-9-]+(\\.?\\d+)?)?)\",$",
       "clearedPrefix": true,
