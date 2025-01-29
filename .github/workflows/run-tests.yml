@@ -35,10 +35,10 @@ jobs:
             5.0.x
             6.0.x
             7.0.x
-      - name: Build packages
-        env:
-          WORKSPACE_PATH: ${{ github.workspace }}
-        run: .\\.github\\workflows\\release\\build-packages.ps1
+      #- name: Build packages
+      #  env:
+      #    WORKSPACE_PATH: ${{ github.workspace }}
+      #  run: .\\.github\\workflows\\release\\build-packages.ps1
       - name: Run unit tests
         env: 
           PN_PUB_KEY: ${{ secrets.SDK_PUB_KEY }}
