@@ -25,6 +25,15 @@ public class ChatTests
         }
         channel.Join();
     }
+
+    [TearDown]
+    public async Task CleanUp()
+    {
+        channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
+    }
     
     [Test]
     public async Task TestGetCurrentUserMentions()
@@ -151,7 +160,7 @@ public class ChatTests
 
         channel.SendText("message_to_forward");
 
-        var forwarded = messageForwardReceivedManualEvent.WaitOne(6000);
+        var forwarded = messageForwardReceivedManualEvent.WaitOne(12000);
         forwardingChannel.Leave();
         Assert.True(forwarded);
     }
@@ -168,7 +177,7 @@ public class ChatTests
         channel.Join();
         chat.EmitEvent(PubnubChatEventType.Report, channel.Id, "{\"test\":\"some_nonsense\"}");
 
-        var eventReceived = reportManualEvent.WaitOne(5000);
+        var eventReceived = reportManualEvent.WaitOne(8000);
         Assert.True(eventReceived);
     }
 

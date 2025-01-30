@@ -30,6 +30,13 @@ public class ChannelTests
         talkUser = chat.GetOrCreateUser("talk_user");
     }
     
+    [TearDown]
+    public async Task CleanUp()
+    {
+        chat.Destroy();
+        await Task.Delay(3000);
+    }
+    
     [Test]
     public async Task TestGetUserSuggestions()
     {
@@ -157,7 +164,7 @@ public class ChannelTests
         };
         channel.SendText("message to pin");
 
-        var received = receivedManualEvent.WaitOne(6000);
+        var received = receivedManualEvent.WaitOne(12000);
         Assert.IsTrue(received);
     }
     

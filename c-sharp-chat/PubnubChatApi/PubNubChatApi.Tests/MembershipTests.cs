@@ -26,6 +26,15 @@ public class MembershipTests
         }
         channel.Join();
     }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
+    }
 
     [Test]
     public async Task TestGetMemberships()

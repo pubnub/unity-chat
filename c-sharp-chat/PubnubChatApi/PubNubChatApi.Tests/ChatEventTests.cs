@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -24,6 +25,15 @@ public class ChatEventTests
             Assert.Fail();
         }
         channel.Join();
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
     }
     
     [Test]

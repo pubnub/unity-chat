@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -16,6 +17,13 @@ public class RestrictionsTests
             PubnubTestsParameters.SubscribeKey,
             "restrictions_tests_user")
         );
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        chat.Destroy();
+        await Task.Delay(3000);
     }
 
     [Test]
