@@ -161,7 +161,7 @@ public class ChatTests
         channel.SendText("message_to_forward");
 
         var forwarded = messageForwardReceivedManualEvent.WaitOne(12000);
-        //forwardingChannel.Leave();
+        forwardingChannel.Leave();
         Assert.True(forwarded);
     }
 
