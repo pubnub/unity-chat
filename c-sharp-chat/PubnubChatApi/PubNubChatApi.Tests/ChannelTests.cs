@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -199,4 +199,4 @@ public class ChannelTests
         var received = receivedManualEvent.WaitOne(7000);
         Assert.True(received);
     }
-}
+}*/

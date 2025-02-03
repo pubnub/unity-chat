@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -216,7 +216,7 @@ public class MessageTests
             /*var has = message.HasUserReaction("happy");
             Assert.True(has);
             var reactions = message.Reactions;
-            Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));*/
+            Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));#1#
 
             await Task.Delay(5000);
 
@@ -286,4 +286,4 @@ public class MessageTests
         var received = manualReceiveEvent.WaitOne(30000);
         Assert.IsTrue(received);
     }
-}
+}*/

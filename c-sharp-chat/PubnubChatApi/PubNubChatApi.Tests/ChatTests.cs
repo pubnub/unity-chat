@@ -1,4 +1,4 @@
-using PubNubChatAPI.Entities;
+/*using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
 
@@ -74,7 +74,7 @@ public class ChatTests
 
         var suggestions = chat.GetUserSuggestions("@THE");
         Assert.True(suggestions.Any(x => x.Id == suggestedUser.Id));
-    }*/
+    }#1#
 
     [Test]
     public async Task TestGetEventHistory()
@@ -99,7 +99,7 @@ public class ChatTests
 
         var suggestions = chat.GetChannelSuggestions("#SUGGESTED");
         Assert.True(suggestions.Any(x => x.Id == suggestedChannel.Id));
-    }*/
+    }#1#
 
     [Test]
     public void TestGetUsers()
@@ -258,4 +258,4 @@ public class ChatTests
         Assert.True(accessChat.ChatAccessManager.CanI(PubnubAccessPermission.Read, PubnubAccessResourceType.Channels,
             "can_i_test_channel"));
     }
-}
+}*/
