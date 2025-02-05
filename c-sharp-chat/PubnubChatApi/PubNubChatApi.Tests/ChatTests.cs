@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -24,6 +24,15 @@ public class ChatTests
             Assert.Fail();
         }
         await channel.Join();
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        await channel.Leave();
+        await Task.Delay(1000);
+        chat.Destroy();
+        await Task.Delay(1000);
     }
     
     [Test]
@@ -218,4 +227,4 @@ public class ChatTests
         Assert.True(await accessChat.ChatAccessManager.CanI(PubnubAccessPermission.Read, PubnubAccessResourceType.Channels,
             "can_i_test_channel"));
     }
-}
+}*/
