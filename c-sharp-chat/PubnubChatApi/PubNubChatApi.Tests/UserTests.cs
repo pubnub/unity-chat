@@ -11,20 +11,20 @@ public class UserTests
     private User user;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(
+        chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
             "user_tests_user", 
             storeUserActivityTimestamp: true)
         );
-        channel = chat.CreatePublicConversation("user_tests_channel");
+        channel = await chat.CreatePublicConversation("user_tests_channel");
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        channel.Join();
+        await channel.Join();
     }
 
     [Test]
@@ -48,7 +48,7 @@ public class UserTests
     public async Task TestUserUpdate()
     {
         var updatedReset = new ManualResetEvent(false);
-        var testUser = chat.GetOrCreateUser("wolololo");
+        var testUser = await chat.GetOrCreateUser("wolololo");
 
         await Task.Delay(5000);
         
@@ -58,8 +58,8 @@ public class UserTests
             Assert.True(updatedUser.UserName == newRandomUserName);
             updatedReset.Set();
         };
-        testUser.StartListeningForUpdates();
-        testUser.Update(new ChatUserData()
+        await testUser.StartListeningForUpdates();
+        await testUser.Update(new ChatUserData()
         {
             Username = newRandomUserName
         });

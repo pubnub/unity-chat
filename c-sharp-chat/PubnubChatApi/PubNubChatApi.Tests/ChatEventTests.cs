@@ -10,23 +10,23 @@ public class ChatEventTests
     private User user;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(
+        chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
             "event_tests_user")
         );
-        channel = chat.CreatePublicConversation("event_tests_channel");
+        channel = await chat.CreatePublicConversation("event_tests_channel");
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        channel.Join();
+        await channel.Join();
     }
     
     [Test]
-    public void TestModerationEvents()
+    public async Task TestModerationEvents()
     {
         var manualModerationEvent = new ManualResetEvent(false);
         chat.OnModerationEvent += moderationEvent =>
@@ -35,7 +35,7 @@ public class ChatEventTests
             manualModerationEvent.Set();
         };
         chat.StartListeningForModerationEvents(user.Id);
-        user.SetRestriction(channel.Id, new Restriction()
+        await user.SetRestriction(channel.Id, new Restriction()
         {
             Ban = true,
             Mute = true,

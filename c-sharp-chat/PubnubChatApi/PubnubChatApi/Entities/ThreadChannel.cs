@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Utilities;
 
@@ -80,25 +81,25 @@ namespace PubNubChatAPI.Entities
         {
         }
 
-        public override void PinMessage(Message message)
+        public override async Task PinMessage(Message message)
         {
-            var newPointer = pn_thread_channel_pin_message_to_thread(pointer, message.Pointer);
+            var newPointer = await Task.Run(() => pn_thread_channel_pin_message_to_thread(pointer, message.Pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public override void UnpinMessage()
+        public override async Task UnpinMessage()
         {
-            var newPointer = pn_thread_channel_unpin_message_from_thread(pointer);
+            var newPointer = await Task.Run(() => pn_thread_channel_unpin_message_from_thread(pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public List<ThreadMessage> GetThreadHistory(string startTimeToken, string endTimeToken, int count)
+        public async Task<List<ThreadMessage>> GetThreadHistory(string startTimeToken, string endTimeToken, int count)
         {
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_thread_channel_get_history(pointer, startTimeToken, endTimeToken, count,
-                buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_thread_channel_get_history(pointer, startTimeToken, endTimeToken, count,
+                buffer)));
             var messagesPointersJson = buffer.ToString();
             var history = new List<ThreadMessage>();
             if (!CUtilities.IsValidJson(messagesPointersJson))
@@ -127,16 +128,16 @@ namespace PubNubChatAPI.Entities
             return history;
         }
 
-        public void PinMessageToParentChannel(Message message)
+        public async Task PinMessageToParentChannel(Message message)
         {
-            var newChannelPointer = pn_thread_channel_pin_message_to_parent_channel(pointer, message.Pointer);
+            var newChannelPointer = await Task.Run(() => pn_thread_channel_pin_message_to_parent_channel(pointer, message.Pointer));
             CUtilities.CheckCFunctionResult(newChannelPointer);
             chat.UpdateChannelPointer(ParentChannelId, newChannelPointer);
         }
 
-        public void UnPinMessageFromParentChannel()
+        public async Task UnPinMessageFromParentChannel()
         {
-            var newChannelPointer = pn_thread_channel_unpin_message_from_parent_channel(pointer);
+            var newChannelPointer = await Task.Run(() => pn_thread_channel_unpin_message_from_parent_channel(pointer));
             CUtilities.CheckCFunctionResult(newChannelPointer);
             chat.UpdateChannelPointer(ParentChannelId, newChannelPointer);
         }

@@ -11,23 +11,23 @@ public class MessageDraftTests
     private Channel dummyChannel;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(
+        chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
             "message_draft_tests_user")
         );
-        channel = chat.CreatePublicConversation("message_draft_tests_channel");
+        channel = await chat.CreatePublicConversation("message_draft_tests_channel");
         if (!chat.TryGetCurrentUser(out var user))
         {
             Assert.Fail();
         }
 
-        channel.Join();
+        await channel.Join();
         if (!chat.TryGetUser("mock_user", out dummyUser))
         {
-            dummyUser = chat.CreateUser("mock_user", new ChatUserData()
+            dummyUser = await chat.CreateUser("mock_user", new ChatUserData()
             {
                 Username = "Mock Usernamiski"
             });
@@ -35,12 +35,12 @@ public class MessageDraftTests
 
         if (!chat.TryGetChannel("dummy_channel", out dummyChannel))
         {
-            dummyChannel = chat.CreatePublicConversation("dummy_channel");
+            dummyChannel = await chat.CreatePublicConversation("dummy_channel");
         }
     }
 
     [Test]
-    public void TestInsertAndRemoveText()
+    public async Task TestInsertAndRemoveText()
     {
         var messageDraft = channel.CreateMessageDraft();
         var successReset = new ManualResetEvent(false);
@@ -69,7 +69,7 @@ public class MessageDraftTests
     }
 
     [Test]
-    public void TestInsertSuggestedMention()
+    public async Task TestInsertSuggestedMention()
     {
         var messageDraft = channel.CreateMessageDraft();
         messageDraft.SetSearchForSuggestions(true);
@@ -100,7 +100,7 @@ public class MessageDraftTests
     }
 
     [Test]
-    public void TestAddAndRemoveMention()
+    public async Task TestAddAndRemoveMention()
     {
         var messageDraft = channel.CreateMessageDraft();
         var successReset = new ManualResetEvent(false);
@@ -135,7 +135,7 @@ public class MessageDraftTests
     }
 
     [Test]
-    public void TestUpdate()
+    public async Task TestUpdate()
     {
         var messageDraft = channel.CreateMessageDraft();
         var successReset = new ManualResetEvent(false);
@@ -151,7 +151,7 @@ public class MessageDraftTests
 
 
     [Test]
-    public void TestSend()
+    public async Task TestSend()
     {
         var successReset = new ManualResetEvent(false);
         channel.OnMessageReceived += message =>
@@ -161,7 +161,7 @@ public class MessageDraftTests
         };
         var messageDraft = channel.CreateMessageDraft();
         messageDraft.InsertText(0, "draft_text");
-        messageDraft.Send();
+        await messageDraft.Send();
         var gotCallback = successReset.WaitOne(6000);
         Assert.True(gotCallback);
     }

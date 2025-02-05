@@ -120,6 +120,20 @@
              </example>
             
         </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.TryGetPinnedMessage(PubNubChatAPI.Entities.Message@)">
+            <summary>
+            Tries to get the <c>Message</c> pinned to this <c>Channel</c>.
+            </summary>
+            <param name="pinnedMessage">The pinned Message object, null if there wasn't one.</param>
+            <returns>True of a pinned Message was found, false otherwise.</returns>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.GetPinnedMessageAsync"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.GetPinnedMessageAsync">
+            <summary>
+            Asynchronously tries to get the <c>Message</c> pinned to this <c>Channel</c>.
+            </summary>
+            <returns>The pinned Message object if there was one, null otherwise.</returns>
+        </member>
         <member name="M:PubNubChatAPI.Entities.Channel.CreateMessageDraft(PubNubChatAPI.Entities.UserSuggestionSource,System.Boolean,System.Int32,System.Int32)">
             <summary>
             Creates a new MessageDraft.
@@ -405,6 +419,14 @@
             </code>
             </example>
             <seealso cref="T:PubNubChatAPI.Entities.Message"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.GetMessageAsync(System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Channel.GetMessageAsync(System.String)">
+            <summary>
+            Asynchronously gets the <c>Message</c> object for the given timetoken sent from this <c>Channel</c>.
+            </summary>
+            <param name="timeToken">TimeToken of the searched-for message.</param>
+            <returns>Message object if one was found, null otherwise.</returns>
         </member>
         <member name="T:PubNubChatAPI.Entities.Chat">
             <summary>
@@ -418,9 +440,9 @@
             The class is responsible for creating and managing channels, users, and messages.
             </remarks>
         </member>
-        <member name="M:PubNubChatAPI.Entities.Chat.#ctor(PubnubChatApi.Entities.Data.PubnubChatConfig,System.Threading.SynchronizationContext)">
+        <member name="M:PubNubChatAPI.Entities.Chat.CreateInstance(PubnubChatApi.Entities.Data.PubnubChatConfig,System.Threading.SynchronizationContext)">
             <summary>
-            Initializes a new instance of the <see cref="T:PubNubChatAPI.Entities.Chat"/> class.
+            Asynchronously initializes a new instance of the <see cref="T:PubNubChatAPI.Entities.Chat"/> class.
             <para>
             Creates a new chat instance.
             </para>
@@ -495,6 +517,14 @@
             </code>
             </example>
             <seealso cref="T:PubNubChatAPI.Entities.Channel"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.GetChannelAsync(System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetChannelAsync(System.String)">
+            <summary>
+            Performs an async retrieval of a Channel object with a given ID.
+            </summary>
+            <param name="channelId">ID of the channel.</param>
+            <returns>Channel object if it exists, null otherwise.</returns>
         </member>
         <member name="M:PubNubChatAPI.Entities.Chat.UpdateChannel(System.String,PubnubChatApi.Entities.Data.ChatChannelData)">
             <summary>
@@ -532,6 +562,20 @@
             chat.DeleteChannel("channel_id");
             </code>
             </example>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.TryGetCurrentUser(PubNubChatAPI.Entities.User@)">
+            <summary>
+            Tries to retrieve the current User object for this chat.
+            </summary>
+            <param name="user">The retrieved current User object.</param>
+            <returns>True if chat has a current user, false otherwise.</returns>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.GetCurrentUserAsync"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetCurrentUserAsync">
+            <summary>
+            Asynchronously tries to retrieve the current User object for this chat.
+            </summary>
+            <returns>User object if there is a current user, null otherwise.</returns>
         </member>
         <member name="M:PubNubChatAPI.Entities.Chat.SetRestriction(System.String,System.String,System.Boolean,System.Boolean,System.String)">
             <summary>
@@ -679,6 +723,14 @@
             </code>
             </example>
             <seealso cref="T:PubNubChatAPI.Entities.User"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.GetUserAsync(System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetUserAsync(System.String)">
+            <summary>
+            Asynchronously gets the user with the provided user ID.
+            </summary>
+            <param name="userId">ID of the User to get.</param>
+            <returns>User object if one with given ID is found, null otherwise.</returns>
         </member>
         <member name="M:PubNubChatAPI.Entities.Chat.GetUsers(System.String,System.String,System.Int32,PubnubChatApi.Entities.Data.Page)">
             <summary>
@@ -827,6 +879,31 @@
             </code>
             </example>
             <seealso cref="T:PubNubChatAPI.Entities.Message"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.GetMessageAsync(System.String,System.String)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetMessageAsync(System.String,System.String)">
+            <summary>
+            Asynchronously gets the <c>Message</c> object for the given timetoken.
+            </summary>
+            <param name="channelId">ID of the channel on which the message was sent.</param>
+            <param name="messageTimeToken">TimeToken of the searched-for message.</param>
+            <returns>Message object if one was found, null otherwise.</returns>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.TryGetThreadChannel(PubNubChatAPI.Entities.Message,PubNubChatAPI.Entities.ThreadChannel@)">
+            <summary>
+            Tries to retrieve a ThreadChannel object from a Message object if there is one.
+            </summary>
+            <param name="message">Message on which the ThreadChannel is supposed to be.</param>
+            <param name="threadChannel">Retrieved ThreadChannel or null if it wasn't found/</param>
+            <returns>True if a ThreadChannel was found, false otherwise.</returns>
+            <seealso cref="M:PubNubChatAPI.Entities.Chat.GetThreadChannelAsync(PubNubChatAPI.Entities.Message)"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Chat.GetThreadChannelAsync(PubNubChatAPI.Entities.Message)">
+            <summary>
+            Asynchronously tries to retrieve a ThreadChannel object from a Message object if there is one.
+            </summary>
+            <param name="message">Message on which the ThreadChannel is supposed to be.</param>
+            <returns>The ThreadChannel object if one was found, null otherwise.</returns>
         </member>
         <member name="M:PubNubChatAPI.Entities.Chat.GetChannelMessageHistory(System.String,System.String,System.String,System.Int32)">
             <summary>
@@ -1043,6 +1120,20 @@
             </code>
             </example>
             <seealso cref="E:PubNubChatAPI.Entities.Message.OnMessageUpdated"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Message.TryGetThread(PubNubChatAPI.Entities.ThreadChannel@)">
+            <summary>
+            Tries to get the ThreadChannel started on this Message.
+            </summary>
+            <param name="threadChannel">The retrieved ThreadChannel object, null if one wasn't found.</param>
+            <returns>True if a ThreadChannel object has been found, false otherwise.</returns>
+            <seealso cref="M:PubNubChatAPI.Entities.Message.GetThreadAsync"/>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.Message.GetThreadAsync">
+            <summary>
+            Asynchronously tries to get the ThreadChannel started on this Message.
+            </summary>
+            <returns>The retrieved ThreadChannel object, null if one wasn't found.</returns>
         </member>
         <member name="M:PubNubChatAPI.Entities.Message.Delete(System.Boolean)">
             <summary>

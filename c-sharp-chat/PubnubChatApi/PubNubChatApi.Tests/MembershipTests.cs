@@ -11,32 +11,32 @@ public class MembershipTests
     private User user;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(
+        chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
             "membership_tests_user_54")
         );
-        channel = chat.CreatePublicConversation("membership_tests_channel");
+        channel = await chat.CreatePublicConversation("membership_tests_channel");
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        channel.Join();
+        await channel.Join();
     }
 
     [Test]
     public async Task TestGetMemberships()
     {
-        var memberships = user.GetMemberships();
+        var memberships = await user.GetMemberships();
         Assert.True(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
 
     [Test]
     public async Task TestUpdateMemberships()
     {
-        var memberships = user.GetMemberships();
+        var memberships = await user.GetMemberships();
         var testMembership = memberships.Memberships.Last();
         if (testMembership == null)
         {
@@ -49,31 +49,31 @@ public class MembershipTests
             Assert.True(membership.Id == testMembership.Id);
             manualUpdatedEvent.Set();
         };
-        testMembership.StartListeningForUpdates();
+        await testMembership.StartListeningForUpdates();
 
         await Task.Delay(4000);
         
-        testMembership.Update("{\"key\": \"" + Guid.NewGuid() + "\"}");
+        await testMembership.Update("{\"key\": \"" + Guid.NewGuid() + "\"}");
         var updated = manualUpdatedEvent.WaitOne(8000);
         Assert.IsTrue(updated);
     }
 
     [Test]
-    public void TestInvite()
+    public async Task TestInvite()
     {
-        var testChannel = chat.CreateGroupConversation([user],"test_invite_group_channel").CreatedChannel;
-        var testUser = chat.GetOrCreateUser("test_invite_user");
-        var returnedMembership = testChannel.Invite(testUser);
+        var testChannel = (await chat.CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
+        var testUser = await chat.GetOrCreateUser("test_invite_user");
+        var returnedMembership = await testChannel.Invite(testUser);
         Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id);
     }
 
     [Test]
-    public void TestInviteMultiple()
+    public async Task TestInviteMultiple()
     {
-        var testChannel = chat.CreateGroupConversation([user],"invite_multiple_test_group_channel_3").CreatedChannel;
-        var secondUser = chat.GetOrCreateUser("second_invite_user");
-        var thirdUser = chat.GetOrCreateUser("third_invite_user");
-        var returnedMemberships = testChannel.InviteMultiple([
+        var testChannel = (await chat.CreateGroupConversation([user], "invite_multiple_test_group_channel_3")).CreatedChannel;
+        var secondUser = await chat.GetOrCreateUser("second_invite_user");
+        var thirdUser = await chat.GetOrCreateUser("third_invite_user");
+        var returnedMemberships = await testChannel.InviteMultiple([
             secondUser,
             thirdUser
         ]);
@@ -86,12 +86,12 @@ public class MembershipTests
     [Test]
     public async Task TestLastRead()
     {
-        var testChannel = chat.CreatePublicConversation("last_read_test_channel_57");
-        testChannel.Join();
+        var testChannel = await chat.CreatePublicConversation("last_read_test_channel_57");
+        await testChannel.Join();
         
         await Task.Delay(4000);
         
-        var membership = user.GetMemberships(limit:20).Memberships
+        var membership = (await user.GetMemberships(limit: 20)).Memberships
             .FirstOrDefault(x => x.ChannelId == testChannel.Id);
         if (membership == null)
         {
@@ -103,20 +103,20 @@ public class MembershipTests
         
         testChannel.OnMessageReceived += async message =>
         {
-            membership.SetLastReadMessage(message);
+            await membership.SetLastReadMessage(message);
             
             await Task.Delay(7000);
 
             var lastTimeToken = membership.GetLastReadMessageTimeToken();
             Assert.True(lastTimeToken == message.TimeToken);
-            membership.SetLastReadMessageTimeToken("99999999999999999");
+            await membership.SetLastReadMessageTimeToken("99999999999999999");
 
             await Task.Delay(3000);
 
             Assert.True(membership.GetLastReadMessageTimeToken() == "99999999999999999");
             messageReceivedManual.Set();
         };
-        testChannel.SendText("some_message");
+        await testChannel.SendText("some_message");
 
         var received = messageReceivedManual.WaitOne(90000);
         Assert.True(received);
@@ -125,16 +125,16 @@ public class MembershipTests
     [Test]
     public async Task TestUnreadMessagesCount()
     {
-        var unreadChannel = chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
-        unreadChannel.Join();
-        unreadChannel.SendText("one");
-        unreadChannel.SendText("two");
-        unreadChannel.SendText("three");
+        var unreadChannel = await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
+        await unreadChannel.Join();
+        await unreadChannel.SendText("one");
+        await unreadChannel.SendText("two");
+        await unreadChannel.SendText("three");
 
         await Task.Delay(4000);
 
-        var membership = chat.GetUserMemberships(user.Id, limit:20).Memberships
+        var membership = (await chat.GetUserMemberships(user.Id, limit: 20)).Memberships
             .FirstOrDefault(x => x.ChannelId == unreadChannel.Id);
-        Assert.True(membership != null && membership.GetUnreadMessagesCount() == 3);
+        Assert.True(membership != null && await membership.GetUnreadMessagesCount() == 3);
     }
 }

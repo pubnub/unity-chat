@@ -18,3 +18,11 @@ MonoBehaviour:
   <AuthKey>k__BackingField: 
   <TypingTimeout>k__BackingField: 5000
   <TypingTimeoutDifference>k__BackingField: 1000
+  <RateLimitFactor>k__BackingField: 0
+  <RateLimitPerChannel>k__BackingField:
+    DirectConversation: 0
+    GroupConversation: 0
+    PublicConversation: 0
+    UnknownConversation: 0
+  <StoreUserActivityTimestamp>k__BackingField: 0
+  <StoreUserActivityInterval>k__BackingField: 60000
