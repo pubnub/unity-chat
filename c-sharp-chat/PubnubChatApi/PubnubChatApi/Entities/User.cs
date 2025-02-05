@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -64,9 +65,10 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern int pn_user_get_channels_restrictions(IntPtr user, string sort, int limit, string next,
             string prev, StringBuilder result);
-        
+
         [DllImport("pubnub-chat")]
         private static extern int pn_user_active(IntPtr user);
+
         [DllImport("pubnub-chat")]
         private static extern int pn_user_last_active_timestamp(IntPtr user, StringBuilder result);
 
@@ -225,11 +227,11 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Update"/>
         /// <seealso cref="User"/>
         public event Action<User> OnUserUpdated;
-        
-        public override void StartListeningForUpdates()
+
+        public override async Task StartListeningForUpdates()
         {
             //TODO: hacky way to subscribe to this channel
-            chat.ListenForEvents(Id, PubnubChatEventType.Custom);
+            await chat.ListenForEvents(Id, PubnubChatEventType.Custom);
         }
 
         internal User(Chat chat, string userId, IntPtr userPointer) : base(userPointer, userId)
@@ -276,9 +278,9 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="ChatUserData"/>
-        public void Update(ChatUserData updatedData)
+        public async Task Update(ChatUserData updatedData)
         {
-            chat.UpdateUser(Id, updatedData);
+            await chat.UpdateUser(Id, updatedData);
         }
 
         /// <summary>
@@ -297,9 +299,9 @@ namespace PubNubChatAPI.Entities
         /// user.DeleteUser();
         /// </code>
         /// </example>
-        public void DeleteUser()
+        public async Task DeleteUser()
         {
-            chat.DeleteUser(Id);
+            await chat.DeleteUser(Id);
         }
 
         /// <summary>
@@ -322,14 +324,14 @@ namespace PubNubChatAPI.Entities
         /// user.SetRestrictions("channel_id", true, false, "Banned from the channel");
         /// </code>
         /// </example>
-        public void SetRestriction(string channelId, bool banUser, bool muteUser, string reason)
+        public async Task SetRestriction(string channelId, bool banUser, bool muteUser, string reason)
         {
-            chat.SetRestriction(Id, channelId, banUser, muteUser, reason);
+            await chat.SetRestriction(Id, channelId, banUser, muteUser, reason);
         }
 
-        public void SetRestriction(string channelId, Restriction restriction)
+        public async Task SetRestriction(string channelId, Restriction restriction)
         {
-            chat.SetRestriction(Id, channelId, restriction);
+            await chat.SetRestriction(Id, channelId, restriction);
         }
 
         /// <summary>
@@ -349,10 +351,11 @@ namespace PubNubChatAPI.Entities
         /// <exception cref="PubNubCCoreException">
         /// This exception might be thrown when any error occurs while getting the restrictions on the user for the channel.
         /// 
-        public Restriction GetChannelRestrictions(Channel channel)
+        public async Task<Restriction> GetChannelRestrictions(Channel channel)
         {
             var buffer = new StringBuilder(8192);
-            CUtilities.CheckCFunctionResult(pn_user_get_channel_restrictions(pointer, channel.Pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+                pn_user_get_channel_restrictions(pointer, channel.Pointer, buffer)));
             var restrictionJson = buffer.ToString();
             var restriction = new Restriction();
             if (CUtilities.IsValidJson(restrictionJson))
@@ -362,17 +365,20 @@ namespace PubNubChatAPI.Entities
 
             return restriction;
         }
-        
-        public ChannelsRestrictionsWrapper GetChannelsRestrictions(string sort = "", int limit = 0, Page page = null)
+
+        public async Task<ChannelsRestrictionsWrapper> GetChannelsRestrictions(string sort = "", int limit = 0,
+            Page page = null)
         {
             page ??= new Page();
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_user_get_channels_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+                pn_user_get_channels_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer)));
             var restrictionsJson = buffer.ToString();
             if (!CUtilities.IsValidJson(restrictionsJson))
             {
                 return new ChannelsRestrictionsWrapper();
             }
+
             var wrapper = JsonConvert.DeserializeObject<ChannelsRestrictionsWrapper>(restrictionsJson);
             wrapper ??= new ChannelsRestrictionsWrapper();
             return wrapper;
@@ -399,9 +405,9 @@ namespace PubNubChatAPI.Entities
         /// }
         /// </code>
         /// </example>
-        public bool IsPresentOn(string channelId)
+        public async Task<bool> IsPresentOn(string channelId)
         {
-            var result = pn_user_is_present_on(pointer, channelId);
+            var result = await Task.Run(() => pn_user_is_present_on(pointer, channelId));
             CUtilities.CheckCFunctionResult(result);
             return result == 1;
         }
@@ -430,10 +436,10 @@ namespace PubNubChatAPI.Entities
         /// }
         /// </code>
         /// </example>
-        public List<string> WherePresent()
+        public async Task<List<string>> WherePresent()
         {
             var buffer = new StringBuilder(32768);
-            CUtilities.CheckCFunctionResult(pn_user_where_present(pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_user_where_present(pointer, buffer)));
             var jsonChannelIds = buffer.ToString();
             var channelIds = new List<string>();
             if (!string.IsNullOrEmpty(jsonChannelIds) && jsonChannelIds != "[]" && jsonChannelIds != "{}")
@@ -471,10 +477,10 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Membership"/>
-        public MembersResponseWrapper GetMemberships(string filter = "", string sort = "", int limit = 0,
+        public async Task<MembersResponseWrapper> GetMemberships(string filter = "", string sort = "", int limit = 0,
             Page page = null)
         {
-            return chat.GetUserMemberships(Id, filter, sort, limit, page);
+            return await chat.GetUserMemberships(Id, filter, sort, limit, page);
         }
 
         protected override void DisposePointer()

@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
@@ -105,10 +106,10 @@ namespace PubNubChatAPI.Entities
 
         private Chat chat;
         
-        public override void StartListeningForUpdates()
+        public override async Task StartListeningForUpdates()
         {
             //TODO: hacky way to subscribe to this channel
-            chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
+            await chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
         }
 
         internal Membership(Chat chat, IntPtr membershipPointer, string membershipId) : base(membershipPointer, membershipId)
@@ -153,9 +154,9 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="OnMembershipUpdated"/>
-        public void Update(string customJsonObject)
+        public async Task Update(string customJsonObject)
         {
-            var newPointer = pn_membership_update_dirty(pointer, customJsonObject);
+            var newPointer = await Task.Run(() => pn_membership_update_dirty(pointer, customJsonObject));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
@@ -167,23 +168,23 @@ namespace PubNubChatAPI.Entities
             return buffer.ToString();
         }
 
-        public void SetLastReadMessage(Message message)
+        public async Task SetLastReadMessage(Message message)
         {
-            var newPointer = pn_membership_set_last_read_message(pointer, message.Pointer);
+            var newPointer = await Task.Run(() => pn_membership_set_last_read_message(pointer, message.Pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
         
-        public void SetLastReadMessageTimeToken(string timeToken)
+        public async Task SetLastReadMessageTimeToken(string timeToken)
         {
-            var newPointer = pn_membership_set_last_read_message_timetoken(pointer, timeToken);
+            var newPointer = await Task.Run(() => pn_membership_set_last_read_message_timetoken(pointer, timeToken));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public int GetUnreadMessagesCount()
+        public async Task<int> GetUnreadMessagesCount()
         {
-            var result = pn_membership_get_unread_messages_count(pointer);
+            var result = await Task.Run(() => pn_membership_get_unread_messages_count(pointer));
             CUtilities.CheckCFunctionResult(result);
             return result;
         }

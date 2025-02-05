@@ -4,11 +4,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Timers;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
-using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
 namespace PubNubChatAPI.Entities
@@ -295,14 +295,14 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public event Action<Channel> OnChannelUpdate;
 
-        public override void StartListeningForUpdates()
+        public override async Task StartListeningForUpdates()
         {
             if (connected)
             {
                 return;
             }
 
-            Connect();
+            await Connect();
         }
 
         /// <summary>
@@ -370,11 +370,11 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        internal void BroadcastPresenceUpdate()
+        internal async void BroadcastPresenceUpdate()
         {
             if (connected)
             {
-                OnPresenceUpdate?.Invoke(WhoIsPresent());
+                OnPresenceUpdate?.Invoke(await WhoIsPresent());
             }
         }
 
@@ -428,41 +428,47 @@ namespace PubNubChatAPI.Entities
             return true;
         }
 
-        public void ForwardMessage(Message message)
+        public async Task ForwardMessage(Message message)
         {
-            chat.ForwardMessage(message, this);
+            await chat.ForwardMessage(message, this);
         }
 
-        public void EmitUserMention(string userId, string timeToken, string text)
+        public async Task EmitUserMention(string userId, string timeToken, string text)
         {
-            CUtilities.CheckCFunctionResult(pn_channel_emit_user_mention(pointer, userId, timeToken, text));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_emit_user_mention(pointer, userId, timeToken, text)));
         }
 
-        public void StartTyping()
+        public async Task StartTyping()
         {
-            CUtilities.CheckCFunctionResult(pn_channel_start_typing(pointer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_start_typing(pointer)));
         }
 
-        public void StopTyping()
+        public async Task StopTyping()
         {
-            CUtilities.CheckCFunctionResult(pn_channel_stop_typing(pointer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_stop_typing(pointer)));
         }
 
-        public virtual void PinMessage(Message message)
+        public virtual async Task PinMessage(Message message)
         {
-            var newPointer = pn_channel_pin_message(pointer, message.Pointer);
+            var newPointer = await Task.Run(() => pn_channel_pin_message(pointer, message.Pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public virtual void UnpinMessage()
+        public virtual async Task UnpinMessage()
         {
-            var newPointer = pn_channel_unpin_message(pointer);
+            var newPointer = await Task.Run(() => pn_channel_unpin_message(pointer));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
         //TODO: currently same result whether error or no pinned message present
+        /// <summary>
+        /// Tries to get the <c>Message</c> pinned to this <c>Channel</c>.
+        /// </summary>
+        /// <param name="pinnedMessage">The pinned Message object, null if there wasn't one.</param>
+        /// <returns>True of a pinned Message was found, false otherwise.</returns>
+        /// <seealso cref="GetPinnedMessageAsync"/>
         public bool TryGetPinnedMessage(out Message pinnedMessage)
         {
             //TODO: currently discarding this pointer because it can be either a Message or a ThreadMessage
@@ -480,10 +486,23 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public List<Membership> GetUserSuggestions(string text, int limit = 10)
+        /// <summary>
+        /// Asynchronously tries to get the <c>Message</c> pinned to this <c>Channel</c>.
+        /// </summary>
+        /// <returns>The pinned Message object if there was one, null otherwise.</returns>
+        public async Task<Message?> GetPinnedMessageAsync()
+        {
+            return await Task.Run(() =>
+            {
+                var result = TryGetPinnedMessage(out var pinnedMessage);
+                return result ? pinnedMessage : null;
+            });
+        }
+
+        public async Task<List<Membership>> GetUserSuggestions(string text, int limit = 10)
         {
             var buffer = new StringBuilder(2048);
-            CUtilities.CheckCFunctionResult(pn_channel_get_user_suggestions(pointer, text, limit, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_get_user_suggestions(pointer, text, limit, buffer)));
             var resultJson = buffer.ToString();
             if (!CUtilities.IsValidJson(resultJson))
             {
@@ -536,11 +555,11 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Disconnect"/>
         /// <seealso cref="Join"/>
-        public void Connect()
+        public async Task Connect()
         {
             connected = true;
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_connect(pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_connect(pointer, buffer)));
             chat.ParseJsonUpdatePointers(buffer.ToString());
         }
 
@@ -567,11 +586,11 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
-        public void Join()
+        public async Task Join()
         {
             connected = true;
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_join(pointer, string.Empty, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_join(pointer, string.Empty, buffer)));
             chat.ParseJsonUpdatePointers(buffer.ToString());
         }
 
@@ -593,11 +612,11 @@ namespace PubNubChatAPI.Entities
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while disconnecting from the channel.</exception>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Join"/>
-        public void Disconnect()
+        public async Task Disconnect()
         {
             connected = false;
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_disconnect(pointer, buffer)));
             chat.ParseJsonUpdatePointers(buffer.ToString());
         }
 
@@ -621,11 +640,11 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
-        public void Leave()
+        public async Task Leave()
         {
             connected = false;
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_leave(pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_leave(pointer, buffer)));
             chat.ParseJsonUpdatePointers(buffer.ToString());
         }
 
@@ -648,15 +667,15 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while setting the restrictions.</exception>
         /// <seealso cref="GetUserRestrictions"/>
-        public void SetRestrictions(string userId, bool banUser, bool muteUser, string reason)
+        public async Task SetRestrictions(string userId, bool banUser, bool muteUser, string reason)
         {
-            CUtilities.CheckCFunctionResult(pn_channel_set_restrictions(pointer, userId, banUser, muteUser,
-                reason));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_set_restrictions(pointer, userId, banUser, muteUser,
+                reason)));
         }
 
-        public void SetRestrictions(string userId, Restriction restriction)
+        public async Task SetRestrictions(string userId, Restriction restriction)
         {
-            SetRestrictions(userId, restriction.Ban, restriction.Mute, restriction.Reason);
+            await SetRestrictions(userId, restriction.Ban, restriction.Mute, restriction.Reason);
         }
 
         /// <summary>
@@ -675,14 +694,14 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while sending the message.</exception>
         /// <seealso cref="OnMessageReceived"/>
-        public virtual void SendText(string message)
+        public virtual async Task SendText(string message)
         {
-            SendText(message, new SendTextParams());
+            await SendText(message, new SendTextParams());
         }
 
-        public virtual void SendText(string message, SendTextParams sendTextParams)
+        public virtual async Task SendText(string message, SendTextParams sendTextParams)
         {
-            CUtilities.CheckCFunctionResult(pn_channel_send_text_dirty(
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_send_text_dirty(
                 pointer,
                 message,
                 sendTextParams.StoreInHistory,
@@ -691,7 +710,7 @@ namespace PubNubChatAPI.Entities
                 sendTextParams.MentionedUsers.Count,
                 sendTextParams.MentionedUsers.Keys.ToArray(),
                 sendTextParams.MentionedUsers.Values.Select(x => x.Pointer).ToArray(),
-                sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer));
+                sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer)));
         }
 
         /// <summary>
@@ -716,9 +735,9 @@ namespace PubNubChatAPI.Entities
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while updating the channel.</exception>
         /// <seealso cref="OnChannelUpdate"/>
         /// <seealso cref="ChatChannelData"/>
-        public void Update(ChatChannelData updatedData)
+        public async Task Update(ChatChannelData updatedData)
         {
-            chat.UpdateChannel(Id, updatedData);
+            await chat.UpdateChannel(Id, updatedData);
         }
 
         /// <summary>
@@ -734,9 +753,9 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while deleting the channel.</exception>
-        public void Delete()
+        public async Task Delete()
         {
-            chat.DeleteChannel(Id);
+            await chat.DeleteChannel(Id);
         }
 
         /// <summary>
@@ -763,10 +782,10 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the user restrictions.</exception>
         /// <seealso cref="SetRestrictions"/>
-        public Restriction GetUserRestrictions(User user)
+        public async Task<Restriction> GetUserRestrictions(User user)
         {
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_get_user_restrictions(pointer, user.Pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_get_user_restrictions(pointer, user.Pointer, buffer)));
             var restrictionJson = buffer.ToString();
             var restriction = new Restriction();
             if (CUtilities.IsValidJson(restrictionJson))
@@ -777,12 +796,12 @@ namespace PubNubChatAPI.Entities
             return restriction;
         }
 
-        public UsersRestrictionsWrapper GetUsersRestrictions(string sort = "", int limit = 0, Page page = null)
+        public async Task<UsersRestrictionsWrapper> GetUsersRestrictions(string sort = "", int limit = 0, Page page = null)
         {
             page ??= new Page();
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(
-                pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer));
+                await Task.Run(() => pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer)));
             var restrictionsJson = buffer.ToString();
             if (!CUtilities.IsValidJson(restrictionsJson))
             {
@@ -811,9 +830,9 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while checking the presence of the user.</exception>
         /// <seealso cref="WhoIsPresent"/>
-        public bool IsUserPresent(string userId)
+        public async Task<bool> IsUserPresent(string userId)
         {
-            var result = pn_channel_is_present(pointer, userId);
+            var result = await Task.Run(() => pn_channel_is_present(pointer, userId));
             CUtilities.CheckCFunctionResult(result);
             return result == 1;
         }
@@ -836,10 +855,10 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the list of users present in the channel.</exception>
         /// <seealso cref="IsUserPresent"/>
-        public List<string> WhoIsPresent()
+        public async Task<List<string>> WhoIsPresent()
         {
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_channel_who_is_present(pointer, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_who_is_present(pointer, buffer)));
             var jsonResult = buffer.ToString();
             var ret = new List<string>();
             if (CUtilities.IsValidJson(jsonResult))
@@ -873,10 +892,10 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the list of memberships.</exception>
         /// <seealso cref="Membership"/>
-        public MembersResponseWrapper GetMemberships(string filter = "", string sort = "", int limit = 0,
+        public async Task<MembersResponseWrapper> GetMemberships(string filter = "", string sort = "", int limit = 0,
             Page page = null)
         {
-            return chat.GetChannelMemberships(Id, filter, sort, limit, page);
+            return await chat.GetChannelMemberships(Id, filter, sort, limit, page);
         }
 
         /// <summary>
@@ -898,31 +917,42 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Message"/>
+        /// <seealso cref="GetMessageAsync"/>
         public bool TryGetMessage(string timeToken, out Message message)
         {
             return chat.TryGetMessage(Id, timeToken, out message);
         }
-
-        public List<Message> GetMessageHistory(string startTimeToken, string endTimeToken,
-            int count)
+        
+        /// <summary>
+        /// Asynchronously gets the <c>Message</c> object for the given timetoken sent from this <c>Channel</c>.
+        /// </summary>
+        /// <param name="timeToken">TimeToken of the searched-for message.</param>
+        /// <returns>Message object if one was found, null otherwise.</returns>
+        public async Task<Message?> GetMessageAsync(string timeToken)
         {
-            return chat.GetChannelMessageHistory(Id, startTimeToken, endTimeToken, count);
+            return await chat.GetMessageAsync(Id, timeToken);
         }
 
-        public Membership Invite(User user)
+        public async Task<List<Message>> GetMessageHistory(string startTimeToken, string endTimeToken,
+            int count)
         {
-            var membershipPointer = pn_channel_invite_user(pointer, user.Pointer);
+            return await chat.GetChannelMessageHistory(Id, startTimeToken, endTimeToken, count);
+        }
+
+        public async Task<Membership> Invite(User user)
+        {
+            var membershipPointer = await Task.Run(() => pn_channel_invite_user(pointer, user.Pointer));
             CUtilities.CheckCFunctionResult(membershipPointer);
             var membershipId = Membership.GetMembershipIdFromPtr(membershipPointer);
             chat.TryGetMembership(membershipId, membershipPointer, out var membership);
             return membership;
         }
 
-        public List<Membership> InviteMultiple(List<User> users)
+        public async Task<List<Membership>> InviteMultiple(List<User> users)
         {
             var buffer = new StringBuilder(8192);
-            CUtilities.CheckCFunctionResult(pn_channel_invite_multiple(pointer, users.Select(x => x.Pointer).ToArray(),
-                users.Count, buffer));
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_invite_multiple(pointer, users.Select(x => x.Pointer).ToArray(),
+                users.Count, buffer)));
             return PointerParsers.ParseJsonMembershipPointers(chat, buffer.ToString());
         }
 
