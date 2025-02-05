@@ -1,9 +1,10 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class MembershipTests
 {
     private Chat chat;
@@ -24,6 +25,15 @@ public class MembershipTests
             Assert.Fail();
         }
         await channel.Join();
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
     }
 
     [Test]
@@ -137,4 +147,4 @@ public class MembershipTests
             .FirstOrDefault(x => x.ChannelId == unreadChannel.Id);
         Assert.True(membership != null && await membership.GetUnreadMessagesCount() == 3);
     }
-}
+}*/

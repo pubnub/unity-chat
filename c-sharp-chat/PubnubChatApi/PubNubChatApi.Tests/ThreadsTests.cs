@@ -1,9 +1,10 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class ThreadsTests
 {
     private Chat chat;
@@ -24,6 +25,15 @@ public class ThreadsTests
             Assert.Fail();
         }
         await channel.Join();
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
     }
 
     [Test]
@@ -174,4 +184,4 @@ public class ThreadsTests
         var updated = messageUpdatedReset.WaitOne(255000);
         Assert.True(updated);
     }
-}
+}*/

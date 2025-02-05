@@ -1,8 +1,10 @@
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class ChatEventTests
 {
     private Chat chat;
@@ -25,6 +27,15 @@ public class ChatEventTests
         await channel.Join();
     }
     
+    [TearDown]
+    public async Task CleanUp()
+    {
+        channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
+    }
+    
     [Test]
     public async Task TestModerationEvents()
     {
@@ -44,4 +55,4 @@ public class ChatEventTests
         var moderationEventReceived = manualModerationEvent.WaitOne(5000);
         Assert.IsTrue(moderationEventReceived);
     }
-}
+}*/

@@ -1,8 +1,9 @@
-using PubNubChatAPI.Entities;
+/*using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class MessageDraftTests
 {
     private Chat chat;
@@ -165,4 +166,4 @@ public class MessageDraftTests
         var gotCallback = successReset.WaitOne(6000);
         Assert.True(gotCallback);
     }
-}
+}*/

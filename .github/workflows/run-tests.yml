@@ -12,11 +12,10 @@ jobs:
   tests:
     name: Integration and Unit tests
     runs-on:
-      group: organization/macos-gh
-    env:
-      EVENT_NOKQUEUE: 1
-      PUB_KEY: ${{ secrets.SDK_PUB_KEY }}
-      SUB_KEY: ${{ secrets.SDK_SUB_KEY }}
+      group: organization/windows-gh
+    defaults:
+      run:
+        shell: powershell
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,14 +26,25 @@ jobs:
           ref: v1
           token: ${{ secrets.GH_TOKEN }}
           path: .github/.release/actions
-      - name: Integration tests
-        uses: ./.github/.release/actions/actions/runners/unity
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          project-path: ./PubnubChatUnity
-          test-mode: play
-          license-username: ${{ secrets.UNITYCI_NEW_USER }}
-          license-password: ${{ secrets.UNITYCI_NEW_PASS }}
-          license-serial: ${{ secrets.UNITYCI_NEW_SERIAL }}
+          dotnet-version: |
+            5.0.x
+            6.0.x
+            7.0.x
+      #- name: Build packages
+      #  env:
+      #    WORKSPACE_PATH: ${{ github.workspace }}
+      #  run: .\\.github\\workflows\\release\\build-packages.ps1
+      - name: Run unit tests
+        env: 
+          PN_PUB_KEY: ${{ secrets.SDK_PUB_KEY }}
+          PN_SUB_KEY: ${{ secrets.SDK_SUB_KEY }}
+          PN_SEC_KEY: ${{ secrets.SDK_SEC_KEY }} 
+        run: dotnet test .\\c-sharp-chat\\PubnubChatApi\\PubnubChatApi.Tests\\PubNubChatApi.Tests.csproj --verbosity normal --logger "console;verbosity=detailed"
       - name: Cancel workflow runs for commit on error
         if: failure()
         uses: ./.github/.release/actions/actions/utils/fast-jobs-failure

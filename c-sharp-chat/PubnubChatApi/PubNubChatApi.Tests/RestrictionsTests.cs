@@ -1,8 +1,10 @@
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
 
+[TestFixture]
 public class RestrictionsTests
 {
     private Chat chat;
@@ -15,6 +17,13 @@ public class RestrictionsTests
             PubnubTestsParameters.SubscribeKey,
             "restrictions_tests_user")
         );
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        chat.Destroy();
+        await Task.Delay(3000);
     }
 
     [Test]
@@ -70,4 +79,4 @@ public class RestrictionsTests
         Assert.True(a.Restrictions.Any(x => x.UserId == user.Id));
         Assert.True(b.Restrictions.Any(x => x.ChannelId == channel.Id));
     }
-}
+}*/

@@ -491,7 +491,6 @@ namespace PubNubChatAPI.Entities
                             messageWrappers[timeToken] = message;
                             Post(delegate { channel.BroadcastMessageReceived(message); }, null);
                         }
-
                         pn_dispose_message(pointer);
                         continue;
                     }
@@ -1896,6 +1895,11 @@ namespace PubNubChatAPI.Entities
 
         public void Destroy()
         {
+            //TODO: a temporary solution, maybe nulling the ptr later will be better
+            if (fetchUpdates == false)
+            {
+                return;
+            }
             fetchUpdates = false;
             fetchUpdatesThread.Join();
             pn_chat_delete(chatPointer);

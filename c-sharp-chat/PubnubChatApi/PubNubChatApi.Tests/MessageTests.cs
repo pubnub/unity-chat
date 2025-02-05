@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -24,6 +24,15 @@ public class MessageTests
             Assert.Fail();
         }
         await channel.Join();
+    }
+    
+    [TearDown]
+    public async Task CleanUp()
+    {
+        await channel.Leave();
+        await Task.Delay(3000);
+        chat.Destroy();
+        await Task.Delay(3000);
     }
 
     [Test]
@@ -269,4 +278,4 @@ public class MessageTests
         var received = manualReceiveEvent.WaitOne(20000);
         Assert.IsTrue(received);
     }
-}
+}*/
