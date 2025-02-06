@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -250,9 +250,9 @@ public class MessageTests
             try
             {
                 var thread = await message.CreateThread();
-                await Task.Delay(3000);
+                await Task.Delay(2000);
                 await thread.SendText("thread_init_text");
-                await Task.Delay(3000);
+                await Task.Delay(2000);
                 hasThread = message.HasThread();
             }
             catch (Exception e)
@@ -265,7 +265,7 @@ public class MessageTests
             Assert.True(message.TryGetThread(out var threadChannel));
             await message.RemoveThread();
 
-            await Task.Delay(8000);
+            await Task.Delay(5000);
 
             //TODO: temporary way to get latest message pointer since remove_thread doesn't return a new pointer
             chat.TryGetMessage(channel.Id, message.Id, out message);
@@ -275,7 +275,7 @@ public class MessageTests
         };
         await channel.SendText("thread_start_message");
 
-        var received = manualReceiveEvent.WaitOne(20000);
+        var received = manualReceiveEvent.WaitOne(25000);
         Assert.IsTrue(received);
     }
-}*/
+}

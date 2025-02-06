@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -147,4 +147,4 @@ public class MembershipTests
             .FirstOrDefault(x => x.ChannelId == unreadChannel.Id);
         Assert.True(membership != null && await membership.GetUnreadMessagesCount() == 3);
     }
-}*/
+}

@@ -557,6 +557,10 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public async Task Connect()
         {
+            if (connected)
+            {
+                return;
+            }
             connected = true;
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_connect(pointer, buffer)));
@@ -588,6 +592,10 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async Task Join()
         {
+            if (connected)
+            {
+                return;
+            }
             connected = true;
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_join(pointer, string.Empty, buffer)));
