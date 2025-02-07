@@ -269,6 +269,12 @@ namespace PubNubChatAPI.Entities
             //Message draft doesn't get updated over-network
             return Task.CompletedTask;
         }
+        
+        public override Task StopListeningForUpdates()
+        {
+            //Message draft doesn't get updated over-network
+            return Task.CompletedTask;
+        }
 
         protected override void DisposePointer()
         {

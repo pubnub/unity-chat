@@ -111,6 +111,11 @@ namespace PubNubChatAPI.Entities
             //TODO: hacky way to subscribe to this channel
             await chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
         }
+        
+        public override async Task StopListeningForUpdates()
+        {
+            
+        }
 
         internal Membership(Chat chat, IntPtr membershipPointer, string membershipId) : base(membershipPointer, membershipId)
         {

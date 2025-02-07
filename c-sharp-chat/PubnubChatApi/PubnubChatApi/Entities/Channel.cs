@@ -304,6 +304,11 @@ namespace PubNubChatAPI.Entities
 
             await Connect();
         }
+        
+        public override async Task StopListeningForUpdates()
+        {
+            
+        }
 
         /// <summary>
         /// Event that is triggered when any presence update occurs.

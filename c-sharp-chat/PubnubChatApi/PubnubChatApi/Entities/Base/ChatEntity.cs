@@ -25,8 +25,7 @@ namespace PubNubChatAPI.Entities
 
         public abstract Task StartListeningForUpdates();
         
-        //TODO: only after c-core event engine apparently
-        //public abstract void StopListeningForUpdates();
+        public abstract Task StopListeningForUpdates();
 
         ~ChatEntity()
         {

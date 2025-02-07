@@ -233,6 +233,11 @@ namespace PubNubChatAPI.Entities
             //TODO: hacky way to subscribe to this channel
             await chat.ListenForEvents(Id, PubnubChatEventType.Custom);
         }
+        
+        public override async Task StopListeningForUpdates()
+        {
+            
+        }
 
         internal User(Chat chat, string userId, IntPtr userPointer) : base(userPointer, userId)
         {
