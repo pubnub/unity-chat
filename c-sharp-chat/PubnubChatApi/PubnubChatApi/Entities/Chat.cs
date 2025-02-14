@@ -354,6 +354,11 @@ namespace PubNubChatAPI.Entities
             fetchUpdatesThread.Start();
         }
 
+        public void SetAuthToken(string authToken)
+        {
+            throw new NotImplementedException();
+        }
+
         #region Updates handling
 
         private async void FetchUpdatesLoop()

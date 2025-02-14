@@ -109,6 +109,16 @@ namespace PubNubChatAPI.Entities
             }
         }
 
+        public override string OriginalMessageText
+        {
+            get
+            {
+                var buffer = new StringBuilder(32768);
+                pn_thread_message_get_data_text(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+
         /// <summary>
         /// The time token of the message.
         /// <para>
