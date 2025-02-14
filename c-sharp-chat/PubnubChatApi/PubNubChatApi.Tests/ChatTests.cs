@@ -24,6 +24,7 @@ public class ChatTests
             Assert.Fail();
         }
         await channel.Join();
+        await Task.Delay(2500);
     }
     
     [TearDown]
@@ -126,8 +127,10 @@ public class ChatTests
             messageForwardReceivedManualEvent.Set();
         };
         await forwardingChannel.Join();
+        await Task.Delay(2500);
 
         await channel.Join();
+        await Task.Delay(2500);
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
 
         await channel.SendText("message_to_forward");
@@ -140,12 +143,14 @@ public class ChatTests
     public async Task TestEmitEvent()
     {
         var reportManualEvent = new ManualResetEvent(false);
-        chat.OnReportEvent += reportEvent =>
+        channel.OnReportEvent += reportEvent =>
         {
             Assert.True(reportEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"report\"}");
             reportManualEvent.Set();
         };
         await channel.Join();
+        await Task.Delay(2500);
+        await channel.SetListeningForReportEvents(true);
         await chat.EmitEvent(PubnubChatEventType.Report, channel.Id, "{\"test\":\"some_nonsense\"}");
 
         var eventReceived = reportManualEvent.WaitOne(5000);
@@ -195,12 +200,16 @@ public class ChatTests
         }
 
         await otherChatChannel.Join();
+        await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);
-        otherChat.OnReadReceiptEvent += receiptEvent =>
+        otherChat.OnAnyEvent += chatEvent =>
         {
-            Assert.True(receiptEvent.ChannelId == channel.Id && receiptEvent.UserId == currentUser.Id);
-            receiptReset.Set();
+            if (chatEvent.Type == PubnubChatEventType.Receipt)
+            {
+                Assert.True(chatEvent.ChannelId == channel.Id && chatEvent.UserId == currentUser.Id);
+                receiptReset.Set();
+            }
         };
         await otherChatChannel.SendText("READ MEEEE");
 

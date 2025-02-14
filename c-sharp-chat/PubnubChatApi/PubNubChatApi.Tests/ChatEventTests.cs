@@ -25,12 +25,13 @@ public class ChatEventTests
             Assert.Fail();
         }
         await channel.Join();
+        await Task.Delay(2500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        await channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -40,12 +41,12 @@ public class ChatEventTests
     public async Task TestModerationEvents()
     {
         var manualModerationEvent = new ManualResetEvent(false);
-        chat.OnModerationEvent += moderationEvent =>
+        user.OnModerationEvent += moderationEvent =>
         {
             Assert.True(moderationEvent.Payload.Contains("some_reason"));
             manualModerationEvent.Set();
         };
-        chat.StartListeningForModerationEvents(user.Id);
+        await user.SetListeningForModerationEvents(true);
         await user.SetRestriction(channel.Id, new Restriction()
         {
             Ban = true,

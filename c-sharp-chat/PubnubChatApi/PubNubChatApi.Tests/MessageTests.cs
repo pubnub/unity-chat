@@ -24,6 +24,7 @@ public class MessageTests
             Assert.Fail();
         }
         await channel.Join();
+        await Task.Delay(2500);
     }
     
     [TearDown]
@@ -59,6 +60,7 @@ public class MessageTests
         var manualReceiveEvent = new ManualResetEvent(false);
         var testChannel = await chat.CreatePublicConversation("message_data_test_channel");
         await testChannel.Join();
+        await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
         {
             if (message.MessageText == "message_to_be_quoted")
@@ -107,22 +109,33 @@ public class MessageTests
         var manualUpdatedEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            Debug.WriteLine("before disconnect");
             await channel.Disconnect();
+            Debug.WriteLine("after disconnect");
 
             await Task.Delay(5000);
             
-            message.StartListeningForUpdates();
+            Debug.WriteLine("before start listen");
+            await message.SetListeningForUpdates(true);
+            Debug.WriteLine("after start listen");
             
             await Task.Delay(2000);
             
             message.OnMessageUpdated += updatedMessage =>
             {
+                Debug.WriteLine("got callback");
                 manualUpdatedEvent.Set();
+                Debug.WriteLine("set reset");
                 Assert.True(updatedMessage.MessageText == "new-text");
+                Debug.WriteLine("asserted");
             };
-            message.EditMessageText("new-text");
+            Debug.WriteLine("before edit");
+            await message.EditMessageText("new-text");
+            Debug.WriteLine("after edit");
         };
+        Debug.WriteLine("before send text");
         await channel.SendText("something");
+        Debug.WriteLine("after send text");
 
         var receivedAndUpdated = manualUpdatedEvent.WaitOne(14000);
         Assert.IsTrue(receivedAndUpdated);
@@ -183,6 +196,7 @@ public class MessageTests
 
         var pinTestChannel = await chat.CreatePublicConversation("pin_test_2");
         await pinTestChannel.Join();
+        await Task.Delay(2500);
 
         var manualReceivedEvent = new ManualResetEvent(false);
         pinTestChannel.OnMessageReceived += async message =>
@@ -228,8 +242,9 @@ public class MessageTests
     {
         var reportManualEvent = new ManualResetEvent(false);
         await channel.Join();
-        chat.StartListeningForReportEvents(channel.Id);
-        chat.OnReportEvent += reportEvent =>
+        await Task.Delay(2500);
+        await channel.SetListeningForReportEvents(true);
+        channel.OnReportEvent += reportEvent =>
         {
             Assert.True(reportEvent.Payload.Contains("bad_message"));
             reportManualEvent.Set();

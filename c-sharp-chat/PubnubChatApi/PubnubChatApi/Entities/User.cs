@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
+using PubnubChatApi.Entities.Events;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
@@ -71,6 +72,9 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern int pn_user_last_active_timestamp(IntPtr user, StringBuilder result);
+        
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_user_stream_updates(IntPtr user);
 
         #endregion
 
@@ -207,6 +211,9 @@ namespace PubNubChatAPI.Entities
         }
 
         private Chat chat;
+        private IntPtr mentionsListeningHandle;
+        private IntPtr invitesListeningHandle;
+        private IntPtr moderationListeningHandle;
 
         /// <summary>
         /// Event that is triggered when the user is updated.
@@ -227,21 +234,52 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Update"/>
         /// <seealso cref="User"/>
         public event Action<User> OnUserUpdated;
-
-        public override async Task StartListeningForUpdates()
-        {
-            //TODO: hacky way to subscribe to this channel
-            await chat.ListenForEvents(Id, PubnubChatEventType.Custom);
-        }
         
-        public override async Task StopListeningForUpdates()
-        {
-            
-        }
+        public event Action<ChatEvent> OnMentionEvent;
+        public event Action<ChatEvent> OnInviteEvent;
+        public event Action<ChatEvent> OnModerationEvent;
 
         internal User(Chat chat, string userId, IntPtr userPointer) : base(userPointer, userId)
         {
             this.chat = chat;
+        }
+        
+        public async Task SetListeningForMentionEvents(bool listen)
+        {
+            mentionsListeningHandle = await SetListening(mentionsListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Mention));
+        }
+
+        internal void BroadcastMentionEvent(ChatEvent chatEvent)
+        {
+            OnMentionEvent?.Invoke(chatEvent);
+        }
+
+        public async Task SetListeningForInviteEvents(bool listen)
+        {
+            invitesListeningHandle = await SetListening(invitesListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Invite));
+        }
+        
+        internal void BroadcastInviteEvent(ChatEvent chatEvent)
+        {
+            OnInviteEvent?.Invoke(chatEvent);
+        }
+
+        public async Task SetListeningForModerationEvents(bool listen)
+        {
+            moderationListeningHandle = await SetListening(moderationListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Moderation));
+        }
+        
+        internal void BroadcastModerationEvent(ChatEvent chatEvent)
+        {
+            OnModerationEvent?.Invoke(chatEvent);
+        }
+
+        protected override IntPtr StreamUpdates()
+        {
+            return pn_user_stream_updates(pointer);
         }
 
         internal static string GetUserIdFromPtr(IntPtr userPointer)
@@ -490,6 +528,9 @@ namespace PubNubChatAPI.Entities
 
         protected override void DisposePointer()
         {
+            SetListeningForModerationEvents(false).Wait();
+            SetListeningForInviteEvents(false).Wait();
+            SetListeningForModerationEvents(false).Wait();
             pn_user_destroy(pointer);
         }
     }

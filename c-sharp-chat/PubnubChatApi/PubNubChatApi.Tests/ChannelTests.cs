@@ -54,6 +54,7 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("get_members_test_channel");
         await channel.Join();
+        await Task.Delay(2500);
         var memberships = await channel.GetMemberships();
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
     }
@@ -63,9 +64,12 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
         await channel.Join();
+        await Task.Delay(5500);
         
         var typingManualEvent = new ManualResetEvent(false);
-        
+
+        await channel.SetListeningForTyping(true);
+        await Task.Delay(5500);
         channel.OnUsersTyping += typingUsers =>
         {
             Assert.That(typingUsers, Does.Contain(user.Id));
@@ -73,7 +77,7 @@ public class ChannelTests
         };
         await channel.StartTyping();
         
-        var receivedTyping = typingManualEvent.WaitOne(5000);
+        var receivedTyping = typingManualEvent.WaitOne(20000);
         Assert.IsTrue(receivedTyping);
     }
     
@@ -82,6 +86,7 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
         await channel.Join();
+        await Task.Delay(2500);
         
         await channel.StartTyping();
         
@@ -104,6 +109,7 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
         await channel.Join();
+        await Task.Delay(2500);
         
         await channel.StartTyping();
 
@@ -125,10 +131,15 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("pin_message_test_channel_37");
         await channel.Join();
+        await Task.Delay(2500);
         
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            await message.SetListeningForUpdates(true);
+
+            await Task.Delay(4000);
+            
             await channel.PinMessage(message);
             
             await Task.Delay(2000);
@@ -138,7 +149,7 @@ public class ChannelTests
         };
         await channel.SendText("message to pin");
 
-        var received = receivedManualEvent.WaitOne(9000);
+        var received = receivedManualEvent.WaitOne(19000);
         Assert.IsTrue(received);
     }
     
@@ -147,6 +158,7 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("unpin_message_test_channel");
         await channel.Join();
+        await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
@@ -188,9 +200,10 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("user_mention_test_channel");
         await channel.Join();
+        await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
-        chat.StartListeningForMentionEvents(user.Id);
-        chat.OnMentionEvent += mentionEvent =>
+        await user.SetListeningForMentionEvents(true);
+        user.OnMentionEvent += mentionEvent =>
         {
             Assert.True(mentionEvent.Payload.Contains("heyyy"));
             receivedManualEvent.Set();

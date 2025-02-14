@@ -96,6 +96,9 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_message_restore(IntPtr message);
         
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_message_stream_updates(IntPtr message);
+        
         #endregion
 
         /// <summary>
@@ -321,21 +324,15 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="EditMessageText"/>
         /// <seealso cref="Delete"/>
         public event Action<Message> OnMessageUpdated;
-        
-        public override async Task StartListeningForUpdates()
-        {
-            //TODO: hacky way to subscribe to this channel
-            await chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
-        }
-        
-        public override async Task StopListeningForUpdates()
-        {
-            
-        }
 
         internal Message(Chat chat, IntPtr messagePointer, string timeToken) : base(messagePointer, timeToken)
         {
             this.chat = chat;
+        }
+        
+        protected override IntPtr StreamUpdates()
+        {
+            return pn_message_stream_updates(pointer);
         }
 
         internal static string GetMessageIdFromPtr(IntPtr messagePointer)
@@ -361,6 +358,7 @@ namespace PubNubChatAPI.Entities
 
         internal virtual void BroadcastMessageUpdate()
         {
+            Debug.WriteLine("broadcast message update");
             OnMessageUpdated?.Invoke(this);
         }
 

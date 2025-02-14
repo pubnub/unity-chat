@@ -87,6 +87,9 @@ namespace PubNubChatAPI.Entities
         private static extern IntPtr pn_thread_message_pin_to_parent_channel(IntPtr thread_message);
         [DllImport("pubnub-chat")]
         private static extern int pn_thread_message_parent_channel_id(IntPtr thread_message, StringBuilder result);
+        
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_thread_message_stream_updates(IntPtr message);
 
         #endregion
 
@@ -290,7 +293,12 @@ namespace PubNubChatAPI.Entities
             timeToken)
         {
         }
-        
+
+        protected override IntPtr StreamUpdates()
+        {
+            return pn_thread_message_stream_updates(pointer);
+        }
+
         /// <summary>
         /// Edits the text of the message.
         /// <para>

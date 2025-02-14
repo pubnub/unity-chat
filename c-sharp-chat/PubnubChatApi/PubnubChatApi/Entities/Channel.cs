@@ -9,6 +9,7 @@ using System.Timers;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
+using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
 namespace PubNubChatAPI.Entities
@@ -28,17 +29,16 @@ namespace PubNubChatAPI.Entities
         private static extern void pn_channel_delete(IntPtr channel);
 
         [DllImport("pubnub-chat")]
-        private static extern int pn_channel_connect(IntPtr channel, StringBuilder result_messages);
+        private static extern IntPtr pn_channel_connect(IntPtr channel);
 
         [DllImport("pubnub-chat")]
-        private static extern int pn_channel_disconnect(IntPtr channel, StringBuilder result_messages);
+        private static extern int pn_channel_disconnect(IntPtr channel);
 
         [DllImport("pubnub-chat")]
-        private static extern int pn_channel_join(IntPtr channel, string additional_params,
-            StringBuilder result_messages);
+        private static extern IntPtr pn_channel_join(IntPtr channel, string additional_params);
 
         [DllImport("pubnub-chat")]
-        private static extern int pn_channel_leave(IntPtr channel, StringBuilder result_messages);
+        private static extern int pn_channel_leave(IntPtr channel);
 
         [DllImport("pubnub-chat")]
         private static extern int pn_channel_set_restrictions(IntPtr channel, string user_id, bool ban_user,
@@ -147,6 +147,21 @@ namespace PubNubChatAPI.Entities
         private static extern int pn_channel_get_users_restrictions(IntPtr channel, string sort, int limit, string next,
             string prev, StringBuilder result);
 
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_channel_stream_read_receipts(IntPtr channel);
+
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_channel_stream_message_reports(IntPtr channel);
+        
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_channel_stream_updates(IntPtr channel);
+
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_channel_get_typing(IntPtr channel);
+
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_channel_stream_presence(IntPtr channel);
+
         #endregion
 
         /// <summary>
@@ -252,7 +267,12 @@ namespace PubNubChatAPI.Entities
         }
 
         protected Chat chat;
-        protected bool connected;
+        private IntPtr customEventsListeningHandle;
+        private IntPtr reportEventsListeningHandle;
+        private IntPtr readReceiptsListeningHandle;
+        private IntPtr typingListeningHandle;
+        private IntPtr presenceListeningHandle;
+        protected IntPtr connectionHandle;
         private Dictionary<string, Timer> typingIndicators = new();
 
         /// <summary>
@@ -295,21 +315,6 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public event Action<Channel> OnChannelUpdate;
 
-        public override async Task StartListeningForUpdates()
-        {
-            if (connected)
-            {
-                return;
-            }
-
-            await Connect();
-        }
-        
-        public override async Task StopListeningForUpdates()
-        {
-            
-        }
-
         /// <summary>
         /// Event that is triggered when any presence update occurs.
         ///
@@ -333,10 +338,57 @@ namespace PubNubChatAPI.Entities
         public event Action<List<string>> OnUsersTyping;
 
         public event Action<ChatEvent> OnReadReceiptEvent;
+        public event Action<ChatEvent> OnReportEvent;
+        public event Action<ChatEvent> OnCustomEvent;
 
         internal Channel(Chat chat, string channelId, IntPtr channelPointer) : base(channelPointer, channelId)
         {
             this.chat = chat;
+        }
+
+        protected override IntPtr StreamUpdates()
+        {
+            return pn_channel_stream_updates(pointer);
+        }
+
+        public async Task SetListeningForCustomEvents(bool listen)
+        {
+            customEventsListeningHandle = await SetListening(customEventsListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Custom));
+        }
+
+        internal void BroadcastCustomEvent(ChatEvent chatEvent)
+        {
+            OnCustomEvent?.Invoke(chatEvent);
+        }
+
+        public async Task SetListeningForReportEvents(bool listen)
+        {
+            reportEventsListeningHandle = await SetListening(reportEventsListeningHandle, listen,
+                () => pn_channel_stream_message_reports(pointer));
+        }
+        
+        internal void BroadcastReportEvent(ChatEvent chatEvent)
+        {
+            OnReportEvent?.Invoke(chatEvent);
+        }
+
+        public async Task SetListeningForReadReceiptsEvents(bool listen)
+        {
+            readReceiptsListeningHandle = await SetListening(readReceiptsListeningHandle, listen,
+                () => pn_channel_stream_read_receipts(pointer));
+        }
+        
+        public async Task SetListeningForTyping(bool listen)
+        {
+            typingListeningHandle = await SetListening(typingListeningHandle, listen,
+                () => pn_channel_get_typing(pointer));
+        }
+        
+        public async Task SetListeningForPresence(bool listen)
+        {
+            presenceListeningHandle = await SetListening(presenceListeningHandle, listen,
+                () => pn_channel_stream_presence(pointer));
         }
 
         internal static string GetChannelIdFromPtr(IntPtr channelPointer)
@@ -348,10 +400,7 @@ namespace PubNubChatAPI.Entities
 
         internal void BroadcastMessageReceived(Message message)
         {
-            if (connected)
-            {
-                OnMessageReceived?.Invoke(message);
-            }
+            OnMessageReceived?.Invoke(message);
         }
 
         internal void BroadcastReadReceipt(ChatEvent readReceiptEvent)
@@ -368,19 +417,12 @@ namespace PubNubChatAPI.Entities
 
         internal void BroadcastChannelUpdate()
         {
-            //TODO: is this check necessary?
-            if (connected)
-            {
-                OnChannelUpdate?.Invoke(this);
-            }
+            OnChannelUpdate?.Invoke(this);
         }
 
         internal async void BroadcastPresenceUpdate()
         {
-            if (connected)
-            {
-                OnPresenceUpdate?.Invoke(await WhoIsPresent());
-            }
+            OnPresenceUpdate?.Invoke(await WhoIsPresent());
         }
 
         internal bool TryParseAndBroadcastTypingEvent(ChatEvent chatEvent)
@@ -440,7 +482,8 @@ namespace PubNubChatAPI.Entities
 
         public async Task EmitUserMention(string userId, string timeToken, string text)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_emit_user_mention(pointer, userId, timeToken, text)));
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+                pn_channel_emit_user_mention(pointer, userId, timeToken, text)));
         }
 
         public async Task StartTyping()
@@ -507,7 +550,8 @@ namespace PubNubChatAPI.Entities
         public async Task<List<Membership>> GetUserSuggestions(string text, int limit = 10)
         {
             var buffer = new StringBuilder(2048);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_get_user_suggestions(pointer, text, limit, buffer)));
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+                pn_channel_get_user_suggestions(pointer, text, limit, buffer)));
             var resultJson = buffer.ToString();
             if (!CUtilities.IsValidJson(resultJson))
             {
@@ -562,14 +606,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public async Task Connect()
         {
-            if (connected)
-            {
-                return;
-            }
-            connected = true;
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_connect(pointer, buffer)));
-            chat.ParseJsonUpdatePointers(buffer.ToString());
+            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
         }
 
         // TODO: Shouldn't join have additional parameters?
@@ -597,14 +634,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async Task Join()
         {
-            if (connected)
-            {
-                return;
-            }
-            connected = true;
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_join(pointer, string.Empty, buffer)));
-            chat.ParseJsonUpdatePointers(buffer.ToString());
+            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
         }
 
         /// <summary>
@@ -627,10 +657,13 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public async Task Disconnect()
         {
-            connected = false;
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_disconnect(pointer, buffer)));
-            chat.ParseJsonUpdatePointers(buffer.ToString());
+            Debug.WriteLine("disconnect");
+            if (connectionHandle == IntPtr.Zero)
+            {
+                return;
+            }
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_disconnect(pointer)));
+            connectionHandle = IntPtr.Zero;
         }
 
         /// <summary>
@@ -655,10 +688,16 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async Task Leave()
         {
-            connected = false;
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_leave(pointer, buffer)));
-            chat.ParseJsonUpdatePointers(buffer.ToString());
+            Debug.WriteLine("leave");
+            if (connectionHandle == IntPtr.Zero)
+            {
+                return;
+            }
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_leave(pointer)));
+            connectionHandle = IntPtr.Zero;
+            /*Debug.WriteLine("left");
+            pn_callback_handle_dispose(connectionHandle);
+            Debug.WriteLine("disposed");*/
         }
 
         /// <summary>
@@ -682,7 +721,8 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetUserRestrictions"/>
         public async Task SetRestrictions(string userId, bool banUser, bool muteUser, string reason)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_set_restrictions(pointer, userId, banUser, muteUser,
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_set_restrictions(pointer, userId, banUser,
+                muteUser,
                 reason)));
         }
 
@@ -798,7 +838,8 @@ namespace PubNubChatAPI.Entities
         public async Task<Restriction> GetUserRestrictions(User user)
         {
             var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_get_user_restrictions(pointer, user.Pointer, buffer)));
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+                pn_channel_get_user_restrictions(pointer, user.Pointer, buffer)));
             var restrictionJson = buffer.ToString();
             var restriction = new Restriction();
             if (CUtilities.IsValidJson(restrictionJson))
@@ -809,12 +850,14 @@ namespace PubNubChatAPI.Entities
             return restriction;
         }
 
-        public async Task<UsersRestrictionsWrapper> GetUsersRestrictions(string sort = "", int limit = 0, Page page = null)
+        public async Task<UsersRestrictionsWrapper> GetUsersRestrictions(string sort = "", int limit = 0,
+            Page page = null)
         {
             page ??= new Page();
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(
-                await Task.Run(() => pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer)));
+                await Task.Run(() =>
+                    pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer)));
             var restrictionsJson = buffer.ToString();
             if (!CUtilities.IsValidJson(restrictionsJson))
             {
@@ -935,7 +978,7 @@ namespace PubNubChatAPI.Entities
         {
             return chat.TryGetMessage(Id, timeToken, out message);
         }
-        
+
         /// <summary>
         /// Asynchronously gets the <c>Message</c> object for the given timetoken sent from this <c>Channel</c>.
         /// </summary>
@@ -964,13 +1007,21 @@ namespace PubNubChatAPI.Entities
         public async Task<List<Membership>> InviteMultiple(List<User> users)
         {
             var buffer = new StringBuilder(8192);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_invite_multiple(pointer, users.Select(x => x.Pointer).ToArray(),
+            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_invite_multiple(pointer,
+                users.Select(x => x.Pointer).ToArray(),
                 users.Count, buffer)));
             return PointerParsers.ParseJsonMembershipPointers(chat, buffer.ToString());
         }
 
         protected override void DisposePointer()
         {
+            Debug.WriteLine($"{Id} - CHANNEL DESTRUCTOR");
+            SetListeningForCustomEvents(false).Wait();
+            SetListeningForReportEvents(false).Wait();
+            SetListeningForReadReceiptsEvents(false).Wait();
+            SetListeningForTyping(false).Wait();
+            SetListeningForPresence(false).Wait();
+            Disconnect().Wait();
             pn_channel_delete(pointer);
         }
     }
