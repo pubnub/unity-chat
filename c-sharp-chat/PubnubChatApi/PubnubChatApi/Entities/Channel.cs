@@ -654,6 +654,10 @@ namespace PubNubChatAPI.Entities
         /// Sets the information about the restrictions for the user.
         /// The restrictions include banning and muting the user.
         /// </para>
+        /// <para>
+        /// Please note that this is a server-side moderation mechanism, as opposed to Chat.MutedUsersManager (which is local to
+        /// a client).
+        /// </para>
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="banUser">if set to <c>true</c> the user is banned.</param>

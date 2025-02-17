@@ -319,6 +319,7 @@ namespace PubNubChatAPI.Entities
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
+        public MutedUsersManager MutedUsersManager { get; }
         public PubnubChatConfig Config { get; }
 
         /// <summary>
@@ -348,6 +349,7 @@ namespace PubNubChatAPI.Entities
 
             Config = config;
             ChatAccessManager = new ChatAccessManager(chatPointer);
+            MutedUsersManager = new MutedUsersManager(chatPointer);
             context = synchronizationContext ?? SynchronizationContext.Current;
 
             fetchUpdatesThread = new Thread(FetchUpdatesLoop) { IsBackground = true };
@@ -1005,6 +1007,8 @@ namespace PubNubChatAPI.Entities
         /// <para>
         /// Sets the restrictions for the user with the provided user ID in the provided channel.
         /// </para>
+        /// <para>Please note that this is a server-side moderation mechanism, as opposed to MutedUsersManager (which is local to
+        /// a client).</para>
         /// </summary>
         /// <param name="userId">The user ID.</param>
         /// <param name="channelId">The channel ID.</param>
