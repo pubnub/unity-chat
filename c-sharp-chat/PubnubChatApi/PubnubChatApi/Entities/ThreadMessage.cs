@@ -398,6 +398,13 @@ namespace PubNubChatAPI.Entities
             pn_thread_message_get_timetoken(threadMessagePointer, buffer);
             return buffer.ToString();
         }
+        
+        internal static string GetChannelIdFromThreadMessagePtr(IntPtr messagePointer)
+        {
+            var buffer = new StringBuilder(512);
+            pn_thread_message_get_data_channel_id(messagePointer, buffer);
+            return buffer.ToString();
+        }
 
         internal override void UpdateWithPartialPtr(IntPtr partialPointer)
         {

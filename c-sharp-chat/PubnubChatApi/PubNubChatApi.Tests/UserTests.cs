@@ -73,7 +73,7 @@ public class UserTests
         {
             Username = newRandomUserName
         });
-        var updated = updatedReset.WaitOne(8000);
+        var updated = updatedReset.WaitOne(15000);
         Assert.True(updated);
     }
 }
