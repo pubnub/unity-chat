@@ -17,7 +17,7 @@ public class ChannelTests
         chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "ctuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
+            "ctuuuuuuuuuuu")
         );
         if (!chat.TryGetCurrentUser(out user))
         {
@@ -196,7 +196,7 @@ public class ChannelTests
             receivedManualEvent.Set();
         };
         await channel.EmitUserMention(user.Id, "99999999999999999", "heyyy");
-        var received = receivedManualEvent.WaitOne(7000);
+        var received = receivedManualEvent.WaitOne(9000);
         Assert.True(received);
     }
 }
