@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Newtonsoft.Json;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -84,7 +85,8 @@ public class ChatTests
     {
         await Task.Delay(3000);
         var channels = await chat.GetChannels();
-        Assert.True(channels.Channels.Any(x => x.Id == channel.Id));
+        var debugString = JsonConvert.SerializeObject(channels);
+        Assert.True(channels.Channels.Any(x => x.Id == channel.Id), debugString);
     }
 
     [Test]
