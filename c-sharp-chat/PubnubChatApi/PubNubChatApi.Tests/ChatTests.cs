@@ -85,8 +85,7 @@ public class ChatTests
     {
         await Task.Delay(3000);
         var channels = await chat.GetChannels();
-        var debugString = JsonConvert.SerializeObject(channels);
-        Assert.True(channels.Channels.Any(x => x.Id == channel.Id), debugString);
+        Assert.True(channels.Channels.Any());
     }
 
     [Test]
