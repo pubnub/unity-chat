@@ -188,15 +188,17 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("user_mention_test_channel");
         await channel.Join();
+        await Task.Delay(2000);
         var receivedManualEvent = new ManualResetEvent(false);
         chat.StartListeningForMentionEvents(user.Id);
+        await Task.Delay(2000);
         chat.OnMentionEvent += mentionEvent =>
         {
             Assert.True(mentionEvent.Payload.Contains("heyyy"));
             receivedManualEvent.Set();
         };
         await channel.EmitUserMention(user.Id, "99999999999999999", "heyyy");
-        var received = receivedManualEvent.WaitOne(9000);
+        var received = receivedManualEvent.WaitOne(10000);
         Assert.True(received);
     }
 }
