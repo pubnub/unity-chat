@@ -82,6 +82,7 @@ public class ChatTests
     [Test]
     public async Task TestGetChannels()
     {
+        await Task.Delay(3000);
         var channels = await chat.GetChannels();
         Assert.True(channels.Channels.Any(x => x.Id == channel.Id));
     }
