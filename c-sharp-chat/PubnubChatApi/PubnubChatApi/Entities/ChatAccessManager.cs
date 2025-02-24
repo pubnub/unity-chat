@@ -38,12 +38,19 @@ namespace PubNubChatAPI.Entities
             CUtilities.CheckCFunctionResult(result);
             return result == 1;
         }
-
+        
+        /// <summary>
+        /// Sets a new token for this Chat instance.
+        /// </summary>
         public void SetAuthToken(string token)
         {
             CUtilities.CheckCFunctionResult(pn_pam_set_auth_token(chatPointer, token));
         }
 
+        /// <summary>
+        ///  Decodes an existing token.
+        /// </summary>
+        /// <returns>A JSON string object containing permissions embedded in that token.</returns>
         public string ParseToken(string token)
         {
             var buffer = new StringBuilder(512);
@@ -51,6 +58,10 @@ namespace PubNubChatAPI.Entities
             return buffer.ToString();
         }
 
+        /// <summary>
+        /// Sets a new custom origin value.            
+        /// </summary>
+        /// <param name="origin"></param>
         public void SetPubnubOrigin(string origin)
         {
             CUtilities.CheckCFunctionResult(pn_pam_set_pubnub_origin(chatPointer, origin));

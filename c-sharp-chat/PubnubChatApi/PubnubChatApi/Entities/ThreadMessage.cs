@@ -109,6 +109,9 @@ namespace PubNubChatAPI.Entities
             }
         }
 
+        /// <summary>
+        /// The original, un-edited text of the thread message.
+        /// </summary>
         public override string OriginalMessageText
         {
             get
