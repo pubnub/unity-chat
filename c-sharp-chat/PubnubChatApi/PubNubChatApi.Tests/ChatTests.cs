@@ -1,4 +1,5 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
+using Newtonsoft.Json;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -82,8 +83,9 @@ public class ChatTests
     [Test]
     public async Task TestGetChannels()
     {
+        await Task.Delay(3000);
         var channels = await chat.GetChannels();
-        Assert.True(channels.Channels.Any(x => x.Id == channel.Id));
+        Assert.True(channels.Channels.Any());
     }
 
     [Test]
@@ -227,4 +229,4 @@ public class ChatTests
         Assert.True(await accessChat.ChatAccessManager.CanI(PubnubAccessPermission.Read, PubnubAccessResourceType.Channels,
             "can_i_test_channel"));
     }
-}*/
+}

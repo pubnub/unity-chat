@@ -464,10 +464,10 @@ namespace PubNubChatAPI.Entities
                     {
                         Debug.WriteLine("Deserialized new thread message");
 
-                        var id = Message.GetChannelIdFromMessagePtr(threadMessagePointer);
+                        var id = ThreadMessage.GetChannelIdFromThreadMessagePtr(threadMessagePointer);
                         if (channelWrappers.TryGetValue(id, out var channel) && channel is ThreadChannel threadChannel)
                         {
-                            var timeToken = Message.GetMessageIdFromPtr(threadMessagePointer);
+                            var timeToken = ThreadMessage.GetThreadMessageIdFromPtr(threadMessagePointer);
                             var message = new ThreadMessage(this, threadMessagePointer, timeToken);
                             messageWrappers[timeToken] = message;
                             Post(delegate { threadChannel.BroadcastMessageReceived(message); }, null);
@@ -500,7 +500,7 @@ namespace PubNubChatAPI.Entities
                     if (updatedThreadMessagePointer != IntPtr.Zero)
                     {
                         Debug.WriteLine("Deserialized thread message update");
-                        var id = Message.GetMessageIdFromPtr(updatedThreadMessagePointer);
+                        var id = ThreadMessage.GetThreadMessageIdFromPtr(updatedThreadMessagePointer);
                         if (messageWrappers.TryGetValue(id, out var existingMessageWrapper))
                         {
                             if (existingMessageWrapper is ThreadMessage existingThreadMessageWrapper)
@@ -664,8 +664,12 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Channel"/>
-        public async Task<Channel> CreatePublicConversation(string channelId)
+        public async Task<Channel> CreatePublicConversation(string channelId = "")
         {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
             return await CreatePublicConversation(channelId, new ChatChannelData());
         }
 
@@ -711,8 +715,12 @@ namespace PubNubChatAPI.Entities
             return channel;
         }
 
-        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId)
+        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId = "")
         {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
             return await CreateDirectConversation(user, channelId, new ChatChannelData());
         }
 
@@ -749,8 +757,12 @@ namespace PubNubChatAPI.Entities
             };
         }
 
-        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId)
+        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId = "")
         {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
             return await CreateGroupConversation(users, channelId, new ChatChannelData());
         }
 

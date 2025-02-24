@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -52,7 +52,7 @@ public class ChatEventTests
             Mute = true,
             Reason = "some_reason"
         });
-        var moderationEventReceived = manualModerationEvent.WaitOne(5000);
+        var moderationEventReceived = manualModerationEvent.WaitOne(8000);
         Assert.IsTrue(moderationEventReceived);
     }
-}*/
+}

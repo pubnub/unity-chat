@@ -1,4 +1,4 @@
-/*using PubNubChatAPI.Entities;
+using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
@@ -166,4 +166,4 @@ public class MessageDraftTests
         var gotCallback = successReset.WaitOne(6000);
         Assert.True(gotCallback);
     }
-}*/
+}
