@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -181,7 +181,7 @@ public class ThreadsTests
             await threadMessage.EditMessageText("new_text");
         };
         await channel.SendText("thread_start_message");
-        var updated = messageUpdatedReset.WaitOne(255000);
+        var updated = messageUpdatedReset.WaitOne(25000);
         Assert.True(updated);
     }
-}*/
+}

@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -141,10 +141,10 @@ public class MembershipTests
         await unreadChannel.SendText("two");
         await unreadChannel.SendText("three");
 
-        await Task.Delay(4000);
+        await Task.Delay(6000);
 
         var membership = (await chat.GetUserMemberships(user.Id, limit: 20)).Memberships
             .FirstOrDefault(x => x.ChannelId == unreadChannel.Id);
         Assert.True(membership != null && await membership.GetUnreadMessagesCount() == 3);
     }
-}*/
+}

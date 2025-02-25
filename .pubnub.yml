@@ -1,6 +1,15 @@
 --- 
-version: v0.2.0
+version: v0.3.1
 changelog:
+  - date: 2025-02-25
+    version: v0.3.1
+    changes:
+      - type: feature
+        text: "Added SetAuthToken(), ParseToken(), and SetPubnubOrigin() methods to ChatAccessManager class."
+      - type: feature
+        text: "Added OriginalMessageText property to Message object containg pre-edits message text."
+      - type: feature
+        text: "Added option to not provide channel ID when creating a new conversation - a random ID will be generated in such cases."
   - date: 2024-01-10
     version: v0.2.0
     changes:

@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -278,4 +278,4 @@ public class MessageTests
         var received = manualReceiveEvent.WaitOne(20000);
         Assert.IsTrue(received);
     }
-}*/
+}
