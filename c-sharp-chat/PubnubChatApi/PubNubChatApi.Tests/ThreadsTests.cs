@@ -24,14 +24,14 @@ public class ThreadsTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        await channel.Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -44,7 +44,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
 
             await Task.Delay(5000);
             
@@ -70,7 +70,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
             await Task.Delay(2500);
             await thread.SendText("thread init message");
 
@@ -104,9 +104,9 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
+            user.SetListeningForMentionEvents(true);
             await Task.Delay(2500);
-            await user.SetListeningForMentionEvents(true);
             user.OnMentionEvent += mentionEvent =>
             {
                 Assert.True(mentionEvent.Payload.Contains("heyyy"));
@@ -126,7 +126,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
 
             await Task.Delay(3000);
             
@@ -162,7 +162,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
             
             await Task.Delay(3000);
             
@@ -175,7 +175,7 @@ public class ThreadsTests
             var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
             var threadMessage = history[0];
             
-            await threadMessage.SetListeningForUpdates(true);
+            threadMessage.SetListeningForUpdates(true);
             threadMessage.OnThreadMessageUpdated += updatedThreadMessage =>
             {
                 Assert.True(updatedThreadMessage.MessageText == "new_text");

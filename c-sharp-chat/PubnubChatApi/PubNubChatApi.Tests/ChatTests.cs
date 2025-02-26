@@ -23,14 +23,14 @@ public class ChatTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        await channel.Leave();
+        channel.Leave();
         await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
@@ -126,11 +126,11 @@ public class ChatTests
             Assert.True(message.MessageText == "message_to_forward");
             messageForwardReceivedManualEvent.Set();
         };
-        await forwardingChannel.Join();
+        forwardingChannel.Join();
         await Task.Delay(2500);
 
-        await channel.Join();
-        await Task.Delay(2500);
+        /*channel.Join();
+        await Task.Delay(2500);*/
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
 
         await channel.SendText("message_to_forward");
@@ -148,9 +148,9 @@ public class ChatTests
             Assert.True(reportEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"report\"}");
             reportManualEvent.Set();
         };
-        await channel.Join();
-        await Task.Delay(2500);
-        await channel.SetListeningForReportEvents(true);
+        /*await channel.Join();
+        await Task.Delay(2500);*/
+        channel.SetListeningForReportEvents(true);
         await chat.EmitEvent(PubnubChatEventType.Report, channel.Id, "{\"test\":\"some_nonsense\"}");
 
         var eventReceived = reportManualEvent.WaitOne(5000);
@@ -199,7 +199,7 @@ public class ChatTests
             return;
         }
 
-        await otherChatChannel.Join();
+        otherChatChannel.Join();
         await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);

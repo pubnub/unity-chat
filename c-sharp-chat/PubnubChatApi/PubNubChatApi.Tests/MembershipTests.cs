@@ -24,14 +24,14 @@ public class MembershipTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        await channel.Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -60,7 +60,7 @@ public class MembershipTests
             Assert.True(membership.Id == testMembership.Id);
             manualUpdatedEvent.Set();
         };
-        await testMembership.SetListeningForUpdates(true);
+        testMembership.SetListeningForUpdates(true);
 
         await Task.Delay(4000);
         
@@ -98,7 +98,7 @@ public class MembershipTests
     public async Task TestLastRead()
     {
         var testChannel = await chat.CreatePublicConversation("last_read_test_channel_57");
-        await testChannel.Join();
+        testChannel.Join();
         
         await Task.Delay(4000);
         
@@ -137,7 +137,7 @@ public class MembershipTests
     public async Task TestUnreadMessagesCount()
     {
         var unreadChannel = await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
-        await unreadChannel.Join();
+        unreadChannel.Join();
         await Task.Delay(2500);
         await unreadChannel.SendText("one");
         await unreadChannel.SendText("two");

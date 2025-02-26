@@ -25,14 +25,14 @@ public class UserTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        await channel.Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -69,7 +69,8 @@ public class UserTests
             Assert.True(updatedUser.UserName == newRandomUserName);
             updatedReset.Set();
         };
-        await testUser.SetListeningForUpdates(true);
+        testUser.SetListeningForUpdates(true);
+        await Task.Delay(3000);
         await testUser.Update(new ChatUserData()
         {
             Username = newRandomUserName

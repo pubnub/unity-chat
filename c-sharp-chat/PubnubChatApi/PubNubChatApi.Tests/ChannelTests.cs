@@ -41,7 +41,7 @@ public class ChannelTests
     public async Task TestGetUserSuggestions()
     {
         var channel = await chat.CreatePublicConversation("user_suggestions_test_channel");
-        await channel.Join();
+        channel.Join();
 
         await Task.Delay(5000);
         
@@ -53,7 +53,7 @@ public class ChannelTests
     public async Task TestGetMemberships()
     {
         var channel = await chat.CreatePublicConversation("get_members_test_channel");
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
         var memberships = await channel.GetMemberships();
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
@@ -63,12 +63,12 @@ public class ChannelTests
     public async Task TestStartTyping()
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
-        await channel.Join();
+        channel.Join();
         await Task.Delay(5500);
         
         var typingManualEvent = new ManualResetEvent(false);
 
-        await channel.SetListeningForTyping(true);
+        channel.SetListeningForTyping(true);
         await Task.Delay(5500);
         channel.OnUsersTyping += typingUsers =>
         {
@@ -85,7 +85,7 @@ public class ChannelTests
     public async Task TestStopTyping()
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
         
         await channel.StartTyping();
@@ -108,7 +108,7 @@ public class ChannelTests
     public async Task TestStopTypingFromTimer()
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
         
         await channel.StartTyping();
@@ -130,13 +130,13 @@ public class ChannelTests
     public async Task TestPinMessage()
     {
         var channel = await chat.CreatePublicConversation("pin_message_test_channel_37");
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
         
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
-            await message.SetListeningForUpdates(true);
+            message.SetListeningForUpdates(true);
 
             await Task.Delay(4000);
             
@@ -157,7 +157,7 @@ public class ChannelTests
     public async Task TestUnPinMessage()
     {
         var channel = await chat.CreatePublicConversation("unpin_message_test_channel");
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
@@ -199,10 +199,10 @@ public class ChannelTests
     public async Task TestEmitUserMention()
     {
         var channel = await chat.CreatePublicConversation("user_mention_test_channel");
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
-        await user.SetListeningForMentionEvents(true);
+        user.SetListeningForMentionEvents(true);
         user.OnMentionEvent += mentionEvent =>
         {
             Assert.True(mentionEvent.Payload.Contains("heyyy"));

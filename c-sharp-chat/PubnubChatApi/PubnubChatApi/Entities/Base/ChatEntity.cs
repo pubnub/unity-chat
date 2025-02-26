@@ -35,7 +35,7 @@ namespace PubNubChatAPI.Entities
 
         protected abstract IntPtr StreamUpdates();
 
-        public virtual async Task SetListeningForUpdates(bool listen)
+        public virtual async void SetListeningForUpdates(bool listen)
         {
             updateListeningHandle = await SetListening(updateListeningHandle, listen, StreamUpdates);
         }
@@ -70,7 +70,7 @@ namespace PubNubChatAPI.Entities
 
         ~ChatEntity()
         {
-            SetListeningForUpdates(false).Wait();
+            SetListeningForUpdates(false);
             DisposePointer();
         }
     }

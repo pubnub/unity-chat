@@ -351,7 +351,7 @@ namespace PubNubChatAPI.Entities
             return pn_channel_stream_updates(pointer);
         }
 
-        public async Task SetListeningForCustomEvents(bool listen)
+        public async void SetListeningForCustomEvents(bool listen)
         {
             customEventsListeningHandle = await SetListening(customEventsListeningHandle, listen,
                 () => chat.ListenForEvents(Id, PubnubChatEventType.Custom));
@@ -362,7 +362,7 @@ namespace PubNubChatAPI.Entities
             OnCustomEvent?.Invoke(chatEvent);
         }
 
-        public async Task SetListeningForReportEvents(bool listen)
+        public async void SetListeningForReportEvents(bool listen)
         {
             reportEventsListeningHandle = await SetListening(reportEventsListeningHandle, listen,
                 () => pn_channel_stream_message_reports(pointer));
@@ -373,19 +373,19 @@ namespace PubNubChatAPI.Entities
             OnReportEvent?.Invoke(chatEvent);
         }
 
-        public async Task SetListeningForReadReceiptsEvents(bool listen)
+        public async void SetListeningForReadReceiptsEvents(bool listen)
         {
             readReceiptsListeningHandle = await SetListening(readReceiptsListeningHandle, listen,
                 () => pn_channel_stream_read_receipts(pointer));
         }
         
-        public async Task SetListeningForTyping(bool listen)
+        public async void SetListeningForTyping(bool listen)
         {
             typingListeningHandle = await SetListening(typingListeningHandle, listen,
                 () => pn_channel_get_typing(pointer));
         }
         
-        public async Task SetListeningForPresence(bool listen)
+        public async void SetListeningForPresence(bool listen)
         {
             presenceListeningHandle = await SetListening(presenceListeningHandle, listen,
                 () => pn_channel_stream_presence(pointer));
@@ -604,8 +604,12 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Disconnect"/>
         /// <seealso cref="Join"/>
-        public async Task Connect()
+        public async void Connect()
         {
+            if (connectionHandle != IntPtr.Zero)
+            {
+                return;
+            }
             connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
         }
 
@@ -632,8 +636,12 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
-        public async Task Join()
+        public async void Join()
         {
+            if (connectionHandle != IntPtr.Zero)
+            {
+                return;
+            }
             connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
         }
 
@@ -655,7 +663,7 @@ namespace PubNubChatAPI.Entities
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while disconnecting from the channel.</exception>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Join"/>
-        public async Task Disconnect()
+        public async void Disconnect()
         {
             Debug.WriteLine("disconnect");
             if (connectionHandle == IntPtr.Zero)
@@ -686,7 +694,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
-        public async Task Leave()
+        public async void Leave()
         {
             Debug.WriteLine("leave");
             if (connectionHandle == IntPtr.Zero)
@@ -1015,13 +1023,12 @@ namespace PubNubChatAPI.Entities
 
         protected override void DisposePointer()
         {
-            Debug.WriteLine($"{Id} - CHANNEL DESTRUCTOR");
-            SetListeningForCustomEvents(false).Wait();
-            SetListeningForReportEvents(false).Wait();
-            SetListeningForReadReceiptsEvents(false).Wait();
-            SetListeningForTyping(false).Wait();
-            SetListeningForPresence(false).Wait();
-            Disconnect().Wait();
+            SetListeningForCustomEvents(false);
+            SetListeningForReportEvents(false);
+            SetListeningForReadReceiptsEvents(false);
+            SetListeningForTyping(false);
+            SetListeningForPresence(false);
+            Disconnect();
             pn_channel_delete(pointer);
         }
     }

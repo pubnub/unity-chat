@@ -317,7 +317,7 @@ namespace PubNubChatAPI.Entities
         {
             while (fetchUpdates)
             {
-                Debug.WriteLine("Loop start");
+                Debug.WriteLine("Updates loop start");
                 var updates = GetUpdates();
                 Debug.WriteLine("Got Updates");
                 ParseJsonUpdatePointers(updates);

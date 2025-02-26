@@ -244,7 +244,7 @@ namespace PubNubChatAPI.Entities
             this.chat = chat;
         }
         
-        public async Task SetListeningForMentionEvents(bool listen)
+        public async void SetListeningForMentionEvents(bool listen)
         {
             mentionsListeningHandle = await SetListening(mentionsListeningHandle, listen,
                 () => chat.ListenForEvents(Id, PubnubChatEventType.Mention));
@@ -255,7 +255,7 @@ namespace PubNubChatAPI.Entities
             OnMentionEvent?.Invoke(chatEvent);
         }
 
-        public async Task SetListeningForInviteEvents(bool listen)
+        public async void SetListeningForInviteEvents(bool listen)
         {
             invitesListeningHandle = await SetListening(invitesListeningHandle, listen,
                 () => chat.ListenForEvents(Id, PubnubChatEventType.Invite));
@@ -266,7 +266,7 @@ namespace PubNubChatAPI.Entities
             OnInviteEvent?.Invoke(chatEvent);
         }
 
-        public async Task SetListeningForModerationEvents(bool listen)
+        public async void SetListeningForModerationEvents(bool listen)
         {
             moderationListeningHandle = await SetListening(moderationListeningHandle, listen,
                 () => chat.ListenForEvents(Id, PubnubChatEventType.Moderation));
@@ -528,9 +528,9 @@ namespace PubNubChatAPI.Entities
 
         protected override void DisposePointer()
         {
-            SetListeningForModerationEvents(false).Wait();
-            SetListeningForInviteEvents(false).Wait();
-            SetListeningForModerationEvents(false).Wait();
+            SetListeningForModerationEvents(false);
+            SetListeningForInviteEvents(false);
+            SetListeningForModerationEvents(false);
             pn_user_destroy(pointer);
         }
     }

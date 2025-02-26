@@ -23,14 +23,14 @@ public class MessageTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
         await Task.Delay(2500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        await channel.Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -59,7 +59,7 @@ public class MessageTests
     {
         var manualReceiveEvent = new ManualResetEvent(false);
         var testChannel = await chat.CreatePublicConversation("message_data_test_channel");
-        await testChannel.Join();
+        testChannel.Join();
         await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
         {
@@ -110,13 +110,13 @@ public class MessageTests
         channel.OnMessageReceived += async message =>
         {
             Debug.WriteLine("before disconnect");
-            await channel.Disconnect();
+            channel.Disconnect();
             Debug.WriteLine("after disconnect");
 
             await Task.Delay(5000);
             
             Debug.WriteLine("before start listen");
-            await message.SetListeningForUpdates(true);
+            message.SetListeningForUpdates(true);
             Debug.WriteLine("after start listen");
             
             await Task.Delay(2000);
@@ -195,7 +195,7 @@ public class MessageTests
         }
 
         var pinTestChannel = await chat.CreatePublicConversation("pin_test_2");
-        await pinTestChannel.Join();
+        pinTestChannel.Join();
         await Task.Delay(2500);
 
         var manualReceivedEvent = new ManualResetEvent(false);
@@ -241,9 +241,9 @@ public class MessageTests
     public async Task TestMessageReport()
     {
         var reportManualEvent = new ManualResetEvent(false);
-        await channel.Join();
-        await Task.Delay(2500);
-        await channel.SetListeningForReportEvents(true);
+        channel.Join();
+        channel.SetListeningForReportEvents(true);
+        await Task.Delay(3000);
         channel.OnReportEvent += reportEvent =>
         {
             Assert.True(reportEvent.Payload.Contains("bad_message"));
