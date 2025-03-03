@@ -27,12 +27,17 @@ public class PubnubChatSample : MonoBehaviour
         var channel = await chat.CreatePublicConversation("MainChannel");
         //Define reaction on receiving new messages
         channel.OnMessageReceived += message => Debug.Log($"Received message: {message.MessageText}");
-        //Join channel
-        await channel.Join();
+        //Join channel + give time to establish connection
+        channel.Join();
+        await Task.Delay(4000);
+        
         //Send test message
         await channel.SendText("Hello World from Pubnub!");
         
         //React on user data being updated
+        user.SetListeningForUpdates(true);
+        await Task.Delay(2500);
+        
         user.OnUserUpdated += updatedUser =>
             Debug.Log($"{updatedUser.Id} has been updated! Their name is now {updatedUser.UserName}");
         //Update our user data

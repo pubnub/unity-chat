@@ -510,7 +510,8 @@ namespace PubNubChatAPI.Entities
             var pinnedMessagePointer = pn_channel_get_pinned_message(pointer);
             if (pinnedMessagePointer != IntPtr.Zero)
             {
-                return chat.TryGetMessage(pinnedMessagePointer, out pinnedMessage);
+                var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
+                return chat.TryGetAnyMessage(id, out pinnedMessage);
             }
             else
             {

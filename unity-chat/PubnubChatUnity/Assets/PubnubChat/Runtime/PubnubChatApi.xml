@@ -440,7 +440,7 @@
             The class is responsible for creating and managing channels, users, and messages.
             </remarks>
         </member>
-        <member name="M:PubNubChatAPI.Entities.Chat.CreateInstance(PubnubChatApi.Entities.Data.PubnubChatConfig,System.Threading.SynchronizationContext)">
+        <member name="M:PubNubChatAPI.Entities.Chat.CreateInstance(PubnubChatApi.Entities.Data.PubnubChatConfig)">
             <summary>
             Asynchronously initializes a new instance of the <see cref="T:PubNubChatAPI.Entities.Chat"/> class.
             <para>
@@ -448,8 +448,6 @@
             </para>
             </summary>
             <param name="config">Config with PubNub keys and values</param>
-            <param name="synchronizationContext">Synchronization context on which the chat callbacks should be called,
-            defaults to SynchronizationContext.Current assigned in the Chat constructor.</param>
             <remarks>
             The constructor initializes the chat instance with the provided keys and user ID from the Config.
             </remarks>
@@ -929,27 +927,6 @@
             </code>
             </example>
             <seealso cref="T:PubNubChatAPI.Entities.Message"/>
-        </member>
-        <member name="M:PubNubChatAPI.Entities.Chat.ListenForEvents(System.String,PubnubChatApi.Enums.PubnubChatEventType)">
-            <summary>
-            Starts listening for events.
-            <para>
-            Starts listening for channel events. 
-            It allows to receive different events without the need to 
-            connect to any channel.
-            </para>
-            </summary>
-            <param name="channelId">The channel ID.</param>
-            <example>
-            <code>
-            var chat = // ...
-            chat.ListenForEvents();
-            chat.OnEvent += (event) => {
-             // Event received
-            };
-            </code>
-            </example>
-            <seealso cref="!:OnEvent"/>
         </member>
         <member name="T:PubNubChatAPI.Entities.Membership">
             <summary>

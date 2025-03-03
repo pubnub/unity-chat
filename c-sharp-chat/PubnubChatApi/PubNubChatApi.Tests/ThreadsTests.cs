@@ -146,9 +146,6 @@ public class ThreadsTests
 
             Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == threadMessage.MessageText);
             
-            Debug.WriteLine($"THREAD CHANNEL PARENT CHANNEL ID: {thread.ParentChannelId}");
-            Debug.WriteLine($"PARENT CHANNEL ID: {threadMessage.ParentChannelId}");
-            
             await threadMessage.UnPinMessageFromParentChannel();
             
             await Task.Delay(5000);
