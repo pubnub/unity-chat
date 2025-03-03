@@ -317,11 +317,15 @@ namespace PubNubChatAPI.Entities
         {
             while (fetchUpdates)
             {
-                Debug.WriteLine("Updates loop start");
                 var updates = GetUpdates();
-                Debug.WriteLine("Got Updates");
-                ParseJsonUpdatePointers(updates);
-                Debug.WriteLine("Parsed Updates");
+                try
+                {
+                    ParseJsonUpdatePointers(updates);
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"Error when parsing JSON updates: {e}");
+                }
                 await Task.Delay(200);
             }
         }
@@ -336,6 +340,7 @@ namespace PubNubChatAPI.Entities
             Debug.WriteLine($"Received JSON to parse: {jsonString}");
 
             var jArray = JArray.Parse(jsonString);
+            
             var updates = jArray
                 .Children<JObject>()
                 .SelectMany(jo => jo.Properties())
@@ -345,7 +350,7 @@ namespace PubNubChatAPI.Entities
                     grp => grp.SelectMany(jp =>
                         jp.Value is JArray ? jp.Value.Values<string>() : new[] { jp.Value.ToString() }).ToList()
                 );
-
+            
             foreach (var update in updates)
             {
                 foreach (var json in update.Value)
@@ -359,6 +364,26 @@ namespace PubNubChatAPI.Entities
                         
                     switch (update.Key)
                     {
+                        case "typing_users":
+                            var typings = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(json);
+                            if (typings == null)
+                            {
+                                continue;
+                            }
+                            foreach (var kvp in typings)
+                            {
+                                if (TryGetChannel(kvp.Key, out var typingChannel))
+                                {
+                                    typingChannel.TryParseAndBroadcastTypingEvent(kvp.Value);
+                                    OnAnyEvent?.Invoke(new ChatEvent()
+                                    {
+                                        ChannelId = kvp.Key,
+                                        Payload = json,
+                                        Type = PubnubChatEventType.Typing
+                                    });
+                                }
+                            }
+                            break;
                         case "event":
                             Debug.WriteLine("Deserialized event");
 
@@ -372,13 +397,13 @@ namespace PubNubChatAPI.Entities
                             //TODO: not a big fan of this big-ass switch
                             switch (chatEvent.Type)
                             {
-                                case PubnubChatEventType.Typing:
+                                /*case PubnubChatEventType.Typing:
                                     if (!(TryGetChannel(chatEvent.ChannelId, out var typingChannel) &&
                                           typingChannel.TryParseAndBroadcastTypingEvent(chatEvent)))
                                     {
                                         failedToInvoke = true;
                                     }
-                                    break;
+                                    break;*/
                                 case PubnubChatEventType.Report:
                                     if (TryGetChannel(chatEvent.ChannelId, out var reportChannel))
                                     {
@@ -568,9 +593,7 @@ namespace PubNubChatAPI.Entities
                             Debug.WriteLine("Wasn't able to deserialize incoming pointer into any known type!");
                             break;
                         //TODO: I think C#-side event parsing is enough for these for now
-                        /*case "typing_users":
-                                break;
-                            case "read_receipts":
+                        /*case "read_receipts":
                                 break;
                             case "message_report":
                                 break;*/

@@ -64,12 +64,11 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
         channel.Join();
+        channel.SetListeningForTyping(true);
+        
         await Task.Delay(5500);
         
         var typingManualEvent = new ManualResetEvent(false);
-
-        channel.SetListeningForTyping(true);
-        await Task.Delay(5500);
         channel.OnUsersTyping += typingUsers =>
         {
             Assert.That(typingUsers, Does.Contain(user.Id));
@@ -77,7 +76,7 @@ public class ChannelTests
         };
         await channel.StartTyping();
         
-        var receivedTyping = typingManualEvent.WaitOne(20000);
+        var receivedTyping = typingManualEvent.WaitOne(12000);
         Assert.IsTrue(receivedTyping);
     }
     
@@ -86,6 +85,7 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
         channel.Join();
+        channel.SetListeningForTyping(true);
         await Task.Delay(2500);
         
         await channel.StartTyping();
@@ -109,6 +109,8 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
         channel.Join();
+        channel.SetListeningForTyping(true);
+        
         await Task.Delay(2500);
         
         await channel.StartTyping();
@@ -200,9 +202,9 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("user_mention_test_channel");
         channel.Join();
-        await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
+        await Task.Delay(3000);
         user.OnMentionEvent += mentionEvent =>
         {
             Assert.True(mentionEvent.Payload.Contains("heyyy"));

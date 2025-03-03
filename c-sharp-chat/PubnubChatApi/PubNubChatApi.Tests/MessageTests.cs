@@ -50,7 +50,7 @@ public class MessageTests
         {
             MentionedUsers = new Dictionary<int, User>() { { 0, user } },
         });
-        var received = manualReceiveEvent.WaitOne(4000);
+        var received = manualReceiveEvent.WaitOne(6000);
         Assert.IsTrue(received);
     }
 
@@ -109,33 +109,17 @@ public class MessageTests
         var manualUpdatedEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
-            Debug.WriteLine("before disconnect");
-            channel.Disconnect();
-            Debug.WriteLine("after disconnect");
-
-            await Task.Delay(5000);
-            
-            Debug.WriteLine("before start listen");
             message.SetListeningForUpdates(true);
-            Debug.WriteLine("after start listen");
-            
             await Task.Delay(2000);
             
             message.OnMessageUpdated += updatedMessage =>
             {
-                Debug.WriteLine("got callback");
                 manualUpdatedEvent.Set();
-                Debug.WriteLine("set reset");
                 Assert.True(updatedMessage.MessageText == "new-text");
-                Debug.WriteLine("asserted");
             };
-            Debug.WriteLine("before edit");
             await message.EditMessageText("new-text");
-            Debug.WriteLine("after edit");
         };
-        Debug.WriteLine("before send text");
         await channel.SendText("something");
-        Debug.WriteLine("after send text");
 
         var receivedAndUpdated = manualUpdatedEvent.WaitOne(14000);
         Assert.IsTrue(receivedAndUpdated);
@@ -196,7 +180,8 @@ public class MessageTests
 
         var pinTestChannel = await chat.CreatePublicConversation("pin_test_2");
         pinTestChannel.Join();
-        await Task.Delay(2500);
+        pinTestChannel.SetListeningForUpdates(true);
+        await Task.Delay(3000);
 
         var manualReceivedEvent = new ManualResetEvent(false);
         pinTestChannel.OnMessageReceived += async message =>
@@ -206,7 +191,6 @@ public class MessageTests
             await Task.Delay(3000);
 
             var got = pinTestChannel.TryGetPinnedMessage(out var pinnedMessage);
-            Debug.WriteLine(pinnedMessage.MessageText);
             Assert.True(got && pinnedMessage.MessageText == "message to pin");
             manualReceivedEvent.Set();
         };

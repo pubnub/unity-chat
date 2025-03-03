@@ -425,37 +425,26 @@ namespace PubNubChatAPI.Entities
             OnPresenceUpdate?.Invoke(await WhoIsPresent());
         }
 
-        internal bool TryParseAndBroadcastTypingEvent(ChatEvent chatEvent)
+        internal void TryParseAndBroadcastTypingEvent(List<string> userIds)
         {
-            if (string.IsNullOrEmpty(chatEvent.UserId) || string.IsNullOrEmpty(chatEvent.Payload))
-            {
-                return false;
-            }
-
-            var payloadDictionary = JsonConvert.DeserializeObject<Dictionary<string, string>>(chatEvent.Payload);
-            if (payloadDictionary == null)
-            {
-                return false;
-            }
-
-            if (!payloadDictionary.TryGetValue("value", out var valueString)
-                || !bool.TryParse(valueString, out var typingValue))
-            {
-                return false;
-            }
-
             //stop typing
-            if (!typingValue && typingIndicators.ContainsKey(chatEvent.UserId))
+            var keys = typingIndicators.Keys.ToArray();
+            for (int i = 0; i < keys.Length; i++)
             {
-                typingIndicators[chatEvent.UserId].Stop();
-                typingIndicators.Remove(chatEvent.UserId);
+                var key = keys[i];
+                var indicator = typingIndicators[key];
+                if (!userIds.Contains(key))
+                {
+                    indicator.Stop();
+                    typingIndicators.Remove(key);
+                    indicator.Dispose();;
+                }
             }
 
-            //start typing
-            if (typingValue)
+            foreach (var typingUserId in userIds)
             {
                 //Stop the old timer
-                if (typingIndicators.TryGetValue(chatEvent.UserId, out var typingTimer))
+                if (typingIndicators.TryGetValue(typingUserId, out var typingTimer))
                 {
                     typingTimer.Stop();
                 }
@@ -464,15 +453,14 @@ namespace PubNubChatAPI.Entities
                 var newTimer = new Timer(chat.Config.TypingTimeout);
                 newTimer.Elapsed += (_, _) =>
                 {
-                    typingIndicators.Remove(chatEvent.UserId);
+                    typingIndicators.Remove(typingUserId);
                     OnUsersTyping?.Invoke(typingIndicators.Keys.ToList());
                 };
-                typingIndicators[chatEvent.UserId] = newTimer;
+                typingIndicators[typingUserId] = newTimer;
                 newTimer.Start();
             }
 
-            OnUsersTyping?.Invoke(typingIndicators.Keys.ToList());
-            return true;
+            OnUsersTyping?.Invoke(userIds);
         }
 
         public async Task ForwardMessage(Message message)

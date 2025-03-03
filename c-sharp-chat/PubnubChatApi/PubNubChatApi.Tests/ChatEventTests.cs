@@ -47,6 +47,7 @@ public class ChatEventTests
             manualModerationEvent.Set();
         };
         user.SetListeningForModerationEvents(true);
+        await Task.Delay(2500);
         await user.SetRestriction(channel.Id, new Restriction()
         {
             Ban = true,

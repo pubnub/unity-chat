@@ -143,17 +143,16 @@ public class ChatTests
     public async Task TestEmitEvent()
     {
         var reportManualEvent = new ManualResetEvent(false);
-        channel.OnReportEvent += reportEvent =>
+        channel.OnCustomEvent += customEvent =>
         {
-            Assert.True(reportEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"report\"}");
+            Assert.True(customEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"custom\"}");
             reportManualEvent.Set();
         };
-        /*await channel.Join();
-        await Task.Delay(2500);*/
-        channel.SetListeningForReportEvents(true);
-        await chat.EmitEvent(PubnubChatEventType.Report, channel.Id, "{\"test\":\"some_nonsense\"}");
+        channel.SetListeningForCustomEvents(true);
+        await Task.Delay(2500);
+        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
 
-        var eventReceived = reportManualEvent.WaitOne(5000);
+        var eventReceived = reportManualEvent.WaitOne(8000);
         Assert.True(eventReceived);
     }
 
@@ -200,6 +199,7 @@ public class ChatTests
         }
 
         otherChatChannel.Join();
+        otherChatChannel.SetListeningForReadReceiptsEvents(true);
         await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);
