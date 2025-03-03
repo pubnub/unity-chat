@@ -358,7 +358,6 @@ namespace PubNubChatAPI.Entities
 
         internal virtual void BroadcastMessageUpdate()
         {
-            Debug.WriteLine("broadcast message update");
             OnMessageUpdated?.Invoke(this);
         }
 

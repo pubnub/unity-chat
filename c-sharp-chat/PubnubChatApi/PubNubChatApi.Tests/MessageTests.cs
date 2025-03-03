@@ -24,7 +24,7 @@ public class MessageTests
             Assert.Fail();
         }
         channel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
     }
     
     [TearDown]
@@ -225,7 +225,6 @@ public class MessageTests
     public async Task TestMessageReport()
     {
         var reportManualEvent = new ManualResetEvent(false);
-        channel.Join();
         channel.SetListeningForReportEvents(true);
         await Task.Delay(3000);
         channel.OnReportEvent += reportEvent =>
@@ -242,20 +241,25 @@ public class MessageTests
     [Test]
     public async Task TestCreateThread()
     {
+        Debug.WriteLine("AAAAAAAAAAA");
         var manualReceiveEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            Debug.WriteLine("Received thread start message.");
             var hasThread = false;
             try
             {
+                message.SetListeningForUpdates(true);
                 var thread = await message.CreateThread();
-                await Task.Delay(2000);
+                thread.Join();
+                await Task.Delay(3500);
                 await thread.SendText("thread_init_text");
-                await Task.Delay(2000);
+                await Task.Delay(5000);
                 hasThread = message.HasThread();
             }
             catch (Exception e)
             {
+                Debug.WriteLine(e);
                 Console.WriteLine(e);
                 Assert.Fail();
             }

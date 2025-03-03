@@ -26,7 +26,7 @@ public class UserTests
             Assert.Fail();
         }
         channel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
     }
     
     [TearDown]

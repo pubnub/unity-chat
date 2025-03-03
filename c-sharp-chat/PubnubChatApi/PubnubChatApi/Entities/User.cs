@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -211,9 +212,9 @@ namespace PubNubChatAPI.Entities
         }
 
         private Chat chat;
-        private IntPtr mentionsListeningHandle;
-        private IntPtr invitesListeningHandle;
-        private IntPtr moderationListeningHandle;
+        private IntPtr mentionsListeningHandle = IntPtr.Zero;
+        private IntPtr invitesListeningHandle = IntPtr.Zero;
+        private IntPtr moderationListeningHandle = IntPtr.Zero;
 
         /// <summary>
         /// Event that is triggered when the user is updated.
@@ -526,11 +527,16 @@ namespace PubNubChatAPI.Entities
             return await chat.GetUserMemberships(Id, filter, sort, limit, page);
         }
 
-        protected override void DisposePointer()
+        protected override void CleanupConnectionHandles()
         {
-            SetListeningForModerationEvents(false);
+            base.CleanupConnectionHandles();
+            SetListeningForMentionEvents(false);
             SetListeningForInviteEvents(false);
             SetListeningForModerationEvents(false);
+        }
+
+        protected override void DisposePointer()
+        {
             pn_user_destroy(pointer);
         }
     }

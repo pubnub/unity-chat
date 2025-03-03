@@ -54,7 +54,7 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("get_members_test_channel");
         channel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
         var memberships = await channel.GetMemberships();
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
     }
@@ -133,7 +133,7 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("pin_message_test_channel_37");
         channel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
         
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
@@ -160,7 +160,7 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("unpin_message_test_channel");
         channel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {

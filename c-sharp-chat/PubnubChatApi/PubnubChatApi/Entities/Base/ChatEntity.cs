@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using PubnubChatApi.Utilities;
@@ -68,9 +69,14 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        ~ChatEntity()
+        protected virtual void CleanupConnectionHandles()
         {
             SetListeningForUpdates(false);
+        }
+
+        ~ChatEntity()
+        {
+            CleanupConnectionHandles();   
             DisposePointer();
         }
     }

@@ -364,6 +364,31 @@ namespace PubNubChatAPI.Entities
                         
                     switch (update.Key)
                     {
+                        // {"channel_id": "<channel_name>", "data" : [{"<timetoken>": ["<user1>", "<user2>"]}]}
+                        case "read_receipts":
+                            var jObject = JObject.Parse(json);
+                            if (!jObject.TryGetValue("channel_id", out var readChannelId) 
+                                || !jObject.TryGetValue("data", out var data))
+                            {
+                                Debug.WriteLine("Incorrect read recepits JSON payload!");
+                                continue;
+                            }
+                            if (!TryGetChannel(readChannelId.ToString(), out var readReceiptChannel))
+                            {
+                                Debug.WriteLine("Can't find the read receipt channel!");
+                                continue;
+                            }
+                            var receipts = data.Children()  
+                                .SelectMany(j => j.Children<JProperty>())  
+                                .ToDictionary(jp => jp.Name, jp => jp.Value.ToObject<List<string>>());
+                            readReceiptChannel.BroadcastReadReceipt(receipts);
+                            OnAnyEvent?.Invoke(new ChatEvent()
+                            {
+                                ChannelId = readChannelId.ToString(),
+                                Type = PubnubChatEventType.Receipt,
+                                Payload = json
+                            });
+                            break;
                         case "typing_users":
                             var typings = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(json);
                             if (typings == null)
@@ -385,7 +410,8 @@ namespace PubNubChatAPI.Entities
                             }
                             break;
                         case "event":
-                            Debug.WriteLine("Deserialized event");
+                        case "message_report":
+                            Debug.WriteLine("Deserialized event / message report");
 
                             if (!CUtilities.IsValidJson(json))
                             {
@@ -393,77 +419,57 @@ namespace PubNubChatAPI.Entities
                             }
 
                             var chatEvent = JsonConvert.DeserializeObject<ChatEvent>(json);
-                            var failedToInvoke = false;
+                            var invoked = false;
                             //TODO: not a big fan of this big-ass switch
                             switch (chatEvent.Type)
                             {
-                                /*case PubnubChatEventType.Typing:
-                                    if (!(TryGetChannel(chatEvent.ChannelId, out var typingChannel) &&
-                                          typingChannel.TryParseAndBroadcastTypingEvent(chatEvent)))
-                                    {
-                                        failedToInvoke = true;
-                                    }
-                                    break;*/
                                 case PubnubChatEventType.Report:
-                                    if (TryGetChannel(chatEvent.ChannelId, out var reportChannel))
+                                    var moderationPrefix = "PUBNUB_INTERNAL_MODERATION_";
+                                    var index = chatEvent.ChannelId.IndexOf(moderationPrefix, StringComparison.Ordinal);
+                                    var properChannelId = (index < 0)
+                                        ? chatEvent.ChannelId
+                                        : chatEvent.ChannelId.Remove(index, moderationPrefix.Length);
+                                    if (TryGetChannel(properChannelId, out var reportChannel))
                                     {
                                         reportChannel.BroadcastReportEvent(chatEvent);
-                                    }
-                                    break;
-                                case PubnubChatEventType.Receipt:
-                                    if (TryGetChannel(chatEvent.ChannelId, out var readReceiptChannel))
-                                    {
-                                        readReceiptChannel.BroadcastReadReceipt(chatEvent);
+                                        invoked = true;
                                     }
                                     break;
                                 case PubnubChatEventType.Mention:
                                     if (TryGetUser(chatEvent.UserId, out var mentionedUser))
                                     {
                                         mentionedUser.BroadcastMentionEvent(chatEvent);
+                                        invoked = true;
                                     }
                                     break;
                                 case PubnubChatEventType.Invite:
                                     if (TryGetUser(chatEvent.UserId, out var invitedUser))
                                     {
                                         invitedUser.BroadcastInviteEvent(chatEvent);
+                                        invoked = true;
                                     }
                                     break;
                                 case PubnubChatEventType.Custom:
                                     if (TryGetChannel(chatEvent.ChannelId, out var customEventChannel))
                                     {
                                         customEventChannel.BroadcastCustomEvent(chatEvent);
+                                        invoked = true;
                                     }
                                     break;
                                 case PubnubChatEventType.Moderation:
                                     if (TryGetUser(chatEvent.UserId, out var moderatedUser))
                                     {
                                         moderatedUser.BroadcastModerationEvent(chatEvent);
+                                        invoked = true;
                                     }
                                     break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
                             }
 
-                            if (!failedToInvoke)
+                            if (invoked)
                             {
                                 OnAnyEvent?.Invoke(chatEvent);
-                            }
-                            break;
-                        //TODO: NOT IMPLEMENTED, WILL CAUSE PROBLEMS WITH THREAD CHANNEL GET_HISTORY
-                        case "thread_message":
-                            var threadMessagePointer = JsonConvert.DeserializeObject<IntPtr>(json);
-                            if (threadMessagePointer != IntPtr.Zero)
-                            {
-                                Debug.WriteLine("Deserialized new thread message");
-
-                                var id = Message.GetChannelIdFromMessagePtr(threadMessagePointer);
-                                if (channelWrappers.TryGetValue(id, out var channel) && channel is ThreadChannel threadChannel)
-                                {
-                                    var timeToken = Message.GetMessageIdFromPtr(threadMessagePointer);
-                                    var message = new ThreadMessage(this, threadMessagePointer, timeToken);
-                                    messageWrappers[timeToken] = message;
-                                    threadChannel.BroadcastMessageReceived(message);
-                                }
                             }
                             break;
                         case "message":
@@ -477,7 +483,12 @@ namespace PubNubChatAPI.Entities
                                 {
                                     var timeToken = Message.GetMessageIdFromPtr(messagePointer);
                                     var message = new Message(this, messagePointer, timeToken);
-                                    messageWrappers[timeToken] = message;
+                                    //We don't store ThreadMessage wrappers by default, only add them if
+                                    //specifically requested/created in TryGetThreadHistory
+                                    if (!id.Contains("PUBNUB_INTERNAL_THREAD_"))
+                                    {
+                                        messageWrappers[timeToken] = message;
+                                    }
                                     channel.BroadcastMessageReceived(message);
                                 }
                             }
@@ -592,11 +603,6 @@ namespace PubNubChatAPI.Entities
                         default:
                             Debug.WriteLine("Wasn't able to deserialize incoming pointer into any known type!");
                             break;
-                        //TODO: I think C#-side event parsing is enough for these for now
-                        /*case "read_receipts":
-                                break;
-                            case "message_report":
-                                break;*/
                     }
                 }
             }
@@ -1799,8 +1805,6 @@ namespace PubNubChatAPI.Entities
             }
 
             var callbackHandler = pn_chat_listen_for_events(chatPointer, channelId, (byte)type);
-            /*await Task.Run(() =>
-                pn_chat_listen_for_events(chatPointer, channelId, (byte)type));*/
             CUtilities.CheckCFunctionResult(callbackHandler);
             return callbackHandler;
         }
@@ -1850,11 +1854,9 @@ namespace PubNubChatAPI.Entities
 
         public void Destroy()
         {
-            Debug.WriteLine("CHAT DESTRUCTOR");
             //TODO: a temporary solution, maybe nulling the ptr later will be better
             if (fetchUpdates == false)
             {
-                Debug.WriteLine("ALREADY FALSE?");
                 return;
             }
 

@@ -337,7 +337,7 @@ namespace PubNubChatAPI.Entities
 
         public event Action<List<string>> OnUsersTyping;
 
-        public event Action<ChatEvent> OnReadReceiptEvent;
+        public event Action<Dictionary<string, List<string>?>> OnReadReceiptEvent;
         public event Action<ChatEvent> OnReportEvent;
         public event Action<ChatEvent> OnCustomEvent;
 
@@ -403,9 +403,9 @@ namespace PubNubChatAPI.Entities
             OnMessageReceived?.Invoke(message);
         }
 
-        internal void BroadcastReadReceipt(ChatEvent readReceiptEvent)
+        internal void BroadcastReadReceipt(Dictionary<string, List<string>?> readReceiptEventData)
         {
-            OnReadReceiptEvent?.Invoke(readReceiptEvent);
+            OnReadReceiptEvent?.Invoke(readReceiptEventData);
         }
 
         internal override void UpdateWithPartialPtr(IntPtr partialPointer)
@@ -507,17 +507,15 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetPinnedMessageAsync"/>
         public bool TryGetPinnedMessage(out Message pinnedMessage)
         {
-            //TODO: currently discarding this pointer because it can be either a Message or a ThreadMessage
             var pinnedMessagePointer = pn_channel_get_pinned_message(pointer);
             if (pinnedMessagePointer != IntPtr.Zero)
             {
-                var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
-                return chat.TryGetAnyMessage(id, out pinnedMessage);
+                return chat.TryGetMessage(pinnedMessagePointer, out pinnedMessage);
             }
             else
             {
                 pinnedMessage = null;
-                Debug.WriteLine(CUtilities.GetErrorMessage());
+                Debug.WriteLine($"Error when fetching pinned message: {CUtilities.GetErrorMessage()}");
                 return false;
             }
         }
@@ -628,6 +626,7 @@ namespace PubNubChatAPI.Entities
         {
             if (connectionHandle != IntPtr.Zero)
             {
+                Debug.WriteLine("uh-oh");
                 return;
             }
             connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
@@ -653,12 +652,12 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public async void Disconnect()
         {
-            Debug.WriteLine("disconnect");
             if (connectionHandle == IntPtr.Zero)
             {
                 return;
             }
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_disconnect(pointer)));
+            pn_callback_handle_dispose(connectionHandle);
             connectionHandle = IntPtr.Zero;
         }
 
@@ -684,16 +683,13 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
-            Debug.WriteLine("leave");
             if (connectionHandle == IntPtr.Zero)
             {
                 return;
             }
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_leave(pointer)));
-            connectionHandle = IntPtr.Zero;
-            /*Debug.WriteLine("left");
             pn_callback_handle_dispose(connectionHandle);
-            Debug.WriteLine("disposed");*/
+            connectionHandle = IntPtr.Zero;
         }
 
         /// <summary>
@@ -1009,14 +1005,19 @@ namespace PubNubChatAPI.Entities
             return PointerParsers.ParseJsonMembershipPointers(chat, buffer.ToString());
         }
 
-        protected override void DisposePointer()
+        protected override void CleanupConnectionHandles()
         {
+            base.CleanupConnectionHandles();
             SetListeningForCustomEvents(false);
             SetListeningForReportEvents(false);
             SetListeningForReadReceiptsEvents(false);
             SetListeningForTyping(false);
             SetListeningForPresence(false);
             Disconnect();
+        }
+
+        protected override void DisposePointer()
+        {
             pn_channel_delete(pointer);
         }
     }

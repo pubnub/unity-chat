@@ -97,6 +97,8 @@ namespace PubNubChatAPI.Entities
 
         public async Task<List<ThreadMessage>> GetThreadHistory(string startTimeToken, string endTimeToken, int count)
         {
+            Debug.WriteLine($"CHANNEL PARENT AT HISTORY: {ParentChannelId}");
+            
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_thread_channel_get_history(pointer, startTimeToken, endTimeToken, count,
                 buffer)));
@@ -115,7 +117,12 @@ namespace PubNubChatAPI.Entities
 
             foreach (var threadMessagePointer in messagePointers)
             {
+                var parentIdBuffer = new StringBuilder(128);
+                CUtilities.CheckCFunctionResult(ThreadMessage.pn_thread_message_parent_channel_id(pointer, parentIdBuffer));
+                Debug.WriteLine($"PARENT AT HISTORY: {parentIdBuffer.ToString()}");
+                
                 var id = ThreadMessage.GetThreadMessageIdFromPtr(threadMessagePointer);
+                //This will also add a new wrapper if there wasn't one already
                 if(chat.TryGetThreadMessage(id, threadMessagePointer, out var threadMessage))
                 {
                     history.Add(threadMessage);

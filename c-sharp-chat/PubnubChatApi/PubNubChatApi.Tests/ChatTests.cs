@@ -24,7 +24,7 @@ public class ChatTests
             Assert.Fail();
         }
         channel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
     }
     
     [TearDown]
@@ -130,7 +130,7 @@ public class ChatTests
         await Task.Delay(2500);
 
         /*channel.Join();
-        await Task.Delay(2500);*/
+        await Task.Delay(3500);*/
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
 
         await channel.SendText("message_to_forward");
@@ -203,13 +203,14 @@ public class ChatTests
         await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);
-        otherChat.OnAnyEvent += chatEvent =>
+        otherChatChannel.OnReadReceiptEvent += readReceipts =>
         {
-            if (chatEvent.Type == PubnubChatEventType.Receipt)
+            if (readReceipts.Count == 0)
             {
-                Assert.True(chatEvent.ChannelId == channel.Id && chatEvent.UserId == currentUser.Id);
-                receiptReset.Set();
+                return;
             }
+            Assert.True(readReceipts.Values.Any(x => x != null && x.Contains(currentUser.Id)));
+            receiptReset.Set();
         };
         await otherChatChannel.SendText("READ MEEEE");
 
