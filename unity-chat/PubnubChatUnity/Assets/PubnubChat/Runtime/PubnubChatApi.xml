@@ -1006,6 +1006,11 @@
             </para>
             </summary>
         </member>
+        <member name="P:PubNubChatAPI.Entities.Message.OriginalMessageText">
+            <summary>
+            The original, un-edited text of the message.
+            </summary>
+        </member>
         <member name="P:PubNubChatAPI.Entities.Message.TimeToken">
             <summary>
             The time token of the message.

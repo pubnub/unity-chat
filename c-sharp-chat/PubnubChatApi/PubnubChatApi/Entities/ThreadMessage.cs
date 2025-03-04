@@ -113,6 +113,19 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
+        /// The original, un-edited text of the thread message.
+        /// </summary>
+        public override string OriginalMessageText
+        {
+            get
+            {
+                var buffer = new StringBuilder(32768);
+                pn_thread_message_get_data_text(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+
+        /// <summary>
         /// The time token of the message.
         /// <para>
         /// The time token is a unique identifier for the message.
@@ -394,6 +407,13 @@ namespace PubNubChatAPI.Entities
         {
             var buffer = new StringBuilder(128);
             pn_thread_message_get_timetoken(threadMessagePointer, buffer);
+            return buffer.ToString();
+        }
+        
+        internal static string GetChannelIdFromThreadMessagePtr(IntPtr messagePointer)
+        {
+            var buffer = new StringBuilder(512);
+            pn_thread_message_get_data_channel_id(messagePointer, buffer);
             return buffer.ToString();
         }
 

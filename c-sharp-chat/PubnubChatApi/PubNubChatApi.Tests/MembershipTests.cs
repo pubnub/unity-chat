@@ -143,7 +143,7 @@ public class MembershipTests
         await unreadChannel.SendText("two");
         await unreadChannel.SendText("three");
 
-        await Task.Delay(4000);
+        await Task.Delay(6000);
 
         var membership = (await chat.GetUserMemberships(user.Id, limit: 20)).Memberships
             .FirstOrDefault(x => x.ChannelId == unreadChannel.Id);

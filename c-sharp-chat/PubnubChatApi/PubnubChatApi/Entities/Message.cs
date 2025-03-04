@@ -118,6 +118,19 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
+        /// The original, un-edited text of the message.
+        /// </summary>
+        public virtual string OriginalMessageText
+        {
+            get
+            {
+                var buffer = new StringBuilder(32768);
+                pn_message_get_data_text(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+
+        /// <summary>
         /// The time token of the message.
         /// <para>
         /// The time token is a unique identifier for the message.

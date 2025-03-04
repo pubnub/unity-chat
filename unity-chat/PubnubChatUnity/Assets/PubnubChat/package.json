@@ -1,6 +1,6 @@
 {
   "name": "com.pubnub.pubnubchat",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "displayName": "Pubnub Chat",
   "description": "PubNub Unity Chat SDK",
   "unity": "2022.3",
