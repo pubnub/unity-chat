@@ -1,6 +1,11 @@
 --- 
-version: v0.3.1
+version: v0.4.0
 changelog:
+  - date: 2025-03-04
+    version: v0.4.0
+    changes:
+      - type: feature
+        text: "Ported over Event Engine functionality from C-Core to internal Chat logic."
   - date: 2025-02-25
     version: v0.3.1
     changes:

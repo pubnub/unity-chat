@@ -25,7 +25,9 @@ public class MessageDraftTests
             Assert.Fail();
         }
 
-        await channel.Join();
+        channel.Join();
+        await Task.Delay(3000);
+        
         if (!chat.TryGetUser("mock_user", out dummyUser))
         {
             dummyUser = await chat.CreateUser("mock_user", new ChatUserData()

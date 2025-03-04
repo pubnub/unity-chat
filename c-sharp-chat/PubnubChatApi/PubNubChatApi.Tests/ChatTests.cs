@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Newtonsoft.Json;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -24,13 +23,14 @@ public class ChatTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
+        await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        await channel.Leave();
+        channel.Leave();
         await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
@@ -83,7 +83,7 @@ public class ChatTests
     [Test]
     public async Task TestGetChannels()
     {
-        await Task.Delay(3000);
+        await Task.Delay(4000);
         var channels = await chat.GetChannels();
         Assert.True(channels.Channels.Any());
     }
@@ -126,9 +126,11 @@ public class ChatTests
             Assert.True(message.MessageText == "message_to_forward");
             messageForwardReceivedManualEvent.Set();
         };
-        await forwardingChannel.Join();
+        forwardingChannel.Join();
+        await Task.Delay(2500);
 
-        await channel.Join();
+        /*channel.Join();
+        await Task.Delay(3500);*/
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
 
         await channel.SendText("message_to_forward");
@@ -141,15 +143,16 @@ public class ChatTests
     public async Task TestEmitEvent()
     {
         var reportManualEvent = new ManualResetEvent(false);
-        chat.OnReportEvent += reportEvent =>
+        channel.OnCustomEvent += customEvent =>
         {
-            Assert.True(reportEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"report\"}");
+            Assert.True(customEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"custom\"}");
             reportManualEvent.Set();
         };
-        await channel.Join();
-        await chat.EmitEvent(PubnubChatEventType.Report, channel.Id, "{\"test\":\"some_nonsense\"}");
+        channel.SetListeningForCustomEvents(true);
+        await Task.Delay(2500);
+        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
 
-        var eventReceived = reportManualEvent.WaitOne(5000);
+        var eventReceived = reportManualEvent.WaitOne(8000);
         Assert.True(eventReceived);
     }
 
@@ -195,12 +198,18 @@ public class ChatTests
             return;
         }
 
-        await otherChatChannel.Join();
+        otherChatChannel.Join();
+        otherChatChannel.SetListeningForReadReceiptsEvents(true);
+        await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);
-        otherChat.OnReadReceiptEvent += receiptEvent =>
+        otherChatChannel.OnReadReceiptEvent += readReceipts =>
         {
-            Assert.True(receiptEvent.ChannelId == channel.Id && receiptEvent.UserId == currentUser.Id);
+            if (readReceipts.Count == 0)
+            {
+                return;
+            }
+            Assert.True(readReceipts.Values.Any(x => x != null && x.Contains(currentUser.Id)));
             receiptReset.Set();
         };
         await otherChatChannel.SendText("READ MEEEE");

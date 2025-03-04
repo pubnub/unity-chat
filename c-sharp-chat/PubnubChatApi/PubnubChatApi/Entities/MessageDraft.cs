@@ -55,7 +55,7 @@ namespace PubNubChatAPI.Entities
         CHANNEL
     }
     
-    public class MessageDraft : ChatEntity
+    public class MessageDraft
     {
         private class DraftCallbackDataHelper
         {
@@ -108,6 +108,8 @@ namespace PubNubChatAPI.Entities
 
         #endregion
 
+        private IntPtr pointer;
+        
         public event Action<List<MessageElement>, List<SuggestedMention>> OnDraftUpdated; 
         
         //TODO: will see if these stay non-accessible
@@ -137,9 +139,9 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         public Message QuotedMessage { get; }*/
 
-        internal MessageDraft(IntPtr pointer) :
-            base(pointer)
+        internal MessageDraft(IntPtr pointer)
         {
+            this.pointer = pointer;
         }
 
         private void BroadcastDraftUpdate()
@@ -258,19 +260,7 @@ namespace PubNubChatAPI.Entities
             pn_message_draft_set_search_for_suggestions(pointer, searchForSuggestions);
         }
 
-        internal override void UpdateWithPartialPtr(IntPtr partialPointer)
-        {
-            //Message draft doesn't get updated over-network
-            return;
-        }
-
-        public override Task StartListeningForUpdates()
-        {
-            //Message draft doesn't get updated over-network
-            return Task.CompletedTask;
-        }
-
-        protected override void DisposePointer()
+        ~MessageDraft()
         {
             pn_message_draft_delete(pointer);
         }

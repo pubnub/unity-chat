@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
+using PubnubChatApi.Entities.Events;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
@@ -71,6 +73,9 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern int pn_user_last_active_timestamp(IntPtr user, StringBuilder result);
+        
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_user_stream_updates(IntPtr user);
 
         #endregion
 
@@ -207,6 +212,9 @@ namespace PubNubChatAPI.Entities
         }
 
         private Chat chat;
+        private IntPtr mentionsListeningHandle = IntPtr.Zero;
+        private IntPtr invitesListeningHandle = IntPtr.Zero;
+        private IntPtr moderationListeningHandle = IntPtr.Zero;
 
         /// <summary>
         /// Event that is triggered when the user is updated.
@@ -227,16 +235,52 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Update"/>
         /// <seealso cref="User"/>
         public event Action<User> OnUserUpdated;
-
-        public override async Task StartListeningForUpdates()
-        {
-            //TODO: hacky way to subscribe to this channel
-            await chat.ListenForEvents(Id, PubnubChatEventType.Custom);
-        }
+        
+        public event Action<ChatEvent> OnMentionEvent;
+        public event Action<ChatEvent> OnInviteEvent;
+        public event Action<ChatEvent> OnModerationEvent;
 
         internal User(Chat chat, string userId, IntPtr userPointer) : base(userPointer, userId)
         {
             this.chat = chat;
+        }
+        
+        public async void SetListeningForMentionEvents(bool listen)
+        {
+            mentionsListeningHandle = await SetListening(mentionsListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Mention));
+        }
+
+        internal void BroadcastMentionEvent(ChatEvent chatEvent)
+        {
+            OnMentionEvent?.Invoke(chatEvent);
+        }
+
+        public async void SetListeningForInviteEvents(bool listen)
+        {
+            invitesListeningHandle = await SetListening(invitesListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Invite));
+        }
+        
+        internal void BroadcastInviteEvent(ChatEvent chatEvent)
+        {
+            OnInviteEvent?.Invoke(chatEvent);
+        }
+
+        public async void SetListeningForModerationEvents(bool listen)
+        {
+            moderationListeningHandle = await SetListening(moderationListeningHandle, listen,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Moderation));
+        }
+        
+        internal void BroadcastModerationEvent(ChatEvent chatEvent)
+        {
+            OnModerationEvent?.Invoke(chatEvent);
+        }
+
+        protected override IntPtr StreamUpdates()
+        {
+            return pn_user_stream_updates(pointer);
         }
 
         internal static string GetUserIdFromPtr(IntPtr userPointer)
@@ -483,9 +527,21 @@ namespace PubNubChatAPI.Entities
             return await chat.GetUserMemberships(Id, filter, sort, limit, page);
         }
 
+        protected override async Task CleanupConnectionHandles()
+        {
+            await base.CleanupConnectionHandles();
+            mentionsListeningHandle = await SetListening(mentionsListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Mention));
+            invitesListeningHandle = await SetListening(invitesListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Invite));
+            moderationListeningHandle = await SetListening(moderationListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Moderation));
+        }
+
         protected override void DisposePointer()
         {
             pn_user_destroy(pointer);
+            pointer = IntPtr.Zero;
         }
     }
 }

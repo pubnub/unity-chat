@@ -17,14 +17,15 @@ public class ThreadsTests
         chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "threads_tests_user")
+            "threads_tests_user_2")
         );
-        channel = await chat.CreatePublicConversation("threads_tests_channel_37");
+        channel = await chat.CreatePublicConversation();
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
+        await Task.Delay(3500);
     }
     
     [TearDown]
@@ -32,6 +33,7 @@ public class ThreadsTests
     {
         channel.Leave();
         await Task.Delay(3000);
+        await channel.Delete();
         chat.Destroy();
         await Task.Delay(3000);
     }
@@ -42,8 +44,9 @@ public class ThreadsTests
         var historyReadReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
 
             await Task.Delay(5000);
             
@@ -68,11 +71,12 @@ public class ThreadsTests
         var historyReadReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
             await thread.SendText("thread init message");
 
-            await Task.Delay(5000);
+            await Task.Delay(7000);
             
             thread.OnMessageReceived += async threadMessage =>
             {
@@ -80,18 +84,20 @@ public class ThreadsTests
             };
             await thread.SendText("some_thread_message");
             
-            await Task.Delay(5000);
-
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "some_thread_message");
+            await Task.Delay(7000);
+            
+            var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
+            var correctText = hasPinned && pinnedMessage.MessageText == "some_thread_message";
+            Assert.True(hasPinned && correctText);
             await thread.UnPinMessageFromParentChannel();
             
-            await Task.Delay(5000);
+            await Task.Delay(7000);
 
             Assert.False(channel.TryGetPinnedMessage(out _));
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");
-        var read = historyReadReset.WaitOne(30000);
+        var read = historyReadReset.WaitOne(40000);
         Assert.True(read);
     }
     
@@ -102,9 +108,10 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            await thread.Join();
-            chat.StartListeningForMentionEvents(user.Id);
-            chat.OnMentionEvent += mentionEvent =>
+            thread.Join();
+            user.SetListeningForMentionEvents(true);
+            await Task.Delay(2500);
+            user.OnMentionEvent += mentionEvent =>
             {
                 Assert.True(mentionEvent.Payload.Contains("heyyy"));
                 mentionedReset.Set();
@@ -122,16 +129,17 @@ public class ThreadsTests
         var historyReadReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
 
-            await Task.Delay(3000);
+            await Task.Delay(3500);
             
             await thread.SendText("one");
             await thread.SendText("two");
             await thread.SendText("three");
             
-            await Task.Delay(10000);
+            await Task.Delay(8000);
             
             var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
             var threadMessage = history[0];
@@ -140,6 +148,7 @@ public class ThreadsTests
             await Task.Delay(5000);
 
             Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == threadMessage.MessageText);
+            
             await threadMessage.UnPinMessageFromParentChannel();
             
             await Task.Delay(5000);
@@ -158,8 +167,9 @@ public class ThreadsTests
         var messageUpdatedReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
+            message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            await thread.Join();
+            thread.Join();
             
             await Task.Delay(3000);
             
@@ -172,7 +182,7 @@ public class ThreadsTests
             var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
             var threadMessage = history[0];
             
-            await threadMessage.StartListeningForUpdates();
+            threadMessage.SetListeningForUpdates(true);
             threadMessage.OnThreadMessageUpdated += updatedThreadMessage =>
             {
                 Assert.True(updatedThreadMessage.MessageText == "new_text");

@@ -57,6 +57,9 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_membership_update_with_base(IntPtr membership,
             IntPtr base_membership);
+        
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_membership_stream_updates(IntPtr membership);
 
         #endregion
 
@@ -105,16 +108,15 @@ namespace PubNubChatAPI.Entities
         public event Action<Membership> OnMembershipUpdated;
 
         private Chat chat;
-        
-        public override async Task StartListeningForUpdates()
-        {
-            //TODO: hacky way to subscribe to this channel
-            await chat.ListenForEvents(ChannelId, PubnubChatEventType.Custom);
-        }
 
         internal Membership(Chat chat, IntPtr membershipPointer, string membershipId) : base(membershipPointer, membershipId)
         {
             this.chat = chat;
+        }
+
+        protected override IntPtr StreamUpdates()
+        {
+            return pn_membership_stream_updates(pointer);
         }
 
         internal static string GetMembershipIdFromPtr(IntPtr membershipPointer)

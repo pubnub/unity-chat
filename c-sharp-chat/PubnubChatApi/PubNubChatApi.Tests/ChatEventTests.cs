@@ -24,7 +24,8 @@ public class ChatEventTests
         {
             Assert.Fail();
         }
-        await channel.Join();
+        channel.Join();
+        await Task.Delay(3500);
     }
     
     [TearDown]
@@ -40,12 +41,13 @@ public class ChatEventTests
     public async Task TestModerationEvents()
     {
         var manualModerationEvent = new ManualResetEvent(false);
-        chat.OnModerationEvent += moderationEvent =>
+        user.OnModerationEvent += moderationEvent =>
         {
             Assert.True(moderationEvent.Payload.Contains("some_reason"));
             manualModerationEvent.Set();
         };
-        chat.StartListeningForModerationEvents(user.Id);
+        user.SetListeningForModerationEvents(true);
+        await Task.Delay(2500);
         await user.SetRestriction(channel.Id, new Restriction()
         {
             Ban = true,
