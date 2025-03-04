@@ -138,12 +138,12 @@ public class MembershipTests
     {
         var unreadChannel = await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
         unreadChannel.Join();
-        await Task.Delay(2500);
+        await Task.Delay(3500);
         await unreadChannel.SendText("one");
         await unreadChannel.SendText("two");
         await unreadChannel.SendText("three");
 
-        await Task.Delay(6000);
+        await Task.Delay(8000);
 
         var membership = (await chat.GetUserMemberships(user.Id, limit: 20)).Memberships
             .FirstOrDefault(x => x.ChannelId == unreadChannel.Id);

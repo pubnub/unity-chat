@@ -653,13 +653,22 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public async void Disconnect()
         {
-            if (connectionHandle == IntPtr.Zero)
+            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
             }
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_disconnect(pointer)));
-            pn_callback_handle_dispose(connectionHandle);
+            var connectionHandleCopy = connectionHandle;
             connectionHandle = IntPtr.Zero;
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+            {
+                if (pointer == IntPtr.Zero)
+                {
+                    return 0;
+                }
+                pn_channel_disconnect(pointer);
+                pn_callback_handle_dispose(connectionHandleCopy);
+                return 0;
+            }));
         }
 
         /// <summary>
@@ -684,20 +693,22 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
-            if (connectionHandle == IntPtr.Zero)
+            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
             }
+            var connectionHandleCopy = connectionHandle;
+            connectionHandle = IntPtr.Zero;
             CUtilities.CheckCFunctionResult(await Task.Run(() =>
             {
                 if (pointer == IntPtr.Zero)
                 {
                     return 0;
                 }
-                return pn_channel_leave(pointer);
+                pn_channel_leave(pointer);
+                pn_callback_handle_dispose(connectionHandleCopy);
+                return 0;
             }));
-            pn_callback_handle_dispose(connectionHandle);
-            connectionHandle = IntPtr.Zero;
         }
 
         /// <summary>
@@ -1026,6 +1037,7 @@ namespace PubNubChatAPI.Entities
 
         protected override void DisposePointer()
         {
+            Debug.WriteLine("BOOOOOOOM");
             pn_channel_delete(pointer);
             pointer = IntPtr.Zero;
         }

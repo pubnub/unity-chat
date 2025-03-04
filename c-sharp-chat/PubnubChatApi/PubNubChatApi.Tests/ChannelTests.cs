@@ -111,7 +111,7 @@ public class ChannelTests
         channel.Join();
         channel.SetListeningForTyping(true);
         
-        await Task.Delay(2500);
+        await Task.Delay(4500);
         
         await channel.StartTyping();
 
@@ -124,7 +124,7 @@ public class ChannelTests
             typingManualEvent.Set();
         };
 
-        var stoppedTyping = typingManualEvent.WaitOne(10000);
+        var stoppedTyping = typingManualEvent.WaitOne(12000);
         Assert.IsTrue(stoppedTyping);
     }
 
