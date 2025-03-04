@@ -527,17 +527,21 @@ namespace PubNubChatAPI.Entities
             return await chat.GetUserMemberships(Id, filter, sort, limit, page);
         }
 
-        protected override void CleanupConnectionHandles()
+        protected override async Task CleanupConnectionHandles()
         {
-            base.CleanupConnectionHandles();
-            SetListeningForMentionEvents(false);
-            SetListeningForInviteEvents(false);
-            SetListeningForModerationEvents(false);
+            await base.CleanupConnectionHandles();
+            mentionsListeningHandle = await SetListening(mentionsListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Mention));
+            invitesListeningHandle = await SetListening(invitesListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Invite));
+            moderationListeningHandle = await SetListening(moderationListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Moderation));
         }
 
         protected override void DisposePointer()
         {
             pn_user_destroy(pointer);
+            pointer = IntPtr.Zero;
         }
     }
 }

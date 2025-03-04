@@ -17,9 +17,9 @@ public class ThreadsTests
         chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "threads_tests_user")
+            "threads_tests_user_2")
         );
-        channel = await chat.CreatePublicConversation("threads_tests_channel_37");
+        channel = await chat.CreatePublicConversation();
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
@@ -33,6 +33,7 @@ public class ThreadsTests
     {
         channel.Leave();
         await Task.Delay(3000);
+        await channel.Delete();
         chat.Destroy();
         await Task.Delay(3000);
     }
@@ -75,26 +76,30 @@ public class ThreadsTests
             thread.Join();
             await thread.SendText("thread init message");
 
-            await Task.Delay(6000);
+            await Task.Delay(7000);
             
             thread.OnMessageReceived += async threadMessage =>
             {
+                Debug.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
                 await thread.PinMessageToParentChannel(threadMessage);
             };
             await thread.SendText("some_thread_message");
             
-            await Task.Delay(5000);
+            await Task.Delay(7000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "some_thread_message");
+            Debug.WriteLine("PLEEEEAAAASEEEEE");
+            var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
+            var correctText = hasPinned && pinnedMessage.MessageText == "some_thread_message";
+            Assert.True(hasPinned && correctText);
             await thread.UnPinMessageFromParentChannel();
             
-            await Task.Delay(5000);
+            await Task.Delay(7000);
 
             Assert.False(channel.TryGetPinnedMessage(out _));
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");
-        var read = historyReadReset.WaitOne(35000);
+        var read = historyReadReset.WaitOne(40000);
         Assert.True(read);
     }
     

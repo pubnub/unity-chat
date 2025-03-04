@@ -649,8 +649,12 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Channel"/>
-        public async Task<Channel> CreatePublicConversation(string channelId)
+        public async Task<Channel> CreatePublicConversation(string channelId = "")
         {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
             return await CreatePublicConversation(channelId, new ChatChannelData());
         }
 
@@ -696,8 +700,12 @@ namespace PubNubChatAPI.Entities
             return channel;
         }
 
-        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId)
+        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId = "")
         {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
             return await CreateDirectConversation(user, channelId, new ChatChannelData());
         }
 
@@ -734,8 +742,12 @@ namespace PubNubChatAPI.Entities
             };
         }
 
-        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId)
+        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId = "")
         {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
             return await CreateGroupConversation(users, channelId, new ChatChannelData());
         }
 

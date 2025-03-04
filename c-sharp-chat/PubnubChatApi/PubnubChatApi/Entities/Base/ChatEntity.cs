@@ -69,15 +69,20 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        protected virtual void CleanupConnectionHandles()
+        protected virtual async Task CleanupConnectionHandles()
         {
-            SetListeningForUpdates(false);
+            updateListeningHandle = await SetListening(updateListeningHandle, false, StreamUpdates);
+        }
+
+        private async void CleanUpAsync()
+        {
+            await CleanupConnectionHandles();
+            DisposePointer();
         }
 
         ~ChatEntity()
         {
-            CleanupConnectionHandles();   
-            DisposePointer();
+            CleanUpAsync();
         }
     }
 }

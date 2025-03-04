@@ -511,6 +511,7 @@ namespace PubNubChatAPI.Entities
             if (pinnedMessagePointer != IntPtr.Zero)
             {
                 var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
+                Debug.WriteLine($"BROOOOOOO: {id}");
                 return chat.TryGetAnyMessage(id, out pinnedMessage);
             }
             else
@@ -651,24 +652,17 @@ namespace PubNubChatAPI.Entities
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while disconnecting from the channel.</exception>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Join"/>
-        public async void Disconnect()
+        public void Disconnect()
         {
+            Debug.WriteLine("DISCONNECT REQUEST");
             if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
             }
-            var connectionHandleCopy = connectionHandle;
+            CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer));
+            pn_callback_handle_dispose(connectionHandle);
             connectionHandle = IntPtr.Zero;
-            CUtilities.CheckCFunctionResult(await Task.Run(() =>
-            {
-                if (pointer == IntPtr.Zero)
-                {
-                    return 0;
-                }
-                pn_channel_disconnect(pointer);
-                pn_callback_handle_dispose(connectionHandleCopy);
-                return 0;
-            }));
+            Debug.WriteLine("DISCONNECT PERFORMED");
         }
 
         /// <summary>
@@ -693,6 +687,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
+            Debug.WriteLine("LEAVE REQUEST");
             if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
@@ -701,12 +696,14 @@ namespace PubNubChatAPI.Entities
             connectionHandle = IntPtr.Zero;
             CUtilities.CheckCFunctionResult(await Task.Run(() =>
             {
+                Debug.WriteLine("LEAVE TASK STARTED");
                 if (pointer == IntPtr.Zero)
                 {
                     return 0;
                 }
                 pn_channel_leave(pointer);
                 pn_callback_handle_dispose(connectionHandleCopy);
+                Debug.WriteLine("LEAVE TASK FINISHED");
                 return 0;
             }));
         }
@@ -1024,20 +1021,25 @@ namespace PubNubChatAPI.Entities
             return PointerParsers.ParseJsonMembershipPointers(chat, buffer.ToString());
         }
 
-        protected override void CleanupConnectionHandles()
+        protected override async Task CleanupConnectionHandles()
         {
-            base.CleanupConnectionHandles();
-            SetListeningForCustomEvents(false);
-            SetListeningForReportEvents(false);
-            SetListeningForReadReceiptsEvents(false);
-            SetListeningForTyping(false);
-            SetListeningForPresence(false);
+            await base.CleanupConnectionHandles();
+            customEventsListeningHandle = await SetListening(customEventsListeningHandle, false,
+                () => chat.ListenForEvents(Id, PubnubChatEventType.Custom));
+            reportEventsListeningHandle = await SetListening(reportEventsListeningHandle, false,
+                () => pn_channel_stream_message_reports(pointer));
+            readReceiptsListeningHandle = await SetListening(readReceiptsListeningHandle, false,
+                () => pn_channel_stream_read_receipts(pointer));
+            typingListeningHandle = await SetListening(typingListeningHandle, false,
+                () => pn_channel_get_typing(pointer));
+            presenceListeningHandle = await SetListening(presenceListeningHandle, false,
+                () => pn_channel_stream_presence(pointer));
             Disconnect();
         }
 
         protected override void DisposePointer()
         {
-            Debug.WriteLine("BOOOOOOOM");
+            Debug.WriteLine("CHANNELL GO BOOOOOOM");
             pn_channel_delete(pointer);
             pointer = IntPtr.Zero;
         }
