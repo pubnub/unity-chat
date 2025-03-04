@@ -688,7 +688,14 @@ namespace PubNubChatAPI.Entities
             {
                 return;
             }
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_leave(pointer)));
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+            {
+                if (pointer == IntPtr.Zero)
+                {
+                    return 0;
+                }
+                return pn_channel_leave(pointer);
+            }));
             pn_callback_handle_dispose(connectionHandle);
             connectionHandle = IntPtr.Zero;
         }
@@ -1020,6 +1027,7 @@ namespace PubNubChatAPI.Entities
         protected override void DisposePointer()
         {
             pn_channel_delete(pointer);
+            pointer = IntPtr.Zero;
         }
     }
 }
