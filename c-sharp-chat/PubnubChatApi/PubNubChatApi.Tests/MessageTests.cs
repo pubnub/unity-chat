@@ -241,7 +241,6 @@ public class MessageTests
     [Test]
     public async Task TestCreateThread()
     {
-        Debug.WriteLine("AAAAAAAAAAA");
         var manualReceiveEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {

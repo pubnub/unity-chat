@@ -928,6 +928,23 @@
             </example>
             <seealso cref="T:PubNubChatAPI.Entities.Message"/>
         </member>
+        <member name="M:PubNubChatAPI.Entities.ChatAccessManager.SetAuthToken(System.String)">
+            <summary>
+            Sets a new token for this Chat instance.
+            </summary>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.ChatAccessManager.ParseToken(System.String)">
+            <summary>
+             Decodes an existing token.
+            </summary>
+            <returns>A JSON string object containing permissions embedded in that token.</returns>
+        </member>
+        <member name="M:PubNubChatAPI.Entities.ChatAccessManager.SetPubnubOrigin(System.String)">
+            <summary>
+            Sets a new custom origin value.            
+            </summary>
+            <param name="origin"></param>
+        </member>
         <member name="T:PubNubChatAPI.Entities.Membership">
             <summary>
             Represents a membership of a user in a channel.
@@ -1214,6 +1231,11 @@
             <para>
             This is the main content of the message. It can be any text that the user wants to send.
             </para>
+            </summary>
+        </member>
+        <member name="P:PubNubChatAPI.Entities.ThreadMessage.OriginalMessageText">
+            <summary>
+            The original, un-edited text of the thread message.
             </summary>
         </member>
         <member name="P:PubNubChatAPI.Entities.ThreadMessage.TimeToken">

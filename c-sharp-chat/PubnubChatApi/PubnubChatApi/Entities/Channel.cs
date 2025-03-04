@@ -511,8 +511,10 @@ namespace PubNubChatAPI.Entities
             if (pinnedMessagePointer != IntPtr.Zero)
             {
                 var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
-                Debug.WriteLine($"BROOOOOOO: {id}");
-                return chat.TryGetAnyMessage(id, out pinnedMessage);
+                //TODO: this loose wrapper will cause problems of it's own but I don't see another solution for now
+                //TODO: will be improved with the final ThreadMessage/Message divorce anyway
+                pinnedMessage = new Message(chat, pinnedMessagePointer, id);
+                return true;
             }
             else
             {
@@ -628,7 +630,6 @@ namespace PubNubChatAPI.Entities
         {
             if (connectionHandle != IntPtr.Zero)
             {
-                Debug.WriteLine("uh-oh");
                 return;
             }
             connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
@@ -654,7 +655,6 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public void Disconnect()
         {
-            Debug.WriteLine("DISCONNECT REQUEST");
             if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
@@ -662,7 +662,6 @@ namespace PubNubChatAPI.Entities
             CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer));
             pn_callback_handle_dispose(connectionHandle);
             connectionHandle = IntPtr.Zero;
-            Debug.WriteLine("DISCONNECT PERFORMED");
         }
 
         /// <summary>
@@ -687,7 +686,6 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
-            Debug.WriteLine("LEAVE REQUEST");
             if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
@@ -696,14 +694,12 @@ namespace PubNubChatAPI.Entities
             connectionHandle = IntPtr.Zero;
             CUtilities.CheckCFunctionResult(await Task.Run(() =>
             {
-                Debug.WriteLine("LEAVE TASK STARTED");
                 if (pointer == IntPtr.Zero)
                 {
                     return 0;
                 }
                 pn_channel_leave(pointer);
                 pn_callback_handle_dispose(connectionHandleCopy);
-                Debug.WriteLine("LEAVE TASK FINISHED");
                 return 0;
             }));
         }
@@ -1039,7 +1035,6 @@ namespace PubNubChatAPI.Entities
 
         protected override void DisposePointer()
         {
-            Debug.WriteLine("CHANNELL GO BOOOOOOM");
             pn_channel_delete(pointer);
             pointer = IntPtr.Zero;
         }

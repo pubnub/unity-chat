@@ -80,14 +80,12 @@ public class ThreadsTests
             
             thread.OnMessageReceived += async threadMessage =>
             {
-                Debug.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
                 await thread.PinMessageToParentChannel(threadMessage);
             };
             await thread.SendText("some_thread_message");
             
             await Task.Delay(7000);
-
-            Debug.WriteLine("PLEEEEAAAASEEEEE");
+            
             var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
             var correctText = hasPinned && pinnedMessage.MessageText == "some_thread_message";
             Assert.True(hasPinned && correctText);
