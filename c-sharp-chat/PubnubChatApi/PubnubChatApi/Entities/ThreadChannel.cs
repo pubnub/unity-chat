@@ -97,7 +97,6 @@ namespace PubNubChatAPI.Entities
 
         public async Task<List<ThreadMessage>> GetThreadHistory(string startTimeToken, string endTimeToken, int count)
         {
-            
             var buffer = new StringBuilder(4096);
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_thread_channel_get_history(pointer, startTimeToken, endTimeToken, count,
                 buffer)));

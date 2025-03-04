@@ -41,7 +41,7 @@ namespace PubNubChatAPI.Entities
             updateListeningHandle = await SetListening(updateListeningHandle, listen, StreamUpdates);
         }
 
-        protected async Task<IntPtr> SetListening(IntPtr callbackHandle, bool listen, Func<IntPtr> streamFunction)
+        internal async Task<IntPtr> SetListening(IntPtr callbackHandle, bool listen, Func<IntPtr> streamFunction)
         {
             if (listen)
             {
