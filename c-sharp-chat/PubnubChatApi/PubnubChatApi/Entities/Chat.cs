@@ -498,7 +498,7 @@ namespace PubNubChatAPI.Entities
                             if (updatedThreadMessagePointer != IntPtr.Zero)
                             {
                                 Debug.WriteLine("Deserialized thread message update");
-                                var id = Message.GetMessageIdFromPtr(updatedThreadMessagePointer);
+                                var id = ThreadMessage.GetThreadMessageIdFromPtr(updatedThreadMessagePointer);
                                 if (messageWrappers.TryGetValue(id, out var existingMessageWrapper))
                                 {
                                     if (existingMessageWrapper is ThreadMessage existingThreadMessageWrapper)

@@ -19,7 +19,8 @@ public class ThreadsTests
             PubnubTestsParameters.SubscribeKey,
             "threads_tests_user_2")
         );
-        channel = await chat.CreatePublicConversation();
+        var randomId = Guid.NewGuid().ToString()[..10];
+        channel = await chat.CreatePublicConversation(randomId);
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
@@ -77,17 +78,15 @@ public class ThreadsTests
             await thread.SendText("thread init message");
 
             await Task.Delay(7000);
-            
-            thread.OnMessageReceived += async threadMessage =>
-            {
-                await thread.PinMessageToParentChannel(threadMessage);
-            };
-            await thread.SendText("some_thread_message");
+
+            var threadMessage = 
+                (await thread.GetThreadHistory("99999999999999999", "00000000000000000", 1))[0];
+            await thread.PinMessageToParentChannel(threadMessage);
             
             await Task.Delay(7000);
             
             var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
-            var correctText = hasPinned && pinnedMessage.MessageText == "some_thread_message";
+            var correctText = hasPinned && pinnedMessage.MessageText == "thread init message";
             Assert.True(hasPinned && correctText);
             await thread.UnPinMessageFromParentChannel();
             

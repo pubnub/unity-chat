@@ -129,7 +129,7 @@ namespace PubNubChatAPI.Entities
             return history;
         }
 
-        public async Task PinMessageToParentChannel(Message message)
+        public async Task PinMessageToParentChannel(ThreadMessage message)
         {
             var newChannelPointer = await Task.Run(() => pn_thread_channel_pin_message_to_parent_channel(pointer, message.Pointer));
             CUtilities.CheckCFunctionResult(newChannelPointer);
