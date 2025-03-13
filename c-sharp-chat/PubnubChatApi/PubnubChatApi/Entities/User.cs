@@ -270,7 +270,7 @@ namespace PubNubChatAPI.Entities
         public async void SetListeningForModerationEvents(bool listen)
         {
             moderationListeningHandle = await SetListening(moderationListeningHandle, listen,
-                () => chat.ListenForEvents(Id, PubnubChatEventType.Moderation));
+                () => chat.ListenForEvents($"PUBNUB_INTERNAL_MODERATION.{Id}", PubnubChatEventType.Moderation));
         }
         
         internal void BroadcastModerationEvent(ChatEvent chatEvent)
