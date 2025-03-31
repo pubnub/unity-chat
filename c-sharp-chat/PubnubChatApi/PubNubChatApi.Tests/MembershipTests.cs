@@ -152,6 +152,7 @@ public class MembershipTests
         
         var membership = (await unreadChannel.GetMemberships())
             .Memberships.FirstOrDefault(x => x.UserId == user.Id);
-        Assert.True(membership != null && await membership.GetUnreadMessagesCount() >= 3);
+        var unreadCount = membership == null ? -1 : await membership.GetUnreadMessagesCount();
+        Assert.True(unreadCount >= 3, $"Expected >=3 unread but got: {unreadCount}");
     }
 }
