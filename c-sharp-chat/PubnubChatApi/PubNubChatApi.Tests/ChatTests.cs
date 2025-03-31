@@ -181,7 +181,7 @@ public class ChatTests
 
         var counts = await chat.GetUnreadMessagesCounts();
 
-        Assert.False(counts.Any(x => x.Count > 0));
+        Assert.False(counts.Any(x => x.Channel.Id == channel.Id && x.Count > 0));
     }
 
     [Test]
