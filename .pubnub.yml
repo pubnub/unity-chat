@@ -1,6 +1,13 @@
 --- 
-version: v0.4.0
+version: v0.4.2
 changelog:
+  - date: 2025-03-31
+    version: v0.4.2
+    changes:
+      - type: bug
+        text: "Imported a fix to an edge-case race condition in C-Core EE."
+      - type: bug
+        text: "Fixed an issue where user.CustomData() was improperly linked on C++ side."
   - date: 2025-03-04
     version: v0.4.0
     changes:
