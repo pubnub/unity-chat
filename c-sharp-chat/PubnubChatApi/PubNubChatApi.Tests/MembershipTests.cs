@@ -155,4 +155,23 @@ public class MembershipTests
         var unreadCount = membership == null ? -1 : await membership.GetUnreadMessagesCount();
         Assert.True(unreadCount >= 3, $"Expected >=3 unread but got: {unreadCount}");
     }
+    
+    [Test]
+    //Test added after a specific user issue where calling membership.GetUnreadMessagesCount()
+    //after a history fetch would throw a C-Core PNR_RX_BUFF_NOT_EMPTY error 
+    public async Task TestUnreadCountAfterFetchHistory()
+    {
+        await channel.SendText("some_text");
+        var membership = (await user.GetMemberships())
+            .Memberships.FirstOrDefault(x => x.ChannelId == channel.Id);
+        if (membership == null)
+        {
+            Assert.Fail("Couldn't find membership");
+            return;
+        }
+        await Task.Delay(5000);
+        var history = await channel.GetMessageHistory("99999999999999999", "00000000000000000", 1);
+        var unread = await membership.GetUnreadMessagesCount();
+        Assert.True(unread >= 1);
+    }
 }
