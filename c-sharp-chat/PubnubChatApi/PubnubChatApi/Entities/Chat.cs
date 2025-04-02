@@ -1317,7 +1317,7 @@ namespace PubNubChatAPI.Entities
                 updatedData.Email,
                 updatedData.CustomDataJson,
                 updatedData.Status,
-                updatedData.Status));
+                updatedData.Type));
             CUtilities.CheckCFunctionResult(newPointer);
             if (userWrappers.TryGetValue(userId, out var existingUserWrapper))
             {
