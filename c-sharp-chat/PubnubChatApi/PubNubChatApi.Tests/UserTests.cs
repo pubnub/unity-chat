@@ -72,7 +72,7 @@ public class UserTests
             Assert.True(updatedUser.ExternalId == "xxx_some_guy_420_xxx");
             Assert.True(updatedUser.ProfileUrl == "www.some.guy");
             Assert.True(updatedUser.Status == "yes");
-            Assert.True(updatedUser.DataType == "tall blondes");
+            Assert.True(updatedUser.DataType == "someType");
             updatedReset.Set();
         };
         testUser.SetListeningForUpdates(true);
@@ -85,7 +85,7 @@ public class UserTests
             ExternalId = "xxx_some_guy_420_xxx",
             ProfileUrl = "www.some.guy",
             Status = "yes",
-            Type = "tall blondes"
+            Type = "someType"
         });
         var updated = updatedReset.WaitOne(15000);
         Assert.True(updated);
