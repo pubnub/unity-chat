@@ -1,6 +1,15 @@
 --- 
-version: v0.4.2
+version: v0.4.3
 changelog:
+  - date: 2025-04-02
+    version: v0.4.3
+    changes:
+      - type: bug
+        text: "Fixed an issue where on Mac user.CustomData would still show up as improperly linked."
+      - type: bug
+        text: "Fixed an issue where limit > 100 would cause a C-Core assert to crash the application."
+      - type: bug
+        text: "Fixed an issue where in C-Core GetMessageHistory() didn't clear message buffer causing error on subsequent calls."
   - date: 2025-03-31
     version: v0.4.2
     changes:
