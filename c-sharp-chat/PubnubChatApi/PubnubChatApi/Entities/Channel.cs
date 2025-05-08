@@ -152,7 +152,7 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_channel_stream_message_reports(IntPtr channel);
-        
+
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_channel_stream_updates(IntPtr channel);
 
@@ -161,6 +161,14 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_channel_stream_presence(IntPtr channel);
+
+        [DllImport("pubnub-chat")]
+        private static extern IntPtr pn_channel_join_with_membership_data(
+            IntPtr channel,
+            string membership_custom_json,
+            string membership_type,
+            string membership_status
+        );
 
         #endregion
 
@@ -367,7 +375,7 @@ namespace PubNubChatAPI.Entities
             reportEventsListeningHandle = await SetListening(reportEventsListeningHandle, listen,
                 () => pn_channel_stream_message_reports(pointer));
         }
-        
+
         internal void BroadcastReportEvent(ChatEvent chatEvent)
         {
             OnReportEvent?.Invoke(chatEvent);
@@ -378,13 +386,13 @@ namespace PubNubChatAPI.Entities
             readReceiptsListeningHandle = await SetListening(readReceiptsListeningHandle, listen,
                 () => pn_channel_stream_read_receipts(pointer));
         }
-        
+
         public async void SetListeningForTyping(bool listen)
         {
             typingListeningHandle = await SetListening(typingListeningHandle, listen,
                 () => pn_channel_get_typing(pointer));
         }
-        
+
         public async void SetListeningForPresence(bool listen)
         {
             presenceListeningHandle = await SetListening(presenceListeningHandle, listen,
@@ -437,7 +445,8 @@ namespace PubNubChatAPI.Entities
                 {
                     indicator.Stop();
                     typingIndicators.Remove(key);
-                    indicator.Dispose();;
+                    indicator.Dispose();
+                    ;
                 }
             }
 
@@ -600,10 +609,10 @@ namespace PubNubChatAPI.Entities
             {
                 return;
             }
+
             connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
         }
 
-        // TODO: Shouldn't join have additional parameters?
         /// <summary>
         /// Joins the channel.
         /// <para>
@@ -626,13 +635,24 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
-        public async void Join()
+        public async void Join(ChatMembershipData? membershipData = null)
         {
             if (connectionHandle != IntPtr.Zero)
             {
                 return;
             }
-            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
+
+            if (membershipData == null)
+            {
+                connectionHandle =
+                    await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
+            }
+            else
+            {
+                connectionHandle = await SetListening(connectionHandle, true,
+                    () => pn_channel_join_with_membership_data(pointer, membershipData.CustomDataJson,
+                        membershipData.Type, membershipData.Status));
+            }
         }
 
         /// <summary>
@@ -659,6 +679,7 @@ namespace PubNubChatAPI.Entities
             {
                 return;
             }
+
             CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer));
             pn_callback_handle_dispose(connectionHandle);
             connectionHandle = IntPtr.Zero;
@@ -690,6 +711,7 @@ namespace PubNubChatAPI.Entities
             {
                 return;
             }
+
             var connectionHandleCopy = connectionHandle;
             connectionHandle = IntPtr.Zero;
             CUtilities.CheckCFunctionResult(await Task.Run(() =>
@@ -698,6 +720,7 @@ namespace PubNubChatAPI.Entities
                 {
                     return 0;
                 }
+
                 pn_channel_leave(pointer);
                 pn_callback_handle_dispose(connectionHandleCopy);
                 return 0;

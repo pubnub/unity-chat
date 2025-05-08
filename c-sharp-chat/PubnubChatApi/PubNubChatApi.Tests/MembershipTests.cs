@@ -56,17 +56,24 @@ public class MembershipTests
             return;
         }
 
+        var updateData = new ChatMembershipData()
+        {
+            CustomDataJson = "{\"key\":\"" + Guid.NewGuid() + "\"}"
+        };
+
         var manualUpdatedEvent = new ManualResetEvent(false);
         testMembership.OnMembershipUpdated += membership =>
         {
             Assert.True(membership.Id == testMembership.Id);
+            var updatedData = membership.MembershipData.CustomDataJson;
+            Assert.True(updatedData == updateData.CustomDataJson, $"{updatedData} != {updateData.CustomDataJson}");
             manualUpdatedEvent.Set();
         };
         testMembership.SetListeningForUpdates(true);
 
         await Task.Delay(4000);
 
-        await testMembership.Update("{\"key\": \"" + Guid.NewGuid() + "\"}");
+        await testMembership.Update(updateData);
         var updated = manualUpdatedEvent.WaitOne(8000);
         Assert.IsTrue(updated);
     }
