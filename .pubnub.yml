@@ -1,6 +1,11 @@
 --- 
-version: v0.4.3
+version: v0.4.4
 changelog:
+  - date: 2025-05-12
+    version: v0.4.4
+    changes:
+      - type: feature
+        text: "Added the ChatMembershipData which replaces the customDataJson argument in membership-related methods."
   - date: 2025-04-02
     version: v0.4.3
     changes:

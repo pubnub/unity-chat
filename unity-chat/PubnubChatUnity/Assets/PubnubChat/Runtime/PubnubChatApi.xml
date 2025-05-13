@@ -164,9 +164,9 @@
             <exception cref="!:PubnubCCoreException">Thrown when an error occurs while connecting to the channel.</exception>
             <seealso cref="E:PubNubChatAPI.Entities.Channel.OnMessageReceived"/>
             <seealso cref="M:PubNubChatAPI.Entities.Channel.Disconnect"/>
-            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join(PubnubChatApi.Entities.Data.ChatMembershipData)"/>
         </member>
-        <member name="M:PubNubChatAPI.Entities.Channel.Join">
+        <member name="M:PubNubChatAPI.Entities.Channel.Join(PubnubChatApi.Entities.Data.ChatMembershipData)">
             <summary>
             Joins the channel.
             <para>
@@ -208,7 +208,7 @@
             </example>
             <exception cref="!:PubnubCCoreException">Thrown when an error occurs while disconnecting from the channel.</exception>
             <seealso cref="M:PubNubChatAPI.Entities.Channel.Connect"/>
-            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join(PubnubChatApi.Entities.Data.ChatMembershipData)"/>
         </member>
         <member name="M:PubNubChatAPI.Entities.Channel.Leave">
             <summary>
@@ -228,7 +228,7 @@
             </code>
             </example>
             <exception cref="!:PubnubCCoreException">Thrown when an error occurs while leaving the channel.</exception>
-            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Channel.Join(PubnubChatApi.Entities.Data.ChatMembershipData)"/>
             <seealso cref="M:PubNubChatAPI.Entities.Channel.Connect"/>
             <seealso cref="M:PubNubChatAPI.Entities.Channel.Disconnect"/>
         </member>
@@ -970,6 +970,11 @@
             The channel ID of the channel that this membership belongs to.
             </summary>
         </member>
+        <member name="P:PubNubChatAPI.Entities.Membership.MembershipData">
+            <summary>
+            Returns a class with additional Membership data.
+            </summary>
+        </member>
         <member name="E:PubNubChatAPI.Entities.Membership.OnMembershipUpdated">
             <summary>
             Event that is triggered when the membership is updated.
@@ -986,22 +991,17 @@
             };
             </code>
             </example>
-            <seealso cref="M:PubNubChatAPI.Entities.Membership.Update(System.String)"/>
+            <seealso cref="M:PubNubChatAPI.Entities.Membership.Update(PubnubChatApi.Entities.Data.ChatMembershipData)"/>
         </member>
-        <member name="M:PubNubChatAPI.Entities.Membership.Update(System.String)">
+        <member name="M:PubNubChatAPI.Entities.Membership.Update(PubnubChatApi.Entities.Data.ChatMembershipData)">
             <summary>
-            Updates the membership with a custom JSON object.
+            Updates the membership with a ChatMembershipData object.
             <para>
-            This method updates the membership with a custom JSON object. This object can be used to store
+            This method updates the membership with a ChatMembershipData object. This object can be used to store
             additional information about the membership.
             </para>
             </summary>
-            <param name="customJsonObject">The custom JSON object to update the membership with.</param>
-            <example>
-            <code>
-            membership.Update("{\"key\": \"value\"}");
-            </code>
-            </example>
+            <param name="membershipData">The ChatMembershipData object to update the membership with.</param>
             <seealso cref="E:PubNubChatAPI.Entities.Membership.OnMembershipUpdated"/>
         </member>
         <member name="T:PubNubChatAPI.Entities.Message">
@@ -1529,6 +1529,17 @@
             Data class for the chat channel.
             <para>
             Contains all the data related to the chat channel.
+            </para>
+            </summary>
+            <remarks>
+            By default, all the properties are set to empty strings.
+            </remarks>
+        </member>
+        <member name="T:PubnubChatApi.Entities.Data.ChatMembershipData">
+            <summary>
+            Data class for a chat membership.
+            <para>
+            Contains all the additional data related to the chat membership.
             </para>
             </summary>
             <remarks>

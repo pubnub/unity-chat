@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
@@ -40,7 +42,9 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_membership_update_dirty(
             IntPtr membership,
-            string custom_object_json);
+            string custom_data_json,
+            string type,
+            string status);
 
         [DllImport("pubnub-chat")]
         private static extern int pn_membership_last_read_message_timetoken(IntPtr membership, StringBuilder result);
@@ -57,9 +61,14 @@ namespace PubNubChatAPI.Entities
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_membership_update_with_base(IntPtr membership,
             IntPtr base_membership);
-        
+
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_membership_stream_updates(IntPtr membership);
+
+        [DllImport("pubnub-chat")]
+        private static extern void pn_membership_get_membership_data(
+            IntPtr membership,
+            StringBuilder result);
 
         #endregion
 
@@ -90,6 +99,26 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
+        /// Returns a class with additional Membership data.
+        /// </summary>
+        public ChatMembershipData MembershipData
+        {
+            get
+            {
+                var buffer = new StringBuilder(512);
+                pn_membership_get_membership_data(pointer, buffer);
+                var jsonString = buffer.ToString();
+                var data = new ChatMembershipData();
+                if (CUtilities.IsValidJson(jsonString))
+                {
+                    data = JsonConvert.DeserializeObject<ChatMembershipData>(jsonString);
+                }
+
+                return data;
+            }
+        }
+
+        /// <summary>
         /// Event that is triggered when the membership is updated.
         /// <para>
         /// This event is triggered when the membership is updated by the server.
@@ -109,7 +138,8 @@ namespace PubNubChatAPI.Entities
 
         private Chat chat;
 
-        internal Membership(Chat chat, IntPtr membershipPointer, string membershipId) : base(membershipPointer, membershipId)
+        internal Membership(Chat chat, IntPtr membershipPointer, string membershipId) : base(membershipPointer,
+            membershipId)
         {
             this.chat = chat;
         }
@@ -134,7 +164,7 @@ namespace PubNubChatAPI.Entities
         {
             OnMembershipUpdated?.Invoke(this);
         }
-        
+
         internal override void UpdateWithPartialPtr(IntPtr partialPointer)
         {
             var newFullPointer = pn_membership_update_with_base(partialPointer, pointer);
@@ -143,22 +173,18 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Updates the membership with a custom JSON object.
+        /// Updates the membership with a ChatMembershipData object.
         /// <para>
-        /// This method updates the membership with a custom JSON object. This object can be used to store
+        /// This method updates the membership with a ChatMembershipData object. This object can be used to store
         /// additional information about the membership.
         /// </para>
         /// </summary>
-        /// <param name="customJsonObject">The custom JSON object to update the membership with.</param>
-        /// <example>
-        /// <code>
-        /// membership.Update("{\"key\": \"value\"}");
-        /// </code>
-        /// </example>
+        /// <param name="membershipData">The ChatMembershipData object to update the membership with.</param>
         /// <seealso cref="OnMembershipUpdated"/>
-        public async Task Update(string customJsonObject)
+        public async Task Update(ChatMembershipData membershipData)
         {
-            var newPointer = await Task.Run(() => pn_membership_update_dirty(pointer, customJsonObject));
+            var newPointer = await Task.Run(() => pn_membership_update_dirty(pointer, membershipData.CustomDataJson,
+                membershipData.Type, membershipData.Status));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
@@ -176,7 +202,7 @@ namespace PubNubChatAPI.Entities
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
-        
+
         public async Task SetLastReadMessageTimeToken(string timeToken)
         {
             var newPointer = await Task.Run(() => pn_membership_set_last_read_message_timetoken(pointer, timeToken));
