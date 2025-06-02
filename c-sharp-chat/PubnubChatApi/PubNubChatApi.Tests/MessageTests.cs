@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
+using PubnubChatApi.Enums;
 
 namespace PubNubChatApi.Tests;
 
@@ -44,6 +45,7 @@ public class MessageTests
         channel.OnMessageReceived += message =>
         {
             Assert.True(message.MessageText == "Test message text");
+            Assert.True(message.Type == PubnubChatMessageType.Text);
             manualReceiveEvent.Set();
         };
         await channel.SendText("Test message text", new SendTextParams()
@@ -123,6 +125,32 @@ public class MessageTests
 
         var receivedAndUpdated = manualUpdatedEvent.WaitOne(14000);
         Assert.IsTrue(receivedAndUpdated);
+    }
+    
+    [Test]
+    public async Task TestGetOriginalMessageText()
+    {
+        var manualUpdatedEvent = new ManualResetEvent(false);
+        var originalTextAfterUpdate = "";
+        channel.OnMessageReceived += async message =>
+        {
+            message.SetListeningForUpdates(true);
+            await Task.Delay(2000);
+            message.OnMessageUpdated += updatedMessage =>
+            {
+                originalTextAfterUpdate = updatedMessage.OriginalMessageText;
+                manualUpdatedEvent.Set();
+            };
+            await message.EditMessageText("new-text");
+        };
+        var originalText = "something";
+        await channel.SendText(originalText);
+
+        var receivedAndUpdated = manualUpdatedEvent.WaitOne(14000);
+        
+        Assert.True(receivedAndUpdated, "didn't receive message update");
+        Assert.IsTrue(originalText == originalTextAfterUpdate, 
+            $"message.OriginalMessageText has wrong value! Expected \"{originalText}\" but got \"{originalTextAfterUpdate}\"");
     }
 
     [Test]
