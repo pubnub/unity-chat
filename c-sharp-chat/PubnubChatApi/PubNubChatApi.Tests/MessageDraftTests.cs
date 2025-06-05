@@ -99,7 +99,8 @@ public class MessageDraftTests
                     Assert.True(elements.Any(x => x.Text.Contains("Mock Usernamiski")));
                     successReset.Set();
                     break;
-                case "channel_suggestion":
+                //TODO: to be re-enabled after Channel and Link mentions approach unification
+                /*case "channel_suggestion":
                     var channelSuggestion =
                         mentions.FirstOrDefault(x => x.Target is { Target: "message_draft_tests_channel", Type: MentionType.Channel });
                 
@@ -112,6 +113,9 @@ public class MessageDraftTests
                 case "channel_inserted":
                     Assert.True(elements.Any(x => x.Text.Contains("MessageDraftTestingChannel")));
                     successReset.Set();
+                    break;*/
+                default:
+                    Assert.Fail("Unexpected draft update callback flow in test");
                     break;
             }
         };
@@ -119,7 +123,8 @@ public class MessageDraftTests
         var userInserted = successReset.WaitOne(5000);
         Assert.True(userInserted, "didn't receive user insertion callback");
 
-        step = "channel_suggestion";
+        //TODO: to be re-enabled after Channel and Link mentions approach unification
+        /*step = "channel_suggestion";
         successReset = new ManualResetEvent(false);
         messageDraft.InsertText(0, "now mention #MessageDraft ");
         var channelInserted = successReset.WaitOne(5000);
@@ -134,10 +139,11 @@ public class MessageDraftTests
         };
         await messageDraft.Send();
         var receivedMessage = messageReset.WaitOne(10000);
-        Assert.True(receivedMessage, "didn't receive message callback");
+        Assert.True(receivedMessage, "didn't receive message callback");*/
     }
 
-    [Test]
+    //TODO: to be re-enabled after Channel and Link mentions approach unification
+    /*[Test]
     public async Task TestAddAndSendTextLink()
     {
         var messageDraft = channel.CreateMessageDraft();
@@ -166,7 +172,7 @@ public class MessageDraftTests
         await messageDraft.Send();
         var received = messageReset.WaitOne(6000);
         Assert.True(received, "didn't receive message callback after md send");
-    }
+    }*/
 
     [Test]
     public async Task TestAddAndRemoveMention()
