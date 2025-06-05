@@ -36,7 +36,79 @@ public class ChannelTests
         chat.Destroy();
         await Task.Delay(3000);
     }
+
+    [Test]
+    public async Task TestUpdateChannel()
+    {
+        var channel = await chat.CreatePublicConversation();
+        channel.SetListeningForUpdates(true);
+
+        await Task.Delay(3000);
+
+        var updateReset = new ManualResetEvent(false);
+        var updatedData = new ChatChannelData()
+        {
+            ChannelDescription = "some description",
+            ChannelCustomDataJson = "{\"key\":\"value\"}",
+            ChannelName = "some name",
+            ChannelStatus = "yes",
+            ChannelType = "sometype"
+        };
+        channel.OnChannelUpdate += updatedChannel =>
+        {
+            Assert.True(updatedChannel.Description == updatedData.ChannelDescription, "updatedChannel.Description != updatedData.ChannelDescription");
+            Assert.True(updatedChannel.CustomDataJson == updatedData.ChannelCustomDataJson, "updatedChannel.CustomDataJson != updatedData.ChannelCustomDataJson");
+            Assert.True(updatedChannel.Name == updatedData.ChannelName, "updatedChannel.Name != updatedData.ChannelDescription");
+            Assert.True(updatedChannel.Status == updatedData.ChannelStatus, "updatedChannel.Status != updatedData.ChannelStatus");
+            Assert.True(updatedChannel.Type == updatedData.ChannelType, "updatedChannel.Type != updatedData.ChannelType");
+            updateReset.Set();
+        };
+        await channel.Update(updatedData);
+        var updated = updateReset.WaitOne(15000);
+        Assert.True(updated);
+    }
+
+    [Test]
+    public async Task TestDeleteChannel()
+    {
+        var channel = await chat.CreatePublicConversation();
+
+        await Task.Delay(3000);
+        
+        Assert.True(chat.TryGetChannel(channel.Id, out _), "Couldn't fetch created channel from chat");
+        
+        await channel.Delete();
+
+        await Task.Delay(3000);
+        
+        Assert.False(chat.TryGetChannel(channel.Id, out _), "Fetched the supposedly-deleted channel from chat");
+    }
     
+    [Test]
+    public async Task TestLeaveChannel()
+    {
+        var currentChatUser = await chat.GetCurrentUserAsync();
+        
+        Assert.IsNotNull(currentChatUser, "currentChatUser was null");
+        
+        var channel = await chat.CreatePublicConversation();
+        channel.Join();
+
+        await Task.Delay(3000);
+
+        var memberships = await channel.GetMemberships();
+        
+        Assert.True(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Join failed, current user not found in channel memberships");
+        
+        channel.Leave();
+        
+        await Task.Delay(3000);
+        
+        memberships = await channel.GetMemberships();
+        
+        Assert.False(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Leave failed, current user found in channel memberships");
+    }
+
     [Test]
     public async Task TestGetUserSuggestions()
     {
@@ -213,5 +285,31 @@ public class ChannelTests
         await channel.EmitUserMention(user.Id, "99999999999999999", "heyyy");
         var received = receivedManualEvent.WaitOne(7000);
         Assert.True(received);
+    }
+    
+    [Test]
+    public async Task TestChannelIsPresent()
+    {
+        var someChannel = await chat.CreatePublicConversation();
+        someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var isPresent = await someChannel.IsUserPresent(user.Id);
+        
+        Assert.True(isPresent, "someChannel.IsUserPresent() doesn't return true for most recently joined channel!");
+    }
+    
+    [Test]
+    public async Task TestChannelWhoIsPresent()
+    {
+        var someChannel = await chat.CreatePublicConversation();
+        someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var who = await someChannel.WhoIsPresent();
+        
+        Assert.Contains(user.Id, who, "channel.WhoIsPresent() doesn't have most recently joine user!");
     }
 }

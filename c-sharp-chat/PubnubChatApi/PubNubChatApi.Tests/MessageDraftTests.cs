@@ -19,7 +19,10 @@ public class MessageDraftTests
             PubnubTestsParameters.SubscribeKey,
             "message_draft_tests_user")
         );
-        channel = await chat.CreatePublicConversation("message_draft_tests_channel");
+        channel = await chat.CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
+        {
+            ChannelName = "MessageDraftTestingChannel"
+        });
         if (!chat.TryGetCurrentUser(out var user))
         {
             Assert.Fail();
@@ -77,30 +80,99 @@ public class MessageDraftTests
         var messageDraft = channel.CreateMessageDraft();
         messageDraft.SetSearchForSuggestions(true);
         var successReset = new ManualResetEvent(false);
-        var hadSuggestion = false;
+        var step = "user_suggestion";
         messageDraft.OnDraftUpdated += (elements, mentions) =>
         {
-            if (!hadSuggestion)
+            switch (step)
             {
-                var userSuggestion =
-                    mentions.FirstOrDefault(x => x.Target is { Target: "mock_user", Type: MentionType.User });
+                case "user_suggestion":
+                    var userSuggestion =
+                        mentions.FirstOrDefault(x => x.Target is { Target: "mock_user", Type: MentionType.User });
                 
-                Assert.True(elements.Any(x => x.Text == "maybe i'll mention @Mock") && userSuggestion != null,
-                    "Received correct user suggestion");
-                hadSuggestion = true;
+                    Assert.True(elements.Any(x => x.Text == "maybe i'll mention @Mock") && userSuggestion != null,
+                        "Received incorrect user suggestion");
+                    step = "user_inserted";
                 
-                messageDraft.InsertSuggestedMention(userSuggestion, userSuggestion.ReplaceTo);
-            }
-            else
-            {
-                Assert.True(elements.Any(x => x.Text.Contains("Mock Usernamiski")));
-                successReset.Set();
+                    messageDraft.InsertSuggestedMention(userSuggestion, userSuggestion.ReplaceTo);
+                    break;
+                case "user_inserted":
+                    Assert.True(elements.Any(x => x.Text.Contains("Mock Usernamiski")));
+                    successReset.Set();
+                    break;
+                //TODO: to be re-enabled after Channel and Link mentions approach unification
+                /*case "channel_suggestion":
+                    var channelSuggestion =
+                        mentions.FirstOrDefault(x => x.Target is { Target: "message_draft_tests_channel", Type: MentionType.Channel });
+                
+                    Assert.True(elements.Any(x => x.Text.Contains("now mention #MessageDraft")) && channelSuggestion != null,
+                        "Received incorrect channel suggestion");
+                    step = "channel_inserted";
+                
+                    messageDraft.InsertSuggestedMention(channelSuggestion, channelSuggestion.ReplaceTo);
+                    break;
+                case "channel_inserted":
+                    Assert.True(elements.Any(x => x.Text.Contains("MessageDraftTestingChannel")));
+                    successReset.Set();
+                    break;*/
+                default:
+                    Assert.Fail("Unexpected draft update callback flow in test");
+                    break;
             }
         };
         messageDraft.InsertText(0, "maybe i'll mention @Mock");
-        var gotCallback = successReset.WaitOne(5000);
-        Assert.True(gotCallback);
+        var userInserted = successReset.WaitOne(5000);
+        Assert.True(userInserted, "didn't receive user insertion callback");
+
+        //TODO: to be re-enabled after Channel and Link mentions approach unification
+        /*step = "channel_suggestion";
+        successReset = new ManualResetEvent(false);
+        messageDraft.InsertText(0, "now mention #MessageDraft ");
+        var channelInserted = successReset.WaitOne(5000);
+        Assert.True(channelInserted, "didn't receive channel insertion callback");
+
+        var messageReset = new ManualResetEvent(false);
+        channel.OnMessageReceived += message =>
+        {
+            Assert.True(message.ReferencedChannels.Any(x => x.Id == channel.Id), "received message doesn't contain expected referenced channel");
+            Assert.True(message.MentionedUsers.Any(x => x.Id == dummyUser.Id), "received message doesn't contain expected mentioned user");
+            messageReset.Set();
+        };
+        await messageDraft.Send();
+        var receivedMessage = messageReset.WaitOne(10000);
+        Assert.True(receivedMessage, "didn't receive message callback");*/
     }
+
+    //TODO: to be re-enabled after Channel and Link mentions approach unification
+    /*[Test]
+    public async Task TestAddAndSendTextLink()
+    {
+        var messageDraft = channel.CreateMessageDraft();
+        messageDraft.InsertText(0, "some text goes here");
+        var updateReset = new ManualResetEvent(false);
+        messageDraft.OnDraftUpdated += (elements, mentions) =>
+        {
+            Assert.True(elements.Any(x => x is { Text: "some", MentionTarget: {Target: "www.pubnub.com", Type: MentionType.Url} })
+                , "updated message draft doesn't contain expected element");
+            updateReset.Set();
+        };
+        messageDraft.AddMention(0, 4, new MentionTarget()
+        {
+            Target = "www.pubnub.com",
+            Type = MentionType.Url
+        });
+        var updated = updateReset.WaitOne(3000);
+        Assert.True(updated, "didn't receive md update callback");
+        
+        var messageReset = new ManualResetEvent(false);
+        channel.OnMessageReceived += message =>
+        {
+            Assert.True(message.TextLinks.Any(x => x.Link == "www.pubnub.com"), "didn't find expected link in received message");
+            messageReset.Set();
+        };
+        await messageDraft.Send();
+        var received = messageReset.WaitOne(6000);
+        Assert.True(received, "didn't receive message callback after md send");
+    }*/
 
     [Test]
     public async Task TestAddAndRemoveMention()
