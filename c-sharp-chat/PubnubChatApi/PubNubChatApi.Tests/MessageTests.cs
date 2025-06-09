@@ -17,7 +17,7 @@ public class MessageTests
         chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "message_tests_user")
+            "message_tests_user_2")
         );
         channel = await chat.CreatePublicConversation("message_tests_channel_2");
         if (!chat.TryGetCurrentUser(out user))
@@ -200,13 +200,7 @@ public class MessageTests
     [Test]
     public async Task TestPinMessage()
     {
-        if (chat.TryGetChannel("pin_test_2", out var existingChannel))
-        {
-            await chat.DeleteChannel(existingChannel.Id);
-            await Task.Delay(4000);
-        }
-
-        var pinTestChannel = await chat.CreatePublicConversation("pin_test_2");
+        var pinTestChannel = await chat.CreatePublicConversation();
         pinTestChannel.Join();
         pinTestChannel.SetListeningForUpdates(true);
         await Task.Delay(3000);
