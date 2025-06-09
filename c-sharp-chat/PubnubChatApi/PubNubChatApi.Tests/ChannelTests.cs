@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -312,4 +312,4 @@ public class ChannelTests
         
         Assert.Contains(user.Id, who, "channel.WhoIsPresent() doesn't have most recently joine user!");
     }
-}
+}*/

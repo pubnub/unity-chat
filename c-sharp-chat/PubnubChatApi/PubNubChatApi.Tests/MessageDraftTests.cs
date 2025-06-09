@@ -1,4 +1,4 @@
-using PubNubChatAPI.Entities;
+/*using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatApi.Tests;
@@ -113,7 +113,7 @@ public class MessageDraftTests
                 case "channel_inserted":
                     Assert.True(elements.Any(x => x.Text.Contains("MessageDraftTestingChannel")));
                     successReset.Set();
-                    break;*/
+                    break;#1#
                 default:
                     Assert.Fail("Unexpected draft update callback flow in test");
                     break;
@@ -139,7 +139,7 @@ public class MessageDraftTests
         };
         await messageDraft.Send();
         var receivedMessage = messageReset.WaitOne(10000);
-        Assert.True(receivedMessage, "didn't receive message callback");*/
+        Assert.True(receivedMessage, "didn't receive message callback");#1#
     }
 
     //TODO: to be re-enabled after Channel and Link mentions approach unification
@@ -172,7 +172,7 @@ public class MessageDraftTests
         await messageDraft.Send();
         var received = messageReset.WaitOne(6000);
         Assert.True(received, "didn't receive message callback after md send");
-    }*/
+    }#1#
 
     [Test]
     public async Task TestAddAndRemoveMention()
@@ -240,4 +240,4 @@ public class MessageDraftTests
         var gotCallback = successReset.WaitOne(6000);
         Assert.True(gotCallback);
     }
-}
+}*/

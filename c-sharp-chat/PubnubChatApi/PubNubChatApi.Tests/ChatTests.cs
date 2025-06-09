@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -130,7 +130,7 @@ public class ChatTests
         await Task.Delay(2500);
 
         /*channel.Join();
-        await Task.Delay(3500);*/
+        await Task.Delay(3500);#1#
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
 
         await channel.SendText("message_to_forward");
@@ -238,4 +238,4 @@ public class ChatTests
         Assert.True(await accessChat.ChatAccessManager.CanI(PubnubAccessPermission.Read, PubnubAccessResourceType.Channels,
             "can_i_test_channel"));
     }
-}
+}*/

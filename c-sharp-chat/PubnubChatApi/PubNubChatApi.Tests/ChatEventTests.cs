@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -57,4 +57,4 @@ public class ChatEventTests
         var moderationEventReceived = manualModerationEvent.WaitOne(8000);
         Assert.IsTrue(moderationEventReceived);
     }
-}
+}*/

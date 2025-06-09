@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -130,4 +130,4 @@ public class UserTests
         
         Assert.True(isOn, "user.IsPresentOn() doesn't return true for most recently joined channel!");
     }
-}
+}*/

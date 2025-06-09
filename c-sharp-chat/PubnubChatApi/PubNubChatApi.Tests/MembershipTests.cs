@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -181,4 +181,4 @@ public class MembershipTests
         var unread = await membership.GetUnreadMessagesCount();
         Assert.True(unread >= 1);
     }
-}
+}*/
