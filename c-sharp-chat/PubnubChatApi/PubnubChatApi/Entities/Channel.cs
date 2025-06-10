@@ -647,13 +647,27 @@ namespace PubNubChatAPI.Entities
             if (membershipData == null)
             {
                 connectionHandle =
-                    await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
+                    await SetListening(connectionHandle, true, () =>
+                    {
+                        Console.WriteLine("ABOUT TO C_ABI JOIN");
+                        Console.WriteLine(pointer);
+                        var ptr = pn_channel_join(pointer, string.Empty);
+                        Console.WriteLine("C_ABI JOINED");
+                        return ptr;
+                    });
             }
             else
             {
                 connectionHandle = await SetListening(connectionHandle, true,
-                    () => pn_channel_join_with_membership_data(pointer, membershipData.CustomDataJson,
-                        membershipData.Type, membershipData.Status));
+                    () =>
+                    {
+                        Console.WriteLine("ABOUT TO C_ABI JOIN WITH MEM. DATA");
+                        Console.WriteLine(pointer);
+                        var ptr = pn_channel_join_with_membership_data(pointer, membershipData.CustomDataJson,
+                            membershipData.Type, membershipData.Status);
+                        Console.WriteLine("C_ABI JOINED WITH MEM. DATA");
+                        return ptr;
+                    });
             }
         }
 
