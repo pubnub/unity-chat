@@ -418,7 +418,9 @@ namespace PubNubChatAPI.Entities
 
         internal override void UpdateWithPartialPtr(IntPtr partialPointer)
         {
+            Console.WriteLine("UPDATING CHANNEL WITH BASE");
             var newFullPointer = pn_channel_update_with_base(partialPointer, pointer);
+            Console.WriteLine("UPDATED CHANNEL WITH BASE");
             CUtilities.CheckCFunctionResult(newFullPointer);
             UpdatePointer(newFullPointer);
         }

@@ -982,13 +982,19 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatChannelData"/>
         public async Task UpdateChannel(string channelId, ChatChannelData updatedData)
         {
-            var newPointer = await Task.Run(() => pn_chat_update_channel_dirty(chatPointer, channelId,
-                updatedData.ChannelName,
-                updatedData.ChannelDescription,
-                updatedData.ChannelCustomDataJson,
-                updatedData.ChannelUpdated,
-                updatedData.ChannelStatus,
-                updatedData.ChannelType));
+            var newPointer = await Task.Run(() =>
+            {
+                Console.WriteLine("UPDATING CHANNEL");
+                var ptr = pn_chat_update_channel_dirty(chatPointer, channelId,
+                    updatedData.ChannelName,
+                    updatedData.ChannelDescription,
+                    updatedData.ChannelCustomDataJson,
+                    updatedData.ChannelUpdated,
+                    updatedData.ChannelStatus,
+                    updatedData.ChannelType);
+                Console.WriteLine("UPDATED CHANNEL");
+                return ptr;
+            });
             CUtilities.CheckCFunctionResult(newPointer);
             if (channelWrappers.TryGetValue(channelId, out var existingChannelWrapper))
             {
