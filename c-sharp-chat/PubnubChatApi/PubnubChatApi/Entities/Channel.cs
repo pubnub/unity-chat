@@ -709,6 +709,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
+            Console.WriteLine("LEAVE STARTED");
             if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
@@ -723,8 +724,10 @@ namespace PubNubChatAPI.Entities
                     return 0;
                 }
 
+                Console.WriteLine("LEAVE C_ABI STARTED");
                 pn_channel_leave(pointer);
                 pn_callback_handle_dispose(connectionHandleCopy);
+                Console.WriteLine("LEAVE C_ABI FINISHED");
                 return 0;
             }));
         }
