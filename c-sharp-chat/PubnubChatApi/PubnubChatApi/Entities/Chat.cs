@@ -369,7 +369,7 @@ namespace PubNubChatAPI.Entities
                 return;
             }
 
-            Debug.WriteLine($"Received JSON to parse: {jsonString}");
+            Console.WriteLine($"Received JSON to parse: {jsonString}");
 
             var jArray = JArray.Parse(jsonString);
 
@@ -392,7 +392,7 @@ namespace PubNubChatAPI.Entities
                         continue;
                     }
 
-                    Debug.WriteLine($"Parsing JSON:\n--Key: {update.Key},\n--Value: {json}");
+                    Console.WriteLine($"Parsing JSON:\n--Key: {update.Key},\n--Value: {json}");
 
                     switch (update.Key)
                     {
@@ -402,13 +402,13 @@ namespace PubNubChatAPI.Entities
                             if (!jObject.TryGetValue("channel_id", out var readChannelId)
                                 || !jObject.TryGetValue("data", out var data))
                             {
-                                Debug.WriteLine("Incorrect read recepits JSON payload!");
+                                Console.WriteLine("Incorrect read recepits JSON payload!");
                                 continue;
                             }
 
                             if (!TryGetChannel(readChannelId.ToString(), out var readReceiptChannel))
                             {
-                                Debug.WriteLine("Can't find the read receipt channel!");
+                                Console.WriteLine("Can't find the read receipt channel!");
                                 continue;
                             }
 
@@ -447,7 +447,7 @@ namespace PubNubChatAPI.Entities
                             break;
                         case "event":
                         case "message_report":
-                            Debug.WriteLine("Deserialized event / message report");
+                            Console.WriteLine("Deserialized event / message report");
 
                             if (!CUtilities.IsValidJson(json))
                             {
@@ -577,7 +577,7 @@ namespace PubNubChatAPI.Entities
                             var channelPointer = JsonConvert.DeserializeObject<IntPtr>(json);
                             if (channelPointer != IntPtr.Zero)
                             {
-                                Debug.WriteLine("Deserialized channel update");
+                                Console.WriteLine("Deserialized channel update");
 
                                 var id = Channel.GetChannelIdFromPtr(channelPointer);
 
