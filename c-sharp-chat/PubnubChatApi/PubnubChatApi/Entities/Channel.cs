@@ -637,6 +637,8 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Join(ChatMembershipData? membershipData = null)
         {
+            Console.WriteLine($"Unity: joining channel with ID {Id}");
+            
             if (connectionHandle != IntPtr.Zero)
             {
                 return;
