@@ -61,15 +61,11 @@ namespace PubNubChatAPI.Entities
                 }
                 await Task.Run(() =>
                 {
-                    Console.WriteLine("CLOSING CALLBACK HANDLE");
                     pn_callback_handle_close(callbackHandle);
-                    Console.WriteLine("CLOSED CALLBACK HANDLE");
                 });
                 if (callbackHandle != IntPtr.Zero)
                 {
-                    Console.WriteLine("DISPOSING OF CALLBACK HANDLE");
                     pn_callback_handle_dispose(callbackHandle);
-                    Console.WriteLine("DISPOSED OF CALLBACK HANDLE");
                 }
                 callbackHandle = IntPtr.Zero;
                 return callbackHandle;

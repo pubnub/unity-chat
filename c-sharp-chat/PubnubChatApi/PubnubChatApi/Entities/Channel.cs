@@ -418,9 +418,7 @@ namespace PubNubChatAPI.Entities
 
         internal override void UpdateWithPartialPtr(IntPtr partialPointer)
         {
-            Console.WriteLine("UPDATING CHANNEL WITH BASE");
             var newFullPointer = pn_channel_update_with_base(partialPointer, pointer);
-            Console.WriteLine("UPDATED CHANNEL WITH BASE");
             CUtilities.CheckCFunctionResult(newFullPointer);
             UpdatePointer(newFullPointer);
         }
@@ -639,8 +637,6 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Join(ChatMembershipData? membershipData = null)
         {
-            Console.WriteLine($"Unity: joining channel with ID {Id}");
-            
             if (connectionHandle != IntPtr.Zero)
             {
                 return;
@@ -649,27 +645,13 @@ namespace PubNubChatAPI.Entities
             if (membershipData == null)
             {
                 connectionHandle =
-                    await SetListening(connectionHandle, true, () =>
-                    {
-                        Console.WriteLine("ABOUT TO C_ABI JOIN");
-                        Console.WriteLine(pointer);
-                        var ptr = pn_channel_join(pointer, string.Empty);
-                        Console.WriteLine("C_ABI JOINED");
-                        return ptr;
-                    });
+                    await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
             }
             else
             {
                 connectionHandle = await SetListening(connectionHandle, true,
-                    () =>
-                    {
-                        Console.WriteLine("ABOUT TO C_ABI JOIN WITH MEM. DATA");
-                        Console.WriteLine(pointer);
-                        var ptr = pn_channel_join_with_membership_data(pointer, membershipData.CustomDataJson,
-                            membershipData.Type, membershipData.Status);
-                        Console.WriteLine("C_ABI JOINED WITH MEM. DATA");
-                        return ptr;
-                    });
+                    () => pn_channel_join_with_membership_data(pointer, membershipData.CustomDataJson,
+                        membershipData.Type, membershipData.Status));
             }
         }
 
@@ -725,7 +707,6 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
-            Console.WriteLine("LEAVE STARTED");
             if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
             {
                 return;
@@ -739,11 +720,9 @@ namespace PubNubChatAPI.Entities
                 {
                     return 0;
                 }
-
-                Console.WriteLine("LEAVE C_ABI STARTED");
+                
                 pn_channel_leave(pointer);
                 pn_callback_handle_dispose(connectionHandleCopy);
-                Console.WriteLine("LEAVE C_ABI FINISHED");
                 return 0;
             }));
         }
