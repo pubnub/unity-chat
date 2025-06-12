@@ -108,6 +108,7 @@ public class ThreadsTests
         {
             var thread = await message.CreateThread();
             thread.Join();
+            await Task.Delay(2500);
             user.SetListeningForMentionEvents(true);
             await Task.Delay(2500);
             user.OnMentionEvent += mentionEvent =>

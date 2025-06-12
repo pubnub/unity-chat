@@ -234,10 +234,6 @@ namespace PubNubChatAPI.Entities
             StringBuilder result);
 
         [DllImport("pubnub-chat")]
-        private static extern int pn_chat_get_channel_suggestions(IntPtr chat, string text, int limit,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
         private static extern int pn_chat_mark_all_messages_as_read(
             IntPtr chat,
             string filter,

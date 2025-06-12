@@ -128,9 +128,7 @@ public class ChatTests
         };
         forwardingChannel.Join();
         await Task.Delay(2500);
-
-        /*channel.Join();
-        await Task.Delay(3500);*/
+        
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
 
         await channel.SendText("message_to_forward");
@@ -199,6 +197,7 @@ public class ChatTests
         }
 
         otherChatChannel.Join();
+        await Task.Delay(2500);
         otherChatChannel.SetListeningForReadReceiptsEvents(true);
         await Task.Delay(2500);
 

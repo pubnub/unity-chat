@@ -90,4 +90,44 @@ public class UserTests
         var updated = updatedReset.WaitOne(15000);
         Assert.True(updated);
     }
+
+    [Test]
+    public async Task TestUserDelete()
+    {
+        var someUser = await chat.CreateUser(Guid.NewGuid().ToString());
+        
+        Assert.True(chat.TryGetUser(someUser.Id, out _), "Couldn't get freshly created user");
+
+        await someUser.DeleteUser();
+
+        await Task.Delay(3000);
+        
+        Assert.False(chat.TryGetUser(someUser.Id, out _), "Got the freshly deleted user");
+    }
+
+    [Test]
+    public async Task TestUserWherePresent()
+    {
+        var someChannel = await chat.CreatePublicConversation();
+        someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var where = await user.WherePresent();
+        
+        Assert.Contains(someChannel.Id, where, "user.WherePresent() doesn't have most recently joined channel!");
+    }
+    
+    [Test]
+    public async Task TestUserIsPresentOn()
+    {
+        var someChannel = await chat.CreatePublicConversation();
+        someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var isOn = await user.IsPresentOn(someChannel.Id);
+        
+        Assert.True(isOn, "user.IsPresentOn() doesn't return true for most recently joined channel!");
+    }
 }

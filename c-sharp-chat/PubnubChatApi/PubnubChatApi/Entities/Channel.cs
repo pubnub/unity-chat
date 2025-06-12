@@ -720,7 +720,7 @@ namespace PubNubChatAPI.Entities
                 {
                     return 0;
                 }
-
+                
                 pn_channel_leave(pointer);
                 pn_callback_handle_dispose(connectionHandleCopy);
                 return 0;
