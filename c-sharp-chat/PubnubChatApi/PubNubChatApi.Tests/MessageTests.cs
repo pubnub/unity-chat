@@ -202,6 +202,7 @@ public class MessageTests
     {
         var pinTestChannel = await chat.CreatePublicConversation();
         pinTestChannel.Join();
+        await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);
         await Task.Delay(3000);
 

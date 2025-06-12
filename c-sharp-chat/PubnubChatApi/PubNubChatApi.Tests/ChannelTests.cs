@@ -136,6 +136,7 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
         channel.Join();
+        await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
         await Task.Delay(5500);
@@ -157,6 +158,7 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
         channel.Join();
+        await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         await Task.Delay(2500);
         
@@ -181,6 +183,7 @@ public class ChannelTests
     {
         var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
         channel.Join();
+        await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
         await Task.Delay(4500);
@@ -274,6 +277,7 @@ public class ChannelTests
     {
         var channel = await chat.CreatePublicConversation("user_mention_test_channel");
         channel.Join();
+        await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
         await Task.Delay(3000);
