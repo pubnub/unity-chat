@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
+using PubnubChatApi.Enums;
 
 namespace PubNubChatApi.Tests;
 
@@ -16,7 +17,7 @@ public class MessageTests
         chat = await Chat.CreateInstance(new PubnubChatConfig(
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
-            "message_tests_user")
+            "message_tests_user_2")
         );
         channel = await chat.CreatePublicConversation("message_tests_channel_2");
         if (!chat.TryGetCurrentUser(out user))
@@ -44,6 +45,7 @@ public class MessageTests
         channel.OnMessageReceived += message =>
         {
             Assert.True(message.MessageText == "Test message text");
+            Assert.True(message.Type == PubnubChatMessageType.Text);
             manualReceiveEvent.Set();
         };
         await channel.SendText("Test message text", new SendTextParams()
@@ -124,6 +126,32 @@ public class MessageTests
         var receivedAndUpdated = manualUpdatedEvent.WaitOne(14000);
         Assert.IsTrue(receivedAndUpdated);
     }
+    
+    [Test]
+    public async Task TestGetOriginalMessageText()
+    {
+        var manualUpdatedEvent = new ManualResetEvent(false);
+        var originalTextAfterUpdate = "";
+        channel.OnMessageReceived += async message =>
+        {
+            message.SetListeningForUpdates(true);
+            await Task.Delay(2000);
+            message.OnMessageUpdated += updatedMessage =>
+            {
+                originalTextAfterUpdate = updatedMessage.OriginalMessageText;
+                manualUpdatedEvent.Set();
+            };
+            await message.EditMessageText("new-text");
+        };
+        var originalText = "something";
+        await channel.SendText(originalText);
+
+        var receivedAndUpdated = manualUpdatedEvent.WaitOne(14000);
+        
+        Assert.True(receivedAndUpdated, "didn't receive message update");
+        Assert.IsTrue(originalText == originalTextAfterUpdate, 
+            $"message.OriginalMessageText has wrong value! Expected \"{originalText}\" but got \"{originalTextAfterUpdate}\"");
+    }
 
     [Test]
     public async Task TestDeleteMessage()
@@ -172,14 +200,9 @@ public class MessageTests
     [Test]
     public async Task TestPinMessage()
     {
-        if (chat.TryGetChannel("pin_test_2", out var existingChannel))
-        {
-            await chat.DeleteChannel(existingChannel.Id);
-            await Task.Delay(4000);
-        }
-
-        var pinTestChannel = await chat.CreatePublicConversation("pin_test_2");
+        var pinTestChannel = await chat.CreatePublicConversation();
         pinTestChannel.Join();
+        await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);
         await Task.Delay(3000);
 
