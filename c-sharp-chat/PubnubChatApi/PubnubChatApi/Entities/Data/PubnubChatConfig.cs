@@ -1,3 +1,5 @@
+using PubnubApi;
+
 namespace PubnubChatApi.Entities.Data
 {
     public class PubnubChatConfig
@@ -11,10 +13,15 @@ namespace PubnubChatApi.Entities.Data
             public int UnknownConversation;
         }
         
-        public string PublishKey { get; }
-        public string SubscribeKey { get; }
-        public string UserId { get; }
-        public string AuthKey { get; }
+        //TODO: REMOVE
+        public string OLD_PublishKey { get; set; }
+        //TODO: REMOVE
+        public string OLD_SubscribehKey { get; set; }
+        //TODO: REMOVE
+        public string OLD_AuthhKey { get; set; }
+        //TODO: REMOVE
+        public string OLD_UserId { get; set; }
+        
         public int TypingTimeout { get; }
         public int TypingTimeoutDifference { get; }
         public int RateLimitFactor { get; }
@@ -22,8 +29,25 @@ namespace PubnubChatApi.Entities.Data
         public bool StoreUserActivityTimestamp { get; }
         public int StoreUserActivityInterval { get; }
 
+        //TODO: REMOVE
         public PubnubChatConfig(string publishKey, string subscribeKey, string userId, string authKey = "",
             int typingTimeout = 5000, int typingTimeoutDifference = 1000, int rateLimitFactor = 2,
+            RateLimitPerChannel rateLimitPerChannel = null, bool storeUserActivityTimestamp = false,
+            int storeUserActivityInterval = 60000)
+        {
+            OLD_PublishKey = publishKey;
+            OLD_SubscribehKey = subscribeKey;
+            OLD_AuthhKey = authKey;
+            OLD_UserId = userId;
+            RateLimitsPerChannel = rateLimitPerChannel;
+            RateLimitFactor = rateLimitFactor;
+            StoreUserActivityTimestamp = storeUserActivityTimestamp;
+            StoreUserActivityInterval = storeUserActivityInterval;
+            TypingTimeout = typingTimeout;
+            TypingTimeoutDifference = typingTimeoutDifference;
+        }
+        
+        public PubnubChatConfig(int typingTimeout = 5000, int typingTimeoutDifference = 1000, int rateLimitFactor = 2,
             RateLimitPerChannel rateLimitPerChannel = null, bool storeUserActivityTimestamp = false,
             int storeUserActivityInterval = 60000)
         {
@@ -31,10 +55,6 @@ namespace PubnubChatApi.Entities.Data
             RateLimitFactor = rateLimitFactor;
             StoreUserActivityTimestamp = storeUserActivityTimestamp;
             StoreUserActivityInterval = storeUserActivityInterval;
-            PublishKey = publishKey;
-            SubscribeKey = subscribeKey;
-            UserId = userId;
-            AuthKey = authKey;
             TypingTimeout = typingTimeout;
             TypingTimeoutDifference = typingTimeoutDifference;
         }

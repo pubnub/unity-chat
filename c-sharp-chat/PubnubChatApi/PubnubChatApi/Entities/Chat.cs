@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
 using PubnubChatApi.Enums;
@@ -28,7 +29,8 @@ namespace PubNubChatAPI.Entities
     public class Chat
     {
         #region DLL Imports
-
+        
+        //TODO: REMOVE
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_chat_new(
             string publish,
@@ -40,8 +42,10 @@ namespace PubNubChatAPI.Entities
             int store_user_activity_interval,
             bool store_user_activity_timestamps);
 
+        //TODO: REMOVE
         [DllImport("pubnub-chat")]
         private static extern void pn_chat_delete(IntPtr chat);
+
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_chat_create_public_conversation_dirty(IntPtr chat,
@@ -308,36 +312,64 @@ namespace PubNubChatAPI.Entities
         private Dictionary<string, Message> messageWrappers = new();
         private bool fetchUpdates = true;
 
+        public Pubnub PubnubInstance { get; private set; }
+
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
         public PubnubChatConfig Config { get; }
-
-        /// <summary>
-        /// Asynchronously initializes a new instance of the <see cref="Chat"/> class.
-        /// <para>
-        /// Creates a new chat instance.
-        /// </para>
-        /// </summary>
-        /// <param name="config">Config with PubNub keys and values</param>
-        /// <remarks>
-        /// The constructor initializes the chat instance with the provided keys and user ID from the Config.
-        /// </remarks>
+        
+        //TODO: REMOVE
         public static async Task<Chat> CreateInstance(PubnubChatConfig config)
         {
             var chat = await Task.Run(() => new Chat(config));
             chat.FetchUpdatesLoop();
             return chat;
         }
-
+        //TODO: REMOVE
         internal Chat(PubnubChatConfig config)
         {
-            chatPointer = pn_chat_new(config.PublishKey, config.SubscribeKey, config.UserId, config.AuthKey,
+            chatPointer = pn_chat_new(config.OLD_PublishKey, config.OLD_SubscribehKey, config.OLD_UserId, config.OLD_AuthhKey,
                 config.TypingTimeout, config.TypingTimeoutDifference, config.StoreUserActivityInterval,
                 config.StoreUserActivityTimestamp);
             CUtilities.CheckCFunctionResult(chatPointer);
-
             Config = config;
+            ChatAccessManager = new ChatAccessManager(chatPointer);
+        }
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Chat"/> class.
+        /// <para>
+        /// Creates a new chat instance.
+        /// </para>
+        /// </summary>
+        /// <param name="chatConfig">Config with Chat specific parameters</param>
+        /// <param name="pubnubConfig">Config with PubNub keys and values</param>
+        /// <remarks>
+        /// The constructor initializes the Chat object with a new Pubnub instance.
+        /// </remarks>
+        public Chat(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig)
+        {
+            PubnubInstance = new Pubnub(pubnubConfig);
+            Config = chatConfig;
+            ChatAccessManager = new ChatAccessManager(chatPointer);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Chat"/> class.
+        /// <para>
+        /// Creates a new chat instance.
+        /// </para>
+        /// </summary>
+        /// <param name="chatConfig">Config with Chat specific parameters</param>
+        /// <param name="pubnub">An already initialised instance of Pubnub</param>
+        /// <remarks>
+        /// The constructor initializes the Chat object with the provided existing Pubnub instance.
+        /// </remarks>
+        public Chat(PubnubChatConfig chatConfig, Pubnub pubnub)
+        {
+            Config = chatConfig;
+            PubnubInstance = pubnub;
             ChatAccessManager = new ChatAccessManager(chatPointer);
         }
 
