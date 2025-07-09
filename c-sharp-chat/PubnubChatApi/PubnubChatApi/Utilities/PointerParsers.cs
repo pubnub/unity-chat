@@ -92,7 +92,7 @@ namespace PubnubChatApi.Utilities
             foreach (var userPointer in userPointers)
             {
                 var id = User.GetUserIdFromPtr(userPointer);
-                if (chat.TryGetUser(id, userPointer, out var user))
+                if (chat.OLD_TryGetUser(id, userPointer, out var user))
                 {
                     users.Add(user);
                 }

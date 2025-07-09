@@ -16,6 +16,7 @@ using PubnubChatApi.Utilities;
 namespace PubNubChatAPI.Entities
 {
     //TODO: make IDisposable?
+    //TODO: global remove CCoreException from inline docs
     /// <summary>
     /// Main class for the chat.
     /// <para>
@@ -505,7 +506,7 @@ namespace PubNubChatAPI.Entities
 
                                     break;
                                 case PubnubChatEventType.Mention:
-                                    if (TryGetUser(chatEvent.UserId, out var mentionedUser))
+                                    if (OLD_TryGetUser(chatEvent.UserId, out var mentionedUser))
                                     {
                                         mentionedUser.BroadcastMentionEvent(chatEvent);
                                         invoked = true;
@@ -513,7 +514,7 @@ namespace PubNubChatAPI.Entities
 
                                     break;
                                 case PubnubChatEventType.Invite:
-                                    if (TryGetUser(chatEvent.UserId, out var invitedUser))
+                                    if (OLD_TryGetUser(chatEvent.UserId, out var invitedUser))
                                     {
                                         invitedUser.BroadcastInviteEvent(chatEvent);
                                         invoked = true;
@@ -529,7 +530,7 @@ namespace PubNubChatAPI.Entities
 
                                     break;
                                 case PubnubChatEventType.Moderation:
-                                    if (TryGetUser(chatEvent.UserId, out var moderatedUser))
+                                    if (OLD_TryGetUser(chatEvent.UserId, out var moderatedUser))
                                     {
                                         moderatedUser.BroadcastModerationEvent(chatEvent);
                                         invoked = true;
@@ -1080,7 +1081,7 @@ namespace PubNubChatAPI.Entities
 
             return new UserMentionsWrapper(this, internalWrapper);
         }
-
+        
         /// <summary>
         /// Tries to retrieve the current User object for this chat.
         /// </summary>
@@ -1091,7 +1092,7 @@ namespace PubNubChatAPI.Entities
         {
             var userPointer = pn_chat_current_user(chatPointer);
             CUtilities.CheckCFunctionResult(userPointer);
-            return TryGetUser(userPointer, out user);
+            return OLD_TryGetUser(userPointer, out user);
         }
 
         /// <summary>
@@ -1102,7 +1103,23 @@ namespace PubNubChatAPI.Entities
         {
             return await Task.Run(() =>
             {
-                var result = TryGetCurrentUser(out var currentUser);
+                var result = OLD_TryGetCurrentUser(out var currentUser);
+                return result ? currentUser : null;
+            });
+        }
+        
+        public bool OLD_TryGetCurrentUser(out User user)
+        {
+            var userPointer = pn_chat_current_user(chatPointer);
+            CUtilities.CheckCFunctionResult(userPointer);
+            return OLD_TryGetUser(userPointer, out user);
+        }
+        
+        public async Task<User?> OLD_GetCurrentUserAsync()
+        {
+            return await Task.Run(() =>
+            {
+                var result = OLD_TryGetCurrentUser(out var currentUser);
                 return result ? currentUser : null;
             });
         }
@@ -1141,13 +1158,40 @@ namespace PubNubChatAPI.Entities
         {
             foreach (var userId in userIds)
             {
-                if (TryGetUser(userId, out var user))
+                if (OLD_TryGetUser(userId, out var user))
                 {
                     user.OnUserUpdated += listener;
                 }
             }
         }
+        
+        public async Task<User> OLD_CreateUser(string userId)
+        {
+            return await OLD_CreateUser(userId, new ChatUserData());
+        }
+        
+        public async Task<User> OLD_CreateUser(string userId, ChatUserData additionalData)
+        {
+            if (userWrappers.TryGetValue(userId, out var existingUser))
+            {
+                Debug.WriteLine("Trying to create a user with ID that already exists! Returning existing one.");
+                return existingUser;
+            }
 
+            var userPointer = await Task.Run(() => pn_chat_create_user_dirty(chatPointer, userId,
+                additionalData.Username,
+                additionalData.ExternalId,
+                additionalData.ProfileUrl,
+                additionalData.Email,
+                additionalData.CustomDataJson,
+                additionalData.Status,
+                additionalData.Status));
+            CUtilities.CheckCFunctionResult(userPointer);
+            var user = new User(this, userId, userPointer);
+            userWrappers.Add(userId, user);
+            return user;
+        }
+        
         /// <summary>
         /// Creates a new user with the provided user ID.
         /// <para>
@@ -1197,16 +1241,8 @@ namespace PubNubChatAPI.Entities
                 return existingUser;
             }
 
-            var userPointer = await Task.Run(() => pn_chat_create_user_dirty(chatPointer, userId,
-                additionalData.Username,
-                additionalData.ExternalId,
-                additionalData.ProfileUrl,
-                additionalData.Email,
-                additionalData.CustomDataJson,
-                additionalData.Status,
-                additionalData.Status));
-            CUtilities.CheckCFunctionResult(userPointer);
-            var user = new User(this, userId, userPointer);
+            var user = new User(this, userId, additionalData);
+            await User.UpdateUserData(this, userId, additionalData);
             userWrappers.Add(userId, user);
             return user;
         }
@@ -1297,7 +1333,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="IsPresent"/>
         public async Task<List<string>> WherePresent(string userId)
         {
-            if (TryGetUser(userId, out var user))
+            if (OLD_TryGetUser(userId, out var user))
             {
                 return await user.WherePresent();
             }
@@ -1326,11 +1362,11 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="User"/>
-        /// <seealso cref="GetUserAsync"/>
+        /// <seealso cref="OLD_GetUserAsync"/>
         public bool TryGetUser(string userId, out User user)
         {
-            var userPointer = pn_chat_get_user(chatPointer, userId);
-            return TryGetUser(userId, userPointer, out user);
+            user = GetUserAsync(userId).Result;
+            return user != null;
         }
 
         /// <summary>
@@ -1340,20 +1376,49 @@ namespace PubNubChatAPI.Entities
         /// <returns>User object if one with given ID is found, null otherwise.</returns>
         public async Task<User?> GetUserAsync(string userId)
         {
+            if (userWrappers.TryGetValue(userId, out var existingUser))
+            {
+                await existingUser.Resync();
+                return existingUser;
+            }
+            else
+            {
+                var data = await User.GetUserData(this, userId);
+                if (data == null)
+                {
+                    return null;
+                }
+                else
+                {
+                    var user = new User(this, userId, data);
+                    userWrappers.Add(userId, user);
+                    return user;
+                }
+            }
+        }
+
+        public bool OLD_TryGetUser(string userId, out User user)
+        {
+            var userPointer = pn_chat_get_user(chatPointer, userId);
+            return OLD_TryGetUser(userId, userPointer, out user);
+        }
+        
+        public async Task<User?> OLD_GetUserAsync(string userId)
+        {
             return await Task.Run(() =>
             {
-                var result = TryGetUser(userId, out var user);
+                var result = OLD_TryGetUser(userId, out var user);
                 return result ? user : null;
             });
         }
 
-        internal bool TryGetUser(IntPtr userPointer, out User user)
+        internal bool OLD_TryGetUser(IntPtr userPointer, out User user)
         {
             var id = User.GetUserIdFromPtr(userPointer);
-            return TryGetUser(id, userPointer, out user);
+            return OLD_TryGetUser(id, userPointer, out user);
         }
 
-        internal bool TryGetUser(string userId, IntPtr userPointer, out User user)
+        internal bool OLD_TryGetUser(string userId, IntPtr userPointer, out User user)
         {
             return TryGetWrapper(userWrappers, userId, userPointer, () => new User(this, userId, userPointer),
                 out user);
@@ -1398,7 +1463,29 @@ namespace PubNubChatAPI.Entities
             var internalWrapper = JsonConvert.DeserializeObject<InternalUsersResponseWrapper>(internalWrapperJson);
             return new UsersResponseWrapper(this, internalWrapper);
         }
-
+        
+        public async Task OLD_UpdateUser(string userId, ChatUserData updatedData)
+        {
+            var newPointer = await Task.Run(() => pn_chat_update_user_dirty(chatPointer, userId,
+                updatedData.Username,
+                updatedData.ExternalId,
+                updatedData.ProfileUrl,
+                updatedData.Email,
+                updatedData.CustomDataJson,
+                updatedData.Status,
+                updatedData.Type));
+            CUtilities.CheckCFunctionResult(newPointer);
+            if (userWrappers.TryGetValue(userId, out var existingUserWrapper))
+            {
+                existingUserWrapper.UpdatePointer(newPointer);
+            }
+            //TODO: could and should this ever actually happen?
+            else
+            {
+                userWrappers.Add(userId, new User(this, userId, newPointer));
+            }
+        }
+        
         /// <summary>
         /// Updates the user with the provided user ID.
         /// <para>
@@ -1420,23 +1507,13 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatUserData"/>
         public async Task UpdateUser(string userId, ChatUserData updatedData)
         {
-            var newPointer = await Task.Run(() => pn_chat_update_user_dirty(chatPointer, userId,
-                updatedData.Username,
-                updatedData.ExternalId,
-                updatedData.ProfileUrl,
-                updatedData.Email,
-                updatedData.CustomDataJson,
-                updatedData.Status,
-                updatedData.Type));
-            CUtilities.CheckCFunctionResult(newPointer);
             if (userWrappers.TryGetValue(userId, out var existingUserWrapper))
             {
-                existingUserWrapper.UpdatePointer(newPointer);
+                await existingUserWrapper.Update(updatedData);
             }
-            //TODO: could and should this ever actually happen?
             else
             {
-                userWrappers.Add(userId, new User(this, userId, newPointer));
+                await User.UpdateUserData(this, userId, updatedData);
             }
         }
 
@@ -1499,7 +1576,7 @@ namespace PubNubChatAPI.Entities
             string sort = "",
             int limit = 0, Page page = null)
         {
-            if (!TryGetUser(userId, out var user))
+            if (!OLD_TryGetUser(userId, out var user))
             {
                 return new MembersResponseWrapper();
             }

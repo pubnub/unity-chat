@@ -20,7 +20,7 @@ public class MembershipTests
             "membership_tests_user_54")
         );
         channel = await chat.CreatePublicConversation("membership_tests_channel");
-        if (!chat.TryGetCurrentUser(out user))
+        if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }

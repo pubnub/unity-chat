@@ -24,6 +24,10 @@ namespace PubNubChatAPI.Entities
             this.pointer = pointer;
         }
 
+        internal ChatEntity()
+        {
+        }
+
         internal void UpdatePointer(IntPtr newPointer)
         {
             DisposePointer();
@@ -39,6 +43,10 @@ namespace PubNubChatAPI.Entities
         public virtual async void SetListeningForUpdates(bool listen)
         {
             updateListeningHandle = await SetListening(updateListeningHandle, listen, StreamUpdates);
+        }
+
+        public virtual async Task Resync()
+        {
         }
 
         internal async Task<IntPtr> SetListening(IntPtr callbackHandle, bool listen, Func<IntPtr> streamFunction)

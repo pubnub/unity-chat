@@ -21,7 +21,7 @@ public class UserTests
             storeUserActivityTimestamp: true)
         );
         channel = await chat.CreatePublicConversation("user_tests_channel");
-        if (!chat.TryGetCurrentUser(out user))
+        if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
@@ -66,18 +66,18 @@ public class UserTests
         var newRandomUserName = Guid.NewGuid().ToString();
         testUser.OnUserUpdated += updatedUser =>
         {
-            Assert.True(updatedUser.UserName == newRandomUserName);
-            Assert.True(updatedUser.CustomData == "{\"some_key\":\"some_value\"}");
-            Assert.True(updatedUser.Email == "some@guy.com");
-            Assert.True(updatedUser.ExternalId == "xxx_some_guy_420_xxx");
-            Assert.True(updatedUser.ProfileUrl == "www.some.guy");
-            Assert.True(updatedUser.Status == "yes");
-            Assert.True(updatedUser.DataType == "someType");
+            Assert.True(updatedUser.OLD_UserName == newRandomUserName);
+            Assert.True(updatedUser.OLD_CustomData == "{\"some_key\":\"some_value\"}");
+            Assert.True(updatedUser.OLD_Email == "some@guy.com");
+            Assert.True(updatedUser.OLD_ExternalId == "xxx_some_guy_420_xxx");
+            Assert.True(updatedUser.OLD_ProfileUrl == "www.some.guy");
+            Assert.True(updatedUser.OLD_Status == "yes");
+            Assert.True(updatedUser.OLD_DataType == "someType");
             updatedReset.Set();
         };
         testUser.SetListeningForUpdates(true);
         await Task.Delay(3000);
-        await testUser.Update(new ChatUserData()
+        await testUser.OLD_Update(new ChatUserData()
         {
             Username = newRandomUserName,
             CustomDataJson = "{\"some_key\":\"some_value\"}",
@@ -94,15 +94,15 @@ public class UserTests
     [Test]
     public async Task TestUserDelete()
     {
-        var someUser = await chat.CreateUser(Guid.NewGuid().ToString());
+        var someUser = await chat.OLD_CreateUser(Guid.NewGuid().ToString());
         
-        Assert.True(chat.TryGetUser(someUser.Id, out _), "Couldn't get freshly created user");
+        Assert.True(chat.OLD_TryGetUser(someUser.Id, out _), "Couldn't get freshly created user");
 
         await someUser.DeleteUser();
 
         await Task.Delay(3000);
         
-        Assert.False(chat.TryGetUser(someUser.Id, out _), "Got the freshly deleted user");
+        Assert.False(chat.OLD_TryGetUser(someUser.Id, out _), "Got the freshly deleted user");
     }
 
     [Test]

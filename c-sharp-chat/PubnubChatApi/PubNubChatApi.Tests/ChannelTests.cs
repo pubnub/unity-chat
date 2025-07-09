@@ -19,11 +19,11 @@ public class ChannelTests
             PubnubTestsParameters.SubscribeKey,
             "ctuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
         );
-        if (!chat.TryGetCurrentUser(out user))
+        if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        await user.Update(new ChatUserData()
+        await user.OLD_Update(new ChatUserData()
         {
             Username = "Testificate"
         });
@@ -87,7 +87,7 @@ public class ChannelTests
     [Test]
     public async Task TestLeaveChannel()
     {
-        var currentChatUser = await chat.GetCurrentUserAsync();
+        var currentChatUser = await chat.OLD_GetCurrentUserAsync();
         
         Assert.IsNotNull(currentChatUser, "currentChatUser was null");
         

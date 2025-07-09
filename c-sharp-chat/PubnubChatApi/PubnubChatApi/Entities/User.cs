@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
 using PubnubChatApi.Enums;
@@ -78,14 +79,8 @@ namespace PubNubChatAPI.Entities
         private static extern IntPtr pn_user_stream_updates(IntPtr user);
 
         #endregion
-
-        /// <summary>
-        /// The user's user name. 
-        /// <para>
-        /// This might be user's display name in the chat.
-        /// </para>
-        /// </summary>
-        public string UserName
+        
+        public string OLD_UserName
         {
             get
             {
@@ -94,14 +89,8 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
-
-        /// <summary>
-        /// The user's external id.
-        /// <para>
-        /// This might be user's id in the external system (e.g. Database, CRM, etc.)
-        /// </para>
-        /// </summary>
-        public string ExternalId
+        
+        public string OLD_ExternalId
         {
             get
             {
@@ -111,13 +100,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The user's profile url.
-        /// <para>
-        /// This might be user's profile url to download the profile picture.
-        /// </para>
-        /// </summary>
-        public string ProfileUrl
+        public string OLD_ProfileUrl
         {
             get
             {
@@ -127,13 +110,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The user's email.
-        /// <para>
-        /// This should be user's email address.
-        /// </para>
-        /// </summary>
-        public string Email
+        public string OLD_Email
         {
             get
             {
@@ -142,14 +119,8 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
-
-        /// <summary>
-        /// The user's custom data.
-        /// <para>
-        /// This might be any custom data that you want to store for the user.
-        /// </para>
-        /// </summary>
-        public string CustomData
+        
+        public string OLD_CustomData
         {
             get
             {
@@ -158,14 +129,8 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
-
-        /// <summary>
-        /// The user's status.
-        /// <para>
-        /// This is a string that represents the user's status.
-        /// </para>
-        /// </summary>
-        public string Status
+        
+        public string OLD_Status
         {
             get
             {
@@ -174,14 +139,8 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
-
-        /// <summary>
-        /// The user's data type.
-        /// <para>
-        /// This is a string that represents the user's data type.
-        /// </para>
-        /// </summary>
-        public string DataType
+        
+        public string OLD_DataType
         {
             get
             {
@@ -190,6 +149,64 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
+
+        private ChatUserData userData;
+
+        /// <summary>
+        /// The user's user name. 
+        /// <para>
+        /// This might be user's display name in the chat.
+        /// </para>
+        /// </summary>
+        public string UserName => userData.Username;
+
+        /// <summary>
+        /// The user's external id.
+        /// <para>
+        /// This might be user's id in the external system (e.g. Database, CRM, etc.)
+        /// </para>
+        /// </summary>
+        public string ExternalId => userData.ExternalId;
+
+        /// <summary>
+        /// The user's profile url.
+        /// <para>
+        /// This might be user's profile url to download the profile picture.
+        /// </para>
+        /// </summary>
+        public string ProfileUrl => userData.ProfileUrl;
+
+        /// <summary>
+        /// The user's email.
+        /// <para>
+        /// This should be user's email address.
+        /// </para>
+        /// </summary>
+        public string Email => userData.Email;
+
+        /// <summary>
+        /// The user's custom data.
+        /// <para>
+        /// This might be any custom data that you want to store for the user.
+        /// </para>
+        /// </summary>
+        public string CustomData => userData.CustomDataJson;
+
+        /// <summary>
+        /// The user's status.
+        /// <para>
+        /// This is a string that represents the user's status.
+        /// </para>
+        /// </summary>
+        public string Status => userData.Status;
+
+        /// <summary>
+        /// The user's data type.
+        /// <para>
+        /// This is a string that represents the user's data type.
+        /// </para>
+        /// </summary>
+        public string DataType => userData.Type;
 
         public bool Active
         {
@@ -232,7 +249,7 @@ namespace PubNubChatAPI.Entities
         /// };
         /// </code>
         /// </example>
-        /// <seealso cref="Update"/>
+        /// <seealso cref="OLD_Update"/>
         /// <seealso cref="User"/>
         public event Action<User> OnUserUpdated;
         
@@ -240,8 +257,15 @@ namespace PubNubChatAPI.Entities
         public event Action<ChatEvent> OnInviteEvent;
         public event Action<ChatEvent> OnModerationEvent;
 
+        //TODO: REMOVE
         internal User(Chat chat, string userId, IntPtr userPointer) : base(userPointer, userId)
         {
+            this.chat = chat;
+        }
+
+        internal User(Chat chat, string userId, ChatUserData chatUserData) : base(userId)
+        {
+            userData = chatUserData;
             this.chat = chat;
         }
         
@@ -301,7 +325,12 @@ namespace PubNubChatAPI.Entities
         {
             OnUserUpdated?.Invoke(this);
         }
-
+        
+        public async Task OLD_Update(ChatUserData updatedData)
+        {
+            await chat.OLD_UpdateUser(Id, updatedData);
+        }
+        
         /// <summary>
         /// Updates the user.
         /// <para>
@@ -324,7 +353,59 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatUserData"/>
         public async Task Update(ChatUserData updatedData)
         {
-            await chat.UpdateUser(Id, updatedData);
+            userData = updatedData;
+            await UpdateUserData(chat, Id, updatedData);
+        }
+
+        internal static async Task UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
+        {
+            await chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true)
+                .Uuid(userId)
+                .Name(chatUserData.Username)
+                .Email(chatUserData.Email)
+                .ExternalId(chatUserData.ExternalId)
+                .Custom(new Dictionary<string, object>()
+                {
+                    { "ProfileUrl", chatUserData.ProfileUrl },
+                    { "Status", chatUserData.Status},
+                    { "Type", chatUserData.Type},
+                    { "CustomDataJson", chatUserData.CustomDataJson}
+                })
+                .ExecuteAsync();
+        }
+        
+        internal static async Task<ChatUserData?> GetUserData(Chat chat, string userId)
+        {
+            var result = await chat.PubnubInstance.GetUuidMetadata().Uuid(userId).IncludeCustom(true).ExecuteAsync();
+            if (result.Status.Error)
+            {
+                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to Resync() User \"{userId}\": {result.Status.ErrorData.Information}");
+                return null;
+            }
+            try
+            {
+                return new ChatUserData()
+                {
+                    Username = result.Result.Name,
+                    Email = result.Result.Email,
+                    ExternalId = result.Result.ExternalId,
+                    CustomDataJson = result.Result.Custom["CustomDataJson"].ToString(),
+                    ProfileUrl = result.Result.Custom["ProfileUrl"].ToString(),
+                    Status = result.Result.Custom["Status"].ToString(),
+                    Type = result.Result.Custom["DataType"].ToString(),
+                };
+            }
+            catch (Exception e)
+            {
+                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to parse data for User \"{userId}\": {e.Message}");
+                return null;
+            }
+        }
+        
+        public override async Task Resync()
+        {
+            var newData = await GetUserData(chat, Id);
+            userData = newData;
         }
 
         /// <summary>

@@ -19,7 +19,7 @@ public class ChatTests
             PubnubTestsParameters.SubscribeKey,
             "chats_tests_user_10_no_calkiem_nowy_2"));
         channel = await chat.CreatePublicConversation("chat_tests_channel_2");
-        if (!chat.TryGetCurrentUser(out currentUser))
+        if (!chat.OLD_TryGetCurrentUser(out currentUser))
         {
             Assert.Fail();
         }
@@ -59,7 +59,7 @@ public class ChatTests
     [Test]
     public async Task TestGetCurrentUser()
     {
-        Assert.True(chat.TryGetCurrentUser(out var currentUser) && currentUser.Id == this.currentUser.Id);
+        Assert.True(chat.OLD_TryGetCurrentUser(out var currentUser) && currentUser.Id == this.currentUser.Id);
     }
 
     [Test]

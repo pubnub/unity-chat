@@ -23,7 +23,7 @@ public class MessageDraftTests
         {
             ChannelName = "MessageDraftTestingChannel"
         });
-        if (!chat.TryGetCurrentUser(out var user))
+        if (!chat.OLD_TryGetCurrentUser(out var user))
         {
             Assert.Fail();
         }
@@ -31,9 +31,9 @@ public class MessageDraftTests
         channel.Join();
         await Task.Delay(3000);
         
-        if (!chat.TryGetUser("mock_user", out dummyUser))
+        if (!chat.OLD_TryGetUser("mock_user", out dummyUser))
         {
-            dummyUser = await chat.CreateUser("mock_user", new ChatUserData()
+            dummyUser = await chat.OLD_CreateUser("mock_user", new ChatUserData()
             {
                 Username = "Mock Usernamiski"
             });
