@@ -76,7 +76,7 @@ public class ChatTests
     [Test]
     public async Task TestGetUsers()
     {
-        var users = await chat.GetUsers();
+        var users = await chat.OLD_GetUsers();
         Assert.True(users.Users.Any());
     }
 

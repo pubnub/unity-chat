@@ -265,7 +265,7 @@ namespace PubNubChatAPI.Entities
 
         internal User(Chat chat, string userId, ChatUserData chatUserData) : base(userId)
         {
-            userData = chatUserData;
+            UpdateLocalData(chatUserData);
             this.chat = chat;
         }
         
@@ -353,7 +353,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatUserData"/>
         public async Task Update(ChatUserData updatedData)
         {
-            userData = updatedData;
+            UpdateLocalData(updatedData);
             await UpdateUserData(chat, Id, updatedData);
         }
 
@@ -364,9 +364,9 @@ namespace PubNubChatAPI.Entities
                 .Name(chatUserData.Username)
                 .Email(chatUserData.Email)
                 .ExternalId(chatUserData.ExternalId)
+                .ProfileUrl(chatUserData.ProfileUrl)
                 .Custom(new Dictionary<string, object>()
                 {
-                    { "ProfileUrl", chatUserData.ProfileUrl },
                     { "Status", chatUserData.Status},
                     { "Type", chatUserData.Type},
                     { "CustomDataJson", chatUserData.CustomDataJson}
@@ -384,16 +384,7 @@ namespace PubNubChatAPI.Entities
             }
             try
             {
-                return new ChatUserData()
-                {
-                    Username = result.Result.Name,
-                    Email = result.Result.Email,
-                    ExternalId = result.Result.ExternalId,
-                    CustomDataJson = result.Result.Custom["CustomDataJson"].ToString(),
-                    ProfileUrl = result.Result.Custom["ProfileUrl"].ToString(),
-                    Status = result.Result.Custom["Status"].ToString(),
-                    Type = result.Result.Custom["DataType"].ToString(),
-                };
+                return (ChatUserData)result.Result;
             }
             catch (Exception e)
             {
@@ -401,11 +392,16 @@ namespace PubNubChatAPI.Entities
                 return null;
             }
         }
+
+        internal void UpdateLocalData(ChatUserData newData)
+        {
+            userData = newData;
+        }
         
         public override async Task Resync()
         {
             var newData = await GetUserData(chat, Id);
-            userData = newData;
+            UpdateLocalData(newData);
         }
 
         /// <summary>

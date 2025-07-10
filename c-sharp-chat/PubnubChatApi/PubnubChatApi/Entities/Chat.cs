@@ -1090,9 +1090,8 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetCurrentUserAsync"/>
         public bool TryGetCurrentUser(out User user)
         {
-            var userPointer = pn_chat_current_user(chatPointer);
-            CUtilities.CheckCFunctionResult(userPointer);
-            return OLD_TryGetUser(userPointer, out user);
+            user = GetCurrentUserAsync().Result;
+            return user != null;
         }
 
         /// <summary>
@@ -1101,11 +1100,8 @@ namespace PubNubChatAPI.Entities
         /// <returns>User object if there is a current user, null otherwise.</returns>
         public async Task<User?> GetCurrentUserAsync()
         {
-            return await Task.Run(() =>
-            {
-                var result = OLD_TryGetCurrentUser(out var currentUser);
-                return result ? currentUser : null;
-            });
+            var userId = PubnubInstance.GetCurrentUserId();
+            return await GetUserAsync(userId);
         }
         
         public bool OLD_TryGetCurrentUser(out User user)
@@ -1423,7 +1419,7 @@ namespace PubNubChatAPI.Entities
             return TryGetWrapper(userWrappers, userId, userPointer, () => new User(this, userId, userPointer),
                 out user);
         }
-
+        
         /// <summary>
         /// Gets the list of users with the provided parameters.
         /// <para>
@@ -1452,6 +1448,40 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="User"/>
         public async Task<UsersResponseWrapper> GetUsers(string filter = "", string sort = "", int limit = 0,
+            PNPageObject page = null)
+        {
+            var result = await PubnubInstance.GetAllUuidMetadata().Filter(filter).Sort(new List<string>() { sort })
+                .Limit(limit).Page(page).ExecuteAsync();
+            if (result.Status.Error)
+            {
+                PubnubInstance.PNConfig.Logger?.Error($"Error when trying to GetUsers(): {result.Status.ErrorData.Information}");
+                return default;
+            }
+
+            var response = new UsersResponseWrapper()
+            {
+                Users = new List<User>(),
+                Total = result.Result.TotalCount,
+                Page = result.Result.Page
+            };
+            foreach (var resultMetadata in result.Result.Uuids)
+            {
+                if (userWrappers.TryGetValue(resultMetadata.Uuid, out var existingUserWrapper))
+                {
+                    existingUserWrapper.UpdateLocalData(resultMetadata);
+                    response.Users.Add(existingUserWrapper);
+                }
+                else
+                {
+                    var user = new User(this, resultMetadata.Uuid, resultMetadata);
+                    userWrappers.Add(user.Id, user);
+                    response.Users.Add(user);
+                }
+            }
+            return response;
+        }
+        
+        public async Task<UsersResponseWrapper> OLD_GetUsers(string filter = "", string sort = "", int limit = 0,
             Page page = null)
         {
             var buffer = new StringBuilder(8192);
