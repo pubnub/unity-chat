@@ -171,16 +171,8 @@ namespace PubNubChatAPI.Entities
         );
 
         #endregion
-
-        /// <summary>
-        /// The name of the channel.
-        ///
-        /// <para>
-        /// The name of the channel that is human meaningful.
-        /// </para>
-        /// </summary>
-        /// <value>The name of the channel.</value>
-        public string Name
+        
+        public string OLD_Name
         {
             get
             {
@@ -190,13 +182,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The description of the channel.
-        ///
-        /// <para>
-        /// The description that allows users to understand the purpose of the channel.
-        /// </para>
-        public string Description
+        public string OLD_Description
         {
             get
             {
@@ -205,6 +191,64 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
+
+        public string OLD_CustomDataJson
+        {
+            get
+            {
+                var buffer = new StringBuilder(2048);
+                pn_channel_get_data_custom_data_json(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+        
+        public string OLD_Updated
+        {
+            get
+            {
+                var buffer = new StringBuilder(512);
+                pn_channel_get_data_updated(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+
+        public string OLD_Status
+        {
+            get
+            {
+                var buffer = new StringBuilder(512);
+                pn_channel_get_data_status(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+        
+        public string OLD_Type
+        {
+            get
+            {
+                var buffer = new StringBuilder(512);
+                pn_channel_get_data_type(pointer, buffer);
+                return buffer.ToString();
+            }
+        }
+
+        /// <summary>
+        /// The name of the channel.
+        ///
+        /// <para>
+        /// The name of the channel that is human meaningful.
+        /// </para>
+        /// </summary>
+        /// <value>The name of the channel.</value>
+        public string Name => channelData.ChannelName;
+
+        /// <summary>
+        /// The description of the channel.
+        ///
+        /// <para>
+        /// The description that allows users to understand the purpose of the channel.
+        /// </para>
+        public string Description => channelData.ChannelDescription;
 
         /// <summary>
         /// The custom data of the channel.
@@ -216,15 +260,7 @@ namespace PubNubChatAPI.Entities
         /// <remarks>
         /// The custom data is stored in JSON format.
         /// </remarks>
-        public string CustomDataJson
-        {
-            get
-            {
-                var buffer = new StringBuilder(2048);
-                pn_channel_get_data_custom_data_json(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
+        public string CustomDataJson => channelData.ChannelCustomDataJson;
 
         /// <summary>
         /// The information about the last update of the channel.
@@ -232,15 +268,7 @@ namespace PubNubChatAPI.Entities
         /// The time when the channel was last updated.
         /// </para>
         /// </summary>
-        public string Updated
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_updated(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
+        public string Updated => channelData.ChannelUpdated;
 
         /// <summary>
         /// The status of the channel.
@@ -248,15 +276,7 @@ namespace PubNubChatAPI.Entities
         /// The last status response received from the server.
         /// </para>
         /// </summary>
-        public string Status
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_status(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
+        public string Status => channelData.ChannelStatus;
 
         /// <summary>
         /// The type of the channel.
@@ -264,15 +284,9 @@ namespace PubNubChatAPI.Entities
         /// The type of the response received from the server when the channel was created.
         /// </para>
         /// </summary>
-        public string Type
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_type(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
+        public string Type => channelData.ChannelType;
+
+        private ChatChannelData channelData;
 
         protected Chat chat;
         private IntPtr customEventsListeningHandle;
@@ -352,6 +366,70 @@ namespace PubNubChatAPI.Entities
         internal Channel(Chat chat, string channelId, IntPtr channelPointer) : base(channelPointer, channelId)
         {
             this.chat = chat;
+        }
+
+        internal Channel(Chat chat, string channelId, ChatChannelData data) : base(channelId)
+        {
+            this.chat = chat;
+            UpdateLocalData(data);
+        }
+
+        internal void UpdateLocalData(ChatChannelData? newData)
+        {
+            if (newData == null)
+            {
+                return;
+            }
+            channelData = newData;
+        }
+
+        internal static async Task<bool> UpdateChannelData(Chat chat, string channelId, ChatChannelData data)
+        {
+            //chat.PubnubInstance.setmem
+            var result = await chat.PubnubInstance.SetChannelMetadata().IncludeCustom(true)
+                .Channel(channelId)
+                .Name(data.ChannelName)
+                .Description(data.ChannelDescription)
+                .Custom(new Dictionary<string, object>()
+                {
+                    {"custom", data.ChannelCustomDataJson},
+                    {"updated", data.ChannelUpdated},
+                    {"status", data.ChannelStatus},
+                })
+                .ExecuteAsync();
+            if (result.Status.Error)
+            {
+                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to set data for channel \"{channelId}\": {result.Status.ErrorData.Information}");
+                return false;
+            }
+            return true;
+        }
+        
+        internal static async Task<ChatChannelData?> GetChannelData(Chat chat, string channelId)
+        {
+            var result = await chat.PubnubInstance.GetChannelMetadata().IncludeCustom(true)
+                .Channel(channelId)
+                .ExecuteAsync();
+            if (result.Status.Error)
+            {
+                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to get data for channel \"{channelId}\": {result.Status.ErrorData.Information}");
+                return null;
+            }
+            try
+            {
+                return (ChatChannelData)result.Result;
+            }
+            catch (Exception e)
+            {
+                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to parse data for Channel \"{channelId}\": {e.Message}");
+                return null;
+            }
+        }
+
+        public override async Task Resync()
+        {
+            var newData = await GetChannelData(chat, Id);
+            UpdateLocalData(newData);
         }
 
         protected override IntPtr StreamUpdates()

@@ -19,7 +19,7 @@ public class MessageDraftTests
             PubnubTestsParameters.SubscribeKey,
             "message_draft_tests_user")
         );
-        channel = await chat.CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
+        channel = await chat.OLD_CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
         {
             ChannelName = "MessageDraftTestingChannel"
         });
@@ -39,9 +39,9 @@ public class MessageDraftTests
             });
         }
 
-        if (!chat.TryGetChannel("dummy_channel", out dummyChannel))
+        if (!chat.OLD_TryGetChannel("dummy_channel", out dummyChannel))
         {
-            dummyChannel = await chat.CreatePublicConversation("dummy_channel");
+            dummyChannel = await chat.OLD_CreatePublicConversation("dummy_channel");
         }
     }
 

@@ -29,11 +29,11 @@ namespace PubnubChatApi.Entities.Data
                 Email = metadataResult.Email,
                 ProfileUrl = metadataResult.ProfileUrl,
                 Username = metadataResult.Name,
-                Status = metadataResult.Custom.TryGetValue("Status", out var status) ? status.ToString() : string.Empty,
-                Type = metadataResult.Custom.TryGetValue("DataType", out var dataType)
+                Status = metadataResult.Custom.TryGetValue("status", out var status) ? status.ToString() : string.Empty,
+                Type = metadataResult.Custom.TryGetValue("type", out var dataType)
                     ? dataType.ToString()
                     : string.Empty,
-                CustomDataJson = metadataResult.Custom.TryGetValue("CustomDataJson", out var custom)
+                CustomDataJson = metadataResult.Custom.TryGetValue("custom", out var custom)
                     ? custom.ToString()
                     : string.Empty,
             };

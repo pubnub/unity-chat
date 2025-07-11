@@ -19,7 +19,7 @@ public class MembershipTests
             PubnubTestsParameters.SubscribeKey,
             "membership_tests_user_54")
         );
-        channel = await chat.CreatePublicConversation("membership_tests_channel");
+        channel = await chat.OLD_CreatePublicConversation("membership_tests_channel");
         if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
@@ -81,7 +81,7 @@ public class MembershipTests
     [Test]
     public async Task TestInvite()
     {
-        var testChannel = (await chat.CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
+        var testChannel = (await chat.OLD_CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
         var testUser = await chat.GetOrCreateUser("test_invite_user");
         var returnedMembership = await testChannel.Invite(testUser);
         Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id);
@@ -90,7 +90,7 @@ public class MembershipTests
     [Test]
     public async Task TestInviteMultiple()
     {
-        var testChannel = (await chat.CreateGroupConversation([user], "invite_multiple_test_group_channel_3"))
+        var testChannel = (await chat.OLD_CreateGroupConversation([user], "invite_multiple_test_group_channel_3"))
             .CreatedChannel;
         var secondUser = await chat.GetOrCreateUser("second_invite_user");
         var thirdUser = await chat.GetOrCreateUser("third_invite_user");
@@ -107,7 +107,7 @@ public class MembershipTests
     [Test]
     public async Task TestLastRead()
     {
-        var testChannel = await chat.CreatePublicConversation("last_read_test_channel_57");
+        var testChannel = await chat.OLD_CreatePublicConversation("last_read_test_channel_57");
         testChannel.Join();
 
         await Task.Delay(4000);
@@ -146,7 +146,7 @@ public class MembershipTests
     [Test]
     public async Task TestUnreadMessagesCount()
     {
-        var unreadChannel = await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
+        var unreadChannel = await chat.OLD_CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
         unreadChannel.Join();
         
         await Task.Delay(3500);

@@ -61,7 +61,7 @@ namespace PubnubChatApi.Utilities
             foreach (var channelPointer in channelPointers)
             {
                 var id = Channel.GetChannelIdFromPtr(channelPointer);
-                if (chat.TryGetChannel(id, channelPointer, out var channel))
+                if (chat.OLD_TryGetChannel(id, channelPointer, out var channel))
                 {
                     channels.Add(channel);
                 }

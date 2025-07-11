@@ -439,7 +439,7 @@ namespace PubNubChatAPI.Entities
                                 continue;
                             }
 
-                            if (!TryGetChannel(readChannelId.ToString(), out var readReceiptChannel))
+                            if (!OLD_TryGetChannel(readChannelId.ToString(), out var readReceiptChannel))
                             {
                                 Debug.WriteLine("Can't find the read receipt channel!");
                                 continue;
@@ -465,7 +465,7 @@ namespace PubNubChatAPI.Entities
 
                             foreach (var kvp in typings)
                             {
-                                if (TryGetChannel(kvp.Key, out var typingChannel))
+                                if (OLD_TryGetChannel(kvp.Key, out var typingChannel))
                                 {
                                     typingChannel.TryParseAndBroadcastTypingEvent(kvp.Value);
                                     OnAnyEvent?.Invoke(new ChatEvent()
@@ -498,7 +498,7 @@ namespace PubNubChatAPI.Entities
                                     var properChannelId = (index < 0)
                                         ? chatEvent.ChannelId
                                         : chatEvent.ChannelId.Remove(index, moderationPrefix.Length);
-                                    if (TryGetChannel(properChannelId, out var reportChannel))
+                                    if (OLD_TryGetChannel(properChannelId, out var reportChannel))
                                     {
                                         reportChannel.BroadcastReportEvent(chatEvent);
                                         invoked = true;
@@ -522,7 +522,7 @@ namespace PubNubChatAPI.Entities
 
                                     break;
                                 case PubnubChatEventType.Custom:
-                                    if (TryGetChannel(chatEvent.ChannelId, out var customEventChannel))
+                                    if (OLD_TryGetChannel(chatEvent.ChannelId, out var customEventChannel))
                                     {
                                         customEventChannel.BroadcastCustomEvent(chatEvent);
                                         invoked = true;
@@ -618,7 +618,7 @@ namespace PubNubChatAPI.Entities
                                 if (id.Contains("PUBNUB_INTERNAL_THREAD"))
                                 {
                                     //This has a check for "PUBNUB_INTERNAL_THREAD" and will correctly update the pointer
-                                    TryGetChannel(id, out var existingThreadChannel);
+                                    OLD_TryGetChannel(id, out var existingThreadChannel);
                                     //TODO: broadcast thread channel update (very low priority because I don't think they have that in JS chat)
                                     existingThreadChannel.BroadcastChannelUpdate();
                                 }
@@ -678,7 +678,7 @@ namespace PubNubChatAPI.Entities
                                         channelId.LastIndexOf("-pnpres", StringComparison.Ordinal));
                                 }
 
-                                if (TryGetChannel(channelId, out var channel))
+                                if (OLD_TryGetChannel(channelId, out var channel))
                                 {
                                     channel.BroadcastPresenceUpdate();
                                 }
@@ -708,13 +708,13 @@ namespace PubNubChatAPI.Entities
         {
             foreach (var channelId in channelIds)
             {
-                if (TryGetChannel(channelId, out var channel))
+                if (OLD_TryGetChannel(channelId, out var channel))
                 {
                     channel.OnChannelUpdate += listener;
                 }
             }
         }
-
+        
         /// <summary>
         /// Creates a new public conversation.
         /// <para>
@@ -734,7 +734,7 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Channel"/>
-        public async Task<Channel> CreatePublicConversation(string channelId = "")
+        public async Task<Channel?> CreatePublicConversation(string channelId = "")
         {
             if (string.IsNullOrEmpty(channelId))
             {
@@ -765,7 +765,51 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="Channel"/>
         /// <seealso cref="ChatChannelData"/>
-        public async Task<Channel> CreatePublicConversation(string channelId, ChatChannelData additionalData)
+        public async Task<Channel?> CreatePublicConversation(string channelId, ChatChannelData additionalData)
+        {
+            var existingChannel = await GetChannelAsync(channelId);
+            if (existingChannel != null)
+            {
+                PubnubInstance.PNConfig.Logger?.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
+                return existingChannel;
+            }
+            
+            var updated = await Channel.UpdateChannelData(this, channelId, additionalData);
+            if (updated)
+            {
+                var channel = new Channel(this, channelId, additionalData);
+                channelWrappers.Add(channelId, channel);
+                return channel;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId = "",
+            ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId = "",
+            ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public async Task<Channel> OLD_CreatePublicConversation(string channelId = "")
+        {
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
+
+            return await OLD_CreatePublicConversation(channelId, new ChatChannelData());
+        }
+        
+        public async Task<Channel> OLD_CreatePublicConversation(string channelId, ChatChannelData additionalData)
         {
             if (channelWrappers.TryGetValue(channelId, out var existingChannel))
             {
@@ -786,7 +830,7 @@ namespace PubNubChatAPI.Entities
             return channel;
         }
 
-        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId = "",
+        public async Task<CreatedChannelWrapper> OLD_CreateDirectConversation(User user, string channelId = "",
             ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
         {
             if (string.IsNullOrEmpty(channelId))
@@ -821,7 +865,7 @@ namespace PubNubChatAPI.Entities
 
             var createdChannelPointer = pn_chat_get_created_channel_wrapper_channel(wrapperPointer);
             CUtilities.CheckCFunctionResult(createdChannelPointer);
-            TryGetChannel(createdChannelPointer, out var createdChannel);
+            OLD_TryGetChannel(createdChannelPointer, out var createdChannel);
 
             var hostMembershipPointer = pn_chat_get_created_channel_wrapper_host_membership(wrapperPointer);
             CUtilities.CheckCFunctionResult(hostMembershipPointer);
@@ -842,7 +886,7 @@ namespace PubNubChatAPI.Entities
             };
         }
 
-        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId = "",
+        public async Task<CreatedChannelWrapper> OLD_CreateGroupConversation(List<User> users, string channelId = "",
             ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
         {
             if (string.IsNullOrEmpty(channelId))
@@ -873,7 +917,7 @@ namespace PubNubChatAPI.Entities
 
             var createdChannelPointer = pn_chat_get_created_channel_wrapper_channel(wrapperPointer);
             CUtilities.CheckCFunctionResult(createdChannelPointer);
-            TryGetChannel(createdChannelPointer, out var createdChannel);
+            OLD_TryGetChannel(createdChannelPointer, out var createdChannel);
 
             var hostMembershipPointer = pn_chat_get_created_channel_wrapper_host_membership(wrapperPointer);
             CUtilities.CheckCFunctionResult(hostMembershipPointer);
@@ -915,6 +959,40 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetChannelAsync"/>
         public bool TryGetChannel(string channelId, out Channel channel)
         {
+            channel = GetChannelAsync(channelId).Result;
+            return channel != null;
+        }
+
+        /// <summary>
+        /// Performs an async retrieval of a Channel object with a given ID.
+        /// </summary>
+        /// <param name="channelId">ID of the channel.</param>
+        /// <returns>Channel object if it exists, null otherwise.</returns>
+        public async Task<Channel?> GetChannelAsync(string channelId)
+        {
+            if (channelWrappers.TryGetValue(channelId, out var existingChannel))
+            {
+                await existingChannel.Resync();
+                return existingChannel;
+            }
+            else
+            {
+                var data = await Channel.GetChannelData(this, channelId);
+                if (data == null)
+                {
+                    return null;
+                }
+                else
+                {
+                    var channel = new Channel(this, channelId, data);
+                    channelWrappers.Add(channelId, channel);
+                    return channel;
+                }
+            }
+        }
+        
+        public bool OLD_TryGetChannel(string channelId, out Channel channel)
+        {
             //Fetching and updating a ThreadChannel
             if (channelId.Contains("PUBNUB_INTERNAL_THREAD_"))
             {
@@ -939,31 +1017,26 @@ namespace PubNubChatAPI.Entities
             else
             {
                 var channelPointer = pn_chat_get_channel(chatPointer, channelId);
-                return TryGetChannel(channelId, channelPointer, out channel);
+                return OLD_TryGetChannel(channelId, channelPointer, out channel);
             }
         }
-
-        /// <summary>
-        /// Performs an async retrieval of a Channel object with a given ID.
-        /// </summary>
-        /// <param name="channelId">ID of the channel.</param>
-        /// <returns>Channel object if it exists, null otherwise.</returns>
-        public async Task<Channel?> GetChannelAsync(string channelId)
+        
+        public async Task<Channel?> OLD_GetChannelAsync(string channelId)
         {
             return await Task.Run(() =>
             {
-                var result = TryGetChannel(channelId, out var channel);
+                var result = OLD_TryGetChannel(channelId, out var channel);
                 return result ? channel : null;
             });
         }
 
-        internal bool TryGetChannel(IntPtr channelPointer, out Channel channel)
+        internal bool OLD_TryGetChannel(IntPtr channelPointer, out Channel channel)
         {
             var channelId = Channel.GetChannelIdFromPtr(channelPointer);
-            return TryGetChannel(channelId, channelPointer, out channel);
+            return OLD_TryGetChannel(channelId, channelPointer, out channel);
         }
 
-        internal bool TryGetChannel(string channelId, IntPtr channelPointer, out Channel channel)
+        internal bool OLD_TryGetChannel(string channelId, IntPtr channelPointer, out Channel channel)
         {
             return TryGetWrapper(channelWrappers, channelId, channelPointer,
                 () => new Channel(this, channelId, channelPointer), out channel);
@@ -972,12 +1045,12 @@ namespace PubNubChatAPI.Entities
         //The TryGetChannel updates the pointer, these methods are for internal logic explicity sake
         internal void UpdateChannelPointer(IntPtr newPointer)
         {
-            TryGetChannel(newPointer, out _);
+            OLD_TryGetChannel(newPointer, out _);
         }
 
         internal void UpdateChannelPointer(string id, IntPtr newPointer)
         {
-            TryGetChannel(id, newPointer, out _);
+            OLD_TryGetChannel(id, newPointer, out _);
         }
 
         public async Task<ChannelsResponseWrapper> GetChannels(string filter = "", string sort = "", int limit = 0,
@@ -1207,7 +1280,7 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="User"/>
-        public async Task<User> CreateUser(string userId)
+        public async Task<User?> CreateUser(string userId)
         {
             return await CreateUser(userId, new ChatUserData());
         }
@@ -1229,18 +1302,26 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="User"/>
-        public async Task<User> CreateUser(string userId, ChatUserData additionalData)
+        public async Task<User?> CreateUser(string userId, ChatUserData additionalData)
         {
-            if (userWrappers.TryGetValue(userId, out var existingUser))
+            var existingUser = await GetUserAsync(userId);
+            if (existingUser != null)
             {
                 Debug.WriteLine("Trying to create a user with ID that already exists! Returning existing one.");
                 return existingUser;
             }
-
-            var user = new User(this, userId, additionalData);
-            await User.UpdateUserData(this, userId, additionalData);
-            userWrappers.Add(userId, user);
-            return user;
+            
+            var updated = await User.UpdateUserData(this, userId, additionalData);
+            if (updated)
+            {
+                var user = new User(this, userId, additionalData);
+                userWrappers.Add(userId, user);
+                return user;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -1265,7 +1346,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="WherePresent"/>
         public async Task<bool> IsPresent(string userId, string channelId)
         {
-            if (TryGetChannel(channelId, out var channel))
+            if (OLD_TryGetChannel(channelId, out var channel))
             {
                 return await channel.IsUserPresent(userId);
             }
@@ -1297,7 +1378,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="IsPresent"/>
         public async Task<List<string>> WhoIsPresent(string channelId)
         {
-            if (TryGetChannel(channelId, out var channel))
+            if (OLD_TryGetChannel(channelId, out var channel))
             {
                 return await channel.WhoIsPresent();
             }
@@ -1664,7 +1745,7 @@ namespace PubNubChatAPI.Entities
             string sort = "",
             int limit = 0, Page page = null)
         {
-            if (!TryGetChannel(channelId, out var channel))
+            if (!OLD_TryGetChannel(channelId, out var channel))
             {
                 return new MembersResponseWrapper();
             }
@@ -1725,7 +1806,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetMessageAsync"/>
         public bool TryGetMessage(string channelId, string messageTimeToken, out Message message)
         {
-            if (!TryGetChannel(channelId, out var channel))
+            if (!OLD_TryGetChannel(channelId, out var channel))
             {
                 message = null;
                 return false;
@@ -1926,7 +2007,7 @@ namespace PubNubChatAPI.Entities
 
         public async Task PinMessageToChannel(string channelId, Message message)
         {
-            if (TryGetChannel(channelId, out var channel))
+            if (OLD_TryGetChannel(channelId, out var channel))
             {
                 await channel.PinMessage(message);
             }
@@ -1934,7 +2015,7 @@ namespace PubNubChatAPI.Entities
 
         public async Task UnpinMessageFromChannel(string channelId)
         {
-            if (TryGetChannel(channelId, out var channel))
+            if (OLD_TryGetChannel(channelId, out var channel))
             {
                 await channel.UnpinMessage();
             }
@@ -1968,7 +2049,7 @@ namespace PubNubChatAPI.Entities
             int count)
         {
             var messages = new List<Message>();
-            if (!TryGetChannel(channelId, out var channel))
+            if (!OLD_TryGetChannel(channelId, out var channel))
             {
                 Debug.WriteLine("Didn't find the channel for history fetch!");
                 return messages;

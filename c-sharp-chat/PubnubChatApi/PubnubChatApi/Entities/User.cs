@@ -357,9 +357,9 @@ namespace PubNubChatAPI.Entities
             await UpdateUserData(chat, Id, updatedData);
         }
 
-        internal static async Task UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
+        internal static async Task<bool> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
         {
-            await chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true)
+            var result = await chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true)
                 .Uuid(userId)
                 .Name(chatUserData.Username)
                 .Email(chatUserData.Email)
@@ -367,11 +367,17 @@ namespace PubNubChatAPI.Entities
                 .ProfileUrl(chatUserData.ProfileUrl)
                 .Custom(new Dictionary<string, object>()
                 {
-                    { "Status", chatUserData.Status},
-                    { "Type", chatUserData.Type},
-                    { "CustomDataJson", chatUserData.CustomDataJson}
+                    { "status", chatUserData.Status},
+                    { "type", chatUserData.Type},
+                    { "custom", chatUserData.CustomDataJson}
                 })
                 .ExecuteAsync();
+            if (result.Status.Error)
+            {
+                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to update user data for user \"{userId}\": {result.Status.ErrorData.Information}");
+                return false;
+            }
+            return true;
         }
         
         internal static async Task<ChatUserData?> GetUserData(Chat chat, string userId)
@@ -393,8 +399,12 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        internal void UpdateLocalData(ChatUserData newData)
+        internal void UpdateLocalData(ChatUserData? newData)
         {
+            if (newData == null)
+            {
+                return;
+            }
             userData = newData;
         }
         

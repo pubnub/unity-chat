@@ -20,7 +20,7 @@ public class ThreadsTests
             "threads_tests_user_2")
         );
         var randomId = Guid.NewGuid().ToString()[..10];
-        channel = await chat.CreatePublicConversation(randomId);
+        channel = await chat.OLD_CreatePublicConversation(randomId);
         if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();

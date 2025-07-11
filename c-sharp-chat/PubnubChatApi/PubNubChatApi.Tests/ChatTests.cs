@@ -18,7 +18,7 @@ public class ChatTests
             PubnubTestsParameters.PublishKey,
             PubnubTestsParameters.SubscribeKey,
             "chats_tests_user_10_no_calkiem_nowy_2"));
-        channel = await chat.CreatePublicConversation("chat_tests_channel_2");
+        channel = await chat.OLD_CreatePublicConversation("chat_tests_channel_2");
         if (!chat.OLD_TryGetCurrentUser(out currentUser))
         {
             Assert.Fail();
@@ -93,7 +93,7 @@ public class ChatTests
     {
         var convoUser = await chat.GetOrCreateUser("direct_conversation_user");
         var directConversation =
-            await chat.CreateDirectConversation(convoUser, "direct_conversation_test");
+            await chat.OLD_CreateDirectConversation(convoUser, "direct_conversation_test");
         Assert.True(directConversation.CreatedChannel is { Id: "direct_conversation_test" });
         Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(directConversation.InviteesMemberships != null &&
@@ -107,7 +107,7 @@ public class ChatTests
         var convoUser2 = await chat.GetOrCreateUser("group_conversation_user_2");
         var convoUser3 = await chat.GetOrCreateUser("group_conversation_user_3");
         var groupConversation = await 
-            chat.CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
+            chat.OLD_CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
         Assert.True(groupConversation.CreatedChannel is { Id: "group_conversation_test" });
         Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(groupConversation.InviteesMemberships is { Count: 3 });
@@ -120,7 +120,7 @@ public class ChatTests
     {
         var messageForwardReceivedManualEvent = new ManualResetEvent(false);
 
-        var forwardingChannel = await chat.CreatePublicConversation("forwarding_channel");
+        var forwardingChannel = await chat.OLD_CreatePublicConversation("forwarding_channel");
         forwardingChannel.OnMessageReceived += message =>
         {
             Assert.True(message.MessageText == "message_to_forward");
@@ -190,7 +190,7 @@ public class ChatTests
             PubnubTestsParameters.SubscribeKey,
             "other_chat_user")
         );
-        if (!otherChat.TryGetChannel(channel.Id, out var otherChatChannel))
+        if (!otherChat.OLD_TryGetChannel(channel.Id, out var otherChatChannel))
         {
             Assert.Fail();
             return;

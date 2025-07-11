@@ -19,7 +19,7 @@ public class MessageTests
             PubnubTestsParameters.SubscribeKey,
             "message_tests_user_2")
         );
-        channel = await chat.CreatePublicConversation("message_tests_channel_2");
+        channel = await chat.OLD_CreatePublicConversation("message_tests_channel_2");
         if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
@@ -60,7 +60,7 @@ public class MessageTests
     public async Task TestReceivingMessageData()
     {
         var manualReceiveEvent = new ManualResetEvent(false);
-        var testChannel = await chat.CreatePublicConversation("message_data_test_channel");
+        var testChannel = await chat.OLD_CreatePublicConversation("message_data_test_channel");
         testChannel.Join();
         await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
@@ -200,7 +200,7 @@ public class MessageTests
     [Test]
     public async Task TestPinMessage()
     {
-        var pinTestChannel = await chat.CreatePublicConversation();
+        var pinTestChannel = await chat.OLD_CreatePublicConversation();
         pinTestChannel.Join();
         await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);

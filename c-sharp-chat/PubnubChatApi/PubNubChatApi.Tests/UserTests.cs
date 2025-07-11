@@ -20,7 +20,7 @@ public class UserTests
             "user_tests_user", 
             storeUserActivityTimestamp: true)
         );
-        channel = await chat.CreatePublicConversation("user_tests_channel");
+        channel = await chat.OLD_CreatePublicConversation("user_tests_channel");
         if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
@@ -108,7 +108,7 @@ public class UserTests
     [Test]
     public async Task TestUserWherePresent()
     {
-        var someChannel = await chat.CreatePublicConversation();
+        var someChannel = await chat.OLD_CreatePublicConversation();
         someChannel.Join();
 
         await Task.Delay(4000);
@@ -121,7 +121,7 @@ public class UserTests
     [Test]
     public async Task TestUserIsPresentOn()
     {
-        var someChannel = await chat.CreatePublicConversation();
+        var someChannel = await chat.OLD_CreatePublicConversation();
         someChannel.Join();
 
         await Task.Delay(4000);

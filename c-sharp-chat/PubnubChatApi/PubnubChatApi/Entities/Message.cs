@@ -457,7 +457,7 @@ namespace PubNubChatAPI.Entities
 
         public virtual async Task Forward(string channelId)
         {
-            if (chat.TryGetChannel(channelId, out var channel))
+            if (chat.OLD_TryGetChannel(channelId, out var channel))
             {
                 await chat.ForwardMessage(this, channel);
             }

@@ -19,7 +19,7 @@ public class ChatEventTests
             PubnubTestsParameters.SubscribeKey,
             "event_tests_user")
         );
-        channel = await chat.CreatePublicConversation("event_tests_channel");
+        channel = await chat.OLD_CreatePublicConversation("event_tests_channel");
         if (!chat.OLD_TryGetCurrentUser(out user))
         {
             Assert.Fail();
