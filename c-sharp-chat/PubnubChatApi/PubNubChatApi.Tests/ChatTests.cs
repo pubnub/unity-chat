@@ -65,7 +65,7 @@ public class ChatTests
     [Test]
     public async Task TestGetEventHistory()
     {
-        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
+        await chat.OLD_EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
 
         await Task.Delay(5000);
 
@@ -95,9 +95,9 @@ public class ChatTests
         var directConversation =
             await chat.OLD_CreateDirectConversation(convoUser, "direct_conversation_test");
         Assert.True(directConversation.CreatedChannel is { Id: "direct_conversation_test" });
-        Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.UserId == currentUser.Id);
+        Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.OLD_UserId == currentUser.Id);
         Assert.True(directConversation.InviteesMemberships != null &&
-                    directConversation.InviteesMemberships.First().UserId == convoUser.Id);
+                    directConversation.InviteesMemberships.First().OLD_UserId == convoUser.Id);
     }
 
     [Test]
@@ -109,10 +109,10 @@ public class ChatTests
         var groupConversation = await 
             chat.OLD_CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
         Assert.True(groupConversation.CreatedChannel is { Id: "group_conversation_test" });
-        Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.UserId == currentUser.Id);
+        Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.OLD_UserId == currentUser.Id);
         Assert.True(groupConversation.InviteesMemberships is { Count: 3 });
         Assert.True(groupConversation.InviteesMemberships.Any(x =>
-            x.UserId == convoUser1.Id && x.ChannelId == "group_conversation_test"));
+            x.OLD_UserId == convoUser1.Id && x.OLD_ChannelId == "group_conversation_test"));
     }
 
     [Test]
@@ -148,7 +148,7 @@ public class ChatTests
         };
         channel.SetListeningForCustomEvents(true);
         await Task.Delay(2500);
-        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
+        await chat.OLD_EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
 
         var eventReceived = reportManualEvent.WaitOne(8000);
         Assert.True(eventReceived);

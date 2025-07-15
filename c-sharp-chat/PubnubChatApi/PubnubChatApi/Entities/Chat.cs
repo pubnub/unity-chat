@@ -773,7 +773,8 @@ namespace PubNubChatAPI.Entities
                 PubnubInstance.PNConfig.Logger?.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
                 return existingChannel;
             }
-            
+
+            additionalData.ChannelType = "public";
             var updated = await Channel.UpdateChannelData(this, channelId, additionalData);
             if (updated)
             {
@@ -787,16 +788,111 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public async Task<CreatedChannelWrapper> CreateDirectConversation(User user, string channelId = "",
-            ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
+        private async Task<CreatedChannelWrapper?> CreateConversation(
+            string type, 
+            List<User> users, 
+            string channelId = "", 
+            ChatChannelData? channelData = null, 
+            ChatMembershipData? membershipData = null)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(channelId))
+            {
+                channelId = Guid.NewGuid().ToString();
+            }
+            
+            var existingChannel = await GetChannelAsync(channelId);
+            if (existingChannel != null)
+            {
+                PubnubInstance.PNConfig.Logger?.Warn("Trying to create a channel with ID that already exists! Aborting.");
+                return null;
+            }
+            
+            channelData ??= new ChatChannelData();
+            channelData.ChannelType = type;
+            var updated = await Channel.UpdateChannelData(this, channelId, channelData);
+            if (!updated)
+            {
+                return null;
+            }
+            
+            membershipData ??= new ChatMembershipData();
+            var currentUserId = PubnubInstance.GetCurrentUserId();
+            var setMembershipResult = await PubnubInstance.SetMemberships()
+                .Uuid(currentUserId)
+                .Include(
+                    new[]
+                    {
+                        PNMembershipField.CHANNEL_CUSTOM,
+                        PNMembershipField.CUSTOM,
+                        PNMembershipField.CHANNEL,
+                        PNMembershipField.STATUS,
+                        PNMembershipField.TYPE,
+                    })
+                .Channels(new List<PNMembership>() { new ()
+                {
+                    Channel = channelId,
+                    Custom = membershipData.CustomData,
+                    Status = membershipData.Status,
+                    Type = membershipData.Type
+                }})
+                .ExecuteAsync();
+            
+            if (setMembershipResult.Status.Error)
+            {
+                PubnubInstance.PNConfig.Logger?.Error($"Error when trying to set memberships for {type} conversation: {setMembershipResult.Status.Error}");
+                return null;
+            }
+
+            var responseWrapper = new CreatedChannelWrapper();
+            if (membershipWrappers.TryGetValue(currentUserId + channelId, out var existingHostMembership))
+            {
+                existingHostMembership.UpdateLocalData(membershipData);
+                responseWrapper.HostMembership = existingHostMembership;
+            }
+            else
+            {
+                var hostMembership = new Membership(this, currentUserId, channelId, membershipData);
+                membershipWrappers.Add(hostMembership.Id, hostMembership);
+                responseWrapper.HostMembership = hostMembership;
+            }
+            
+            var channel = new Channel(this, channelId, channelData);
+            channelWrappers.Add(channelId, channel);
+
+            if (type == "direct")
+            {
+                var inviteMembership = await InviteToChannel(channelId, users[0].Id);
+                if (inviteMembership == null)
+                {
+                    PubnubInstance.PNConfig.Logger?.Error($"Error when trying to invite user \"{users[0].Id}\" to direct conversation \"{channelId}\": {setMembershipResult.Status.Error}");
+                    return null;
+                }
+                responseWrapper.InviteesMemberships = new List<Membership>() { inviteMembership };
+            }else if (type == "group")
+            {
+                var inviteMembership = await InviteMultipleToChannel(channelId, users);
+                if (inviteMembership?.Count == 0)
+                {
+                    PubnubInstance.PNConfig.Logger?.Error($"Error when trying to invite users to group conversation \"{channelId}\": {setMembershipResult.Status.Error}");
+                    return null;
+                }
+                responseWrapper.InviteesMemberships = new List<Membership>(inviteMembership);
+            }
+            return responseWrapper;
         }
 
-        public async Task<CreatedChannelWrapper> CreateGroupConversation(List<User> users, string channelId = "",
+        public async Task<CreatedChannelWrapper?> CreateDirectConversation(User user, string channelId = "",
             ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
         {
-            throw new NotImplementedException();
+            return await CreateConversation("direct", new List<User>() { user }, channelId, channelData,
+                membershipData);
+        }
+
+        public async Task<CreatedChannelWrapper?> CreateGroupConversation(List<User> users, string channelId = "",
+            ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
+        {
+            return await CreateConversation("group", users, channelId, channelData,
+                membershipData);
         }
         
         public async Task<Channel> OLD_CreatePublicConversation(string channelId = "")
@@ -857,7 +953,7 @@ namespace PubNubChatAPI.Entities
                     user.Pointer, channelId,
                     channelData.ChannelName,
                     channelData.ChannelDescription, channelData.ChannelCustomDataJson, channelData.ChannelUpdated,
-                    channelData.ChannelStatus, channelData.ChannelType, membershipData.CustomDataJson,
+                    channelData.ChannelStatus, channelData.ChannelType, membershipData.OLD_CustomDataJson,
                     membershipData.Type, membershipData.Status));
             }
 
@@ -869,7 +965,7 @@ namespace PubNubChatAPI.Entities
 
             var hostMembershipPointer = pn_chat_get_created_channel_wrapper_host_membership(wrapperPointer);
             CUtilities.CheckCFunctionResult(hostMembershipPointer);
-            TryGetMembership(hostMembershipPointer, out var hostMembership);
+            OLD_TryGetMembership(hostMembershipPointer, out var hostMembership);
 
             var buffer = new StringBuilder(8192);
             CUtilities.CheckCFunctionResult(
@@ -909,7 +1005,7 @@ namespace PubNubChatAPI.Entities
                     chatPointer,
                     users.Select(x => x.Pointer).ToArray(), users.Count, channelId, channelData.ChannelName,
                     channelData.ChannelDescription, channelData.ChannelCustomDataJson, channelData.ChannelUpdated,
-                    channelData.ChannelStatus, channelData.ChannelType, membershipData.CustomDataJson,
+                    channelData.ChannelStatus, channelData.ChannelType, membershipData.OLD_CustomDataJson,
                     membershipData.Type, membershipData.Status));
             }
 
@@ -921,7 +1017,7 @@ namespace PubNubChatAPI.Entities
 
             var hostMembershipPointer = pn_chat_get_created_channel_wrapper_host_membership(wrapperPointer);
             CUtilities.CheckCFunctionResult(hostMembershipPointer);
-            TryGetMembership(hostMembershipPointer, out var hostMembership);
+            OLD_TryGetMembership(hostMembershipPointer, out var hostMembership);
 
             var buffer = new StringBuilder(8192);
             CUtilities.CheckCFunctionResult(
@@ -936,6 +1032,121 @@ namespace PubNubChatAPI.Entities
                 HostMembership = hostMembership,
                 InviteesMemberships = inviteeMemberships
             };
+        }
+
+        public async Task<Membership?> InviteToChannel(string channelId, string userId)
+        {
+            //Check if already a member first
+            var members = await GetChannelMemberships(channelId, filter:$"uuid.id == \"{userId}\"");
+            if (members != null && members.Memberships.Any())
+            {
+                //Already a member, just return current membership
+                return members.Memberships[0];
+            }
+            
+            var channel = await GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                PubnubInstance.PNConfig?.Logger.Error($"Error: tried to invite user \"{userId}\" to channel \"{channelId}\" but such channel doesn't exist!");
+                return null;
+            }
+
+            var response = await PubnubInstance.SetMemberships().Uuid(userId).Include(new[]
+            {
+                PNMembershipField.CUSTOM,
+                PNMembershipField.TYPE,
+                PNMembershipField.CHANNEL,
+                PNMembershipField.CHANNEL_CUSTOM,
+                PNMembershipField.STATUS
+            }).Channels(new List<PNMembership>()
+            {
+                new()
+                {
+                    Channel = channelId,
+                    //TODO: these too here?
+                    //TODO: again, should ChatMembershipData from Create(...)Channel also be passed here?
+                    /*Custom = ,
+                    Status = ,
+                    Type = */
+                }
+            }).ExecuteAsync();
+
+            if (response.Status.Error)
+            {
+                PubnubInstance.PNConfig?.Logger.Error($"Error when trying to invite user \"{userId}\" to channel \"{channelId}\": {response.Status.ErrorData.Information}");
+                return null;
+            }
+            
+            var newMataData = response.Result.Memberships?.FirstOrDefault(x => x.ChannelMetadata.Channel == channelId)?
+                .ChannelMetadata;
+            if (newMataData != null)
+            {
+                channel.UpdateLocalData(newMataData);
+            }
+
+            var inviteEventPayload = $"{{\"channelType\": \"{channel.Type}\", \"channelId\": {channelId}}}";
+            await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload);
+            
+            var newMembership = new Membership(this, userId, channelId, new ChatMembershipData());
+            await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
+            membershipWrappers.Add(newMembership.Id, newMembership);
+
+            return newMembership;
+        }
+
+        public async Task<List<Membership>> InviteMultipleToChannel(string channelId, List<User> users)
+        {
+            var memberships = new List<Membership>();
+            var channel = await GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                PubnubInstance.PNConfig?.Logger.Error($"Error: tried to invite multiple users to channel \"{channelId}\" but such channel doesn't exist!");
+                return memberships;
+            }
+            var inviteResponse = await PubnubInstance.SetChannelMembers().Channel(channelId)
+                .Include(
+                    //TODO: C# FIX, MISSING VALUES
+                    new[] { 
+                        PNChannelMemberField.UUID, 
+                        PNChannelMemberField.CUSTOM, 
+                        PNChannelMemberField.UUID_CUSTOM
+                    })
+                //TODO: again, should ChatMembershipData from Create(...)Channel  also be passed here?
+                .Uuids(users.Select(x => new PNChannelMember() { Custom = x.CustomData, Uuid = x.Id }).ToList())
+                .ExecuteAsync();
+            
+            if (inviteResponse.Status.Error)
+            {
+                PubnubInstance.PNConfig?.Logger.Error($"Error when trying to invite multiple users to channel \"{channelId}\": {inviteResponse.Status.ErrorData.Information}");
+                return memberships;
+            }
+            
+            var usersDict = users.ToDictionary(x => x.Id, y => y);
+            foreach (var channelMember in inviteResponse.Result.ChannelMembers)
+            {
+                var userId = channelMember.UuidMetadata.Uuid;
+                if (membershipWrappers.TryGetValue(userId + channelId,
+                        out var existingMembership))
+                {
+                    usersDict[userId].UpdateLocalData(channelMember.UuidMetadata);
+                    existingMembership.UpdateLocalData(channelMember);
+                    memberships.Add(existingMembership);
+                }
+                else
+                {
+                    var newMembership = new Membership(this, userId, channelId, channelMember);
+                    await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
+                    membershipWrappers.Add(newMembership.Id, newMembership);
+                    memberships.Add(newMembership);
+                }
+                
+                var inviteEventPayload = $"{{\"channelType\": \"{channel.Type}\", \"channelId\": {channelId}}}";
+                await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload);
+            }
+
+            await channel.Resync();
+
+            return memberships;
         }
 
         /// <summary>
@@ -1252,7 +1463,7 @@ namespace PubNubChatAPI.Entities
                 additionalData.ExternalId,
                 additionalData.ProfileUrl,
                 additionalData.Email,
-                additionalData.CustomDataJson,
+                additionalData.OLD_CustomDataJson,
                 additionalData.Status,
                 additionalData.Status));
             CUtilities.CheckCFunctionResult(userPointer);
@@ -1582,7 +1793,7 @@ namespace PubNubChatAPI.Entities
                 updatedData.ExternalId,
                 updatedData.ProfileUrl,
                 updatedData.Email,
-                updatedData.CustomDataJson,
+                updatedData.OLD_CustomDataJson,
                 updatedData.Status,
                 updatedData.Type));
             CUtilities.CheckCFunctionResult(newPointer);
@@ -1741,7 +1952,56 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Membership"/>
-        public async Task<MembersResponseWrapper> GetChannelMemberships(string channelId, string filter = "",
+        public async Task<MembersResponseWrapper?> GetChannelMemberships(string channelId, string filter = "",
+            string sort = "",
+            int limit = 0, PNPageObject page = null)
+        {
+            var result = await PubnubInstance.GetChannelMembers().Include(
+                    new[]
+                    {
+                        //TODO: C# FIX
+                        //PNChannelMemberField.CHANNEL_CUSTOM,
+                        PNChannelMemberField.CUSTOM,
+                        //PNChannelMemberField.CHANNEL,
+                        //PNChannelMemberField.STATUS,
+                    }).Channel(channelId).Filter(filter).Sort(new List<string>() { sort })
+                .Limit(limit).Page(page).ExecuteAsync();
+            if (result.Status.Error)
+            {
+                PubnubInstance.PNConfig.Logger?.Error($"Error when trying to get \"{channelId}\" channel members: {result.Status.ErrorData.Information}");
+                return null;
+            }
+
+            var memberships = new List<Membership>();
+            foreach (var channelMemberResult in result.Result.ChannelMembers)
+            {
+                var membershipId = channelMemberResult.UuidMetadata.Uuid + channelId;
+                if (membershipWrappers.TryGetValue(membershipId, out var existingMembershipWrapper))
+                {
+                    existingMembershipWrapper.MembershipData.CustomData = channelMemberResult.Custom;
+                    memberships.Add(existingMembershipWrapper);
+                }
+                else
+                {
+                    memberships.Add(new Membership(this, channelMemberResult.UuidMetadata.Uuid, channelId, new ChatMembershipData()
+                    {
+                        CustomData = channelMemberResult.Custom
+                    }));
+                }
+            }
+            return new MembersResponseWrapper()
+            {
+                Memberships = memberships,
+                Page = new Page()
+                {
+                    Next = result.Result.Page.Next,
+                    Previous = result.Result.Page.Prev
+                },
+                Total = result.Result.TotalCount
+            };
+        }
+        
+        public async Task<MembersResponseWrapper> OLD_GetChannelMemberships(string channelId, string filter = "",
             string sort = "",
             int limit = 0, Page page = null)
         {
@@ -1760,13 +2020,13 @@ namespace PubNubChatAPI.Entities
             return new MembersResponseWrapper(this, internalWrapper);
         }
 
-        private bool TryGetMembership(IntPtr membershipPointer, out Membership membership)
+        private bool OLD_TryGetMembership(IntPtr membershipPointer, out Membership membership)
         {
             var membershipId = Membership.GetMembershipIdFromPtr(membershipPointer);
-            return TryGetMembership(membershipId, membershipPointer, out membership);
+            return OLD_TryGetMembership(membershipId, membershipPointer, out membership);
         }
 
-        internal bool TryGetMembership(string membershipId, IntPtr membershipPointer, out Membership membership)
+        internal bool OLD_TryGetMembership(string membershipId, IntPtr membershipPointer, out Membership membership)
         {
             return TryGetWrapper(membershipWrappers, membershipId, membershipPointer,
                 () => new Membership(this, membershipPointer, membershipId), out membership);
@@ -2100,8 +2360,16 @@ namespace PubNubChatAPI.Entities
 
             return JsonConvert.DeserializeObject<EventsHistoryWrapper>(wrapperJson);
         }
-
+        
         public async Task EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload)
+        {
+            jsonPayload = jsonPayload.Remove(0, 1);
+            jsonPayload = jsonPayload.Remove(jsonPayload.Length - 1);
+            var fullPayload = $"{{{jsonPayload}, \"type\": {ChatEnumConverters.ChatEventTypeToString(type)}}}";
+            await PubnubInstance.Publish().Channel(channelId).Message(fullPayload).ExecuteAsync();
+        }
+
+        public async Task OLD_EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload)
         {
             CUtilities.CheckCFunctionResult(await Task.Run(() =>
                 pn_chat_emit_event(chatPointer, (byte)type, channelId, jsonPayload)));

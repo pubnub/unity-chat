@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using Newtonsoft.Json;
+using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
 using PubnubChatApi.Enums;
@@ -295,6 +296,9 @@ namespace PubNubChatAPI.Entities
         private IntPtr typingListeningHandle;
         private IntPtr presenceListeningHandle;
         protected IntPtr connectionHandle;
+
+        protected Subscription subscription;
+        
         private Dictionary<string, Timer> typingIndicators = new();
 
         /// <summary>
@@ -385,7 +389,6 @@ namespace PubNubChatAPI.Entities
 
         internal static async Task<bool> UpdateChannelData(Chat chat, string channelId, ChatChannelData data)
         {
-            //chat.PubnubInstance.setmem
             var result = await chat.PubnubInstance.SetChannelMetadata().IncludeCustom(true)
                 .Channel(channelId)
                 .Name(data.ChannelName)
@@ -662,78 +665,6 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Connects to the channel.
-        /// <para>
-        /// Connects to the channel and starts receiving messages. 
-        /// After connecting, the <see cref="OnMessageReceived"/> event is triggered when a message is received.
-        /// </para>
-        /// </summary>
-        /// <example>
-        /// <code>
-        /// var channel = //...
-        /// channel.OnMessageReceived += (message) => {
-        ///   Console.WriteLine($"Message received: {message.Text}");
-        /// };
-        /// channel.Connect();
-        /// </code>
-        /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while connecting to the channel.</exception>
-        /// <seealso cref="OnMessageReceived"/>
-        /// <seealso cref="Disconnect"/>
-        /// <seealso cref="Join"/>
-        public async void Connect()
-        {
-            if (connectionHandle != IntPtr.Zero)
-            {
-                return;
-            }
-
-            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
-        }
-
-        /// <summary>
-        /// Joins the channel.
-        /// <para>
-        /// Joins the channel and starts receiving messages.
-        /// After joining, the <see cref="OnMessageReceived"/> event is triggered when a message is received.
-        /// Additionally, there is a possibility to add additional parameters to the join request.
-        /// It also adds the membership to the channel.
-        /// </para>
-        /// </summary>
-        /// <example>
-        /// <code>
-        /// var channel = //...
-        /// channel.OnMessageReceived += (message) => {
-        ///  Console.WriteLine($"Message received: {message.Text}");
-        /// };
-        /// channel.Join();
-        /// </code>
-        /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while joining the channel.</exception>
-        /// <seealso cref="OnMessageReceived"/>
-        /// <seealso cref="Connect"/>
-        /// <seealso cref="Disconnect"/>
-        public async void Join(ChatMembershipData? membershipData = null)
-        {
-            if (connectionHandle != IntPtr.Zero)
-            {
-                return;
-            }
-
-            if (membershipData == null)
-            {
-                connectionHandle =
-                    await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
-            }
-            else
-            {
-                connectionHandle = await SetListening(connectionHandle, true,
-                    () => pn_channel_join_with_membership_data(pointer, membershipData.CustomDataJson,
-                        membershipData.Type, membershipData.Status));
-            }
-        }
-
-        /// <summary>
         /// Disconnects from the channel.
         /// <para>
         /// Disconnects from the channel and stops receiving messages.
@@ -803,6 +734,78 @@ namespace PubNubChatAPI.Entities
                 pn_callback_handle_dispose(connectionHandleCopy);
                 return 0;
             }));
+        }
+
+        /// <summary>
+        /// Connects to the channel.
+        /// <para>
+        /// Connects to the channel and starts receiving messages. 
+        /// After connecting, the <see cref="OnMessageReceived"/> event is triggered when a message is received.
+        /// </para>
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// var channel = //...
+        /// channel.OnMessageReceived += (message) => {
+        ///   Console.WriteLine($"Message received: {message.Text}");
+        /// };
+        /// channel.Connect();
+        /// </code>
+        /// </example>
+        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while connecting to the channel.</exception>
+        /// <seealso cref="OnMessageReceived"/>
+        /// <seealso cref="Disconnect"/>
+        /// <seealso cref="Join"/>
+        public async void Connect()
+        {
+            if (connectionHandle != IntPtr.Zero)
+            {
+                return;
+            }
+
+            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
+        }
+        
+        /// <summary>
+        /// Joins the channel.
+        /// <para>
+        /// Joins the channel and starts receiving messages.
+        /// After joining, the <see cref="OnMessageReceived"/> event is triggered when a message is received.
+        /// Additionally, there is a possibility to add additional parameters to the join request.
+        /// It also adds the membership to the channel.
+        /// </para>
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// var channel = //...
+        /// channel.OnMessageReceived += (message) => {
+        ///  Console.WriteLine($"Message received: {message.Text}");
+        /// };
+        /// channel.Join();
+        /// </code>
+        /// </example>
+        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while joining the channel.</exception>
+        /// <seealso cref="OnMessageReceived"/>
+        /// <seealso cref="Connect"/>
+        /// <seealso cref="Disconnect"/>
+        public async void Join(ChatMembershipData? membershipData = null)
+        {
+            if (connectionHandle != IntPtr.Zero)
+            {
+                return;
+            }
+
+            if (membershipData == null)
+            {
+                connectionHandle =
+                    await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
+            }
+            else
+            {
+                connectionHandle = await SetListening(connectionHandle, true,
+                    () => pn_channel_join_with_membership_data(pointer, membershipData.OLD_CustomDataJson,
+                        membershipData.Type, membershipData.Status));
+            }
         }
 
         /// <summary>
@@ -1053,10 +1056,16 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the list of memberships.</exception>
         /// <seealso cref="Membership"/>
-        public async Task<MembersResponseWrapper> GetMemberships(string filter = "", string sort = "", int limit = 0,
-            Page page = null)
+        public async Task<MembersResponseWrapper?> GetMemberships(string filter = "", string sort = "", int limit = 0,
+            PNPageObject page = null)
         {
             return await chat.GetChannelMemberships(Id, filter, sort, limit, page);
+        }
+        
+        public async Task<MembersResponseWrapper> OLD_GetMemberships(string filter = "", string sort = "", int limit = 0,
+            Page page = null)
+        {
+            return await chat.OLD_GetChannelMemberships(Id, filter, sort, limit, page);
         }
 
         /// <summary>
@@ -1099,17 +1108,27 @@ namespace PubNubChatAPI.Entities
         {
             return await chat.GetChannelMessageHistory(Id, startTimeToken, endTimeToken, count);
         }
+        
+        public async Task<Membership?> Invite(User user)
+        {
+            return await chat.InviteToChannel(Id, user.Id);
+        }
 
-        public async Task<Membership> Invite(User user)
+        public async Task<Membership> OLD_Invite(User user)
         {
             var membershipPointer = await Task.Run(() => pn_channel_invite_user(pointer, user.Pointer));
             CUtilities.CheckCFunctionResult(membershipPointer);
             var membershipId = Membership.GetMembershipIdFromPtr(membershipPointer);
-            chat.TryGetMembership(membershipId, membershipPointer, out var membership);
+            chat.OLD_TryGetMembership(membershipId, membershipPointer, out var membership);
             return membership;
         }
-
+        
         public async Task<List<Membership>> InviteMultiple(List<User> users)
+        {
+            return await chat.InviteMultipleToChannel(Id, users);
+        }
+
+        public async Task<List<Membership>> OLD_InviteMultiple(List<User> users)
         {
             var buffer = new StringBuilder(8192);
             CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_invite_multiple(pointer,

@@ -3,7 +3,7 @@ using PubNubChatAPI.Entities;
 
 namespace PubnubChatApi.Entities.Data
 {
-    public struct CreatedChannelWrapper
+    public class CreatedChannelWrapper
     {
         public Channel CreatedChannel;
         public Membership HostMembership;

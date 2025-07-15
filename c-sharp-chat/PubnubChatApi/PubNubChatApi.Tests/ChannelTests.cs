@@ -96,17 +96,17 @@ public class ChannelTests
 
         await Task.Delay(3000);
 
-        var memberships = await channel.GetMemberships();
+        var memberships = await channel.OLD_GetMemberships();
         
-        Assert.True(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Join failed, current user not found in channel memberships");
+        Assert.True(memberships.Memberships.Any(x => x.OLD_UserId == currentChatUser.Id), "Join failed, current user not found in channel memberships");
         
         channel.Leave();
         
         await Task.Delay(3000);
         
-        memberships = await channel.GetMemberships();
+        memberships = await channel.OLD_GetMemberships();
         
-        Assert.False(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Leave failed, current user found in channel memberships");
+        Assert.False(memberships.Memberships.Any(x => x.OLD_UserId == currentChatUser.Id), "Leave failed, current user found in channel memberships");
     }
 
     [Test]
@@ -118,7 +118,7 @@ public class ChannelTests
         await Task.Delay(5000);
         
         var suggestions = await channel.GetUserSuggestions("@Test");
-        Assert.True(suggestions.Any(x => x.UserId == user.Id));
+        Assert.True(suggestions.Any(x => x.OLD_UserId == user.Id));
     }
     
     [Test]
@@ -127,7 +127,7 @@ public class ChannelTests
         var channel = await chat.OLD_CreatePublicConversation("get_members_test_channel");
         channel.Join();
         await Task.Delay(3500);
-        var memberships = await channel.GetMemberships();
+        var memberships = await channel.OLD_GetMemberships();
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
     }
 

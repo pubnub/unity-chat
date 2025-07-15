@@ -30,7 +30,7 @@ namespace PubnubChatApi.Utilities
             foreach (var membershipPointer in membershipPointers)
             {
                 var id = Membership.GetMembershipIdFromPtr(membershipPointer);
-                if (chat.TryGetMembership(id, membershipPointer, out var membership))
+                if (chat.OLD_TryGetMembership(id, membershipPointer, out var membership))
                 {
                     memberships.Add(membership);
                 }

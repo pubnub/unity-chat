@@ -190,7 +190,7 @@ namespace PubNubChatAPI.Entities
         /// This might be any custom data that you want to store for the user.
         /// </para>
         /// </summary>
-        public string CustomData => userData.CustomDataJson;
+        public Dictionary<string, object> CustomData => userData.CustomData;
 
         /// <summary>
         /// The user's status.
@@ -369,7 +369,7 @@ namespace PubNubChatAPI.Entities
                 {
                     { "status", chatUserData.Status},
                     { "type", chatUserData.Type},
-                    { "custom", chatUserData.CustomDataJson}
+                    { "custom", chatUserData.OLD_CustomDataJson}
                 })
                 .ExecuteAsync();
             if (result.Status.Error)

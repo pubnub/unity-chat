@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
@@ -72,10 +74,23 @@ namespace PubNubChatAPI.Entities
 
         #endregion
 
+
         /// <summary>
         /// The user ID of the user that this membership belongs to.
         /// </summary>
-        public string UserId
+        public string UserId { get; }
+
+        /// <summary>
+        /// The channel ID of the channel that this membership belongs to.
+        /// </summary>
+        public string ChannelId { get; }
+        
+        /// <summary>
+        /// The string time token of last read message on the membership channel.
+        /// </summary>
+        public string LastReadMessageTimeToken => MembershipData.CustomData.TryGetValue("lastReadMessageTimetoken", out var timeToken) ? timeToken.ToString() : "";
+        
+        public string OLD_UserId
         {
             get
             {
@@ -84,11 +99,8 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
-
-        /// <summary>
-        /// The channel ID of the channel that this membership belongs to.
-        /// </summary>
-        public string ChannelId
+        
+        public string OLD_ChannelId
         {
             get
             {
@@ -97,11 +109,8 @@ namespace PubNubChatAPI.Entities
                 return buffer.ToString();
             }
         }
-
-        /// <summary>
-        /// Returns a class with additional Membership data.
-        /// </summary>
-        public ChatMembershipData MembershipData
+        
+        public ChatMembershipData OLD_MembershipData
         {
             get
             {
@@ -118,6 +127,8 @@ namespace PubNubChatAPI.Entities
             }
         }
 
+        public ChatMembershipData MembershipData { get; private set; }
+
         /// <summary>
         /// Event that is triggered when the membership is updated.
         /// <para>
@@ -133,7 +144,7 @@ namespace PubNubChatAPI.Entities
         /// };
         /// </code>
         /// </example>
-        /// <seealso cref="Update"/>
+        /// <seealso cref="OLD_Update"/>
         public event Action<Membership> OnMembershipUpdated;
 
         private Chat chat;
@@ -142,6 +153,19 @@ namespace PubNubChatAPI.Entities
             membershipId)
         {
             this.chat = chat;
+        }
+
+        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(userId+channelId)
+        {
+            UserId = userId;
+            ChannelId = channelId;
+            UpdateLocalData(membershipData);
+            this.chat = chat;
+        }
+
+        internal void UpdateLocalData(ChatMembershipData newData)
+        {
+            MembershipData = newData;
         }
 
         protected override IntPtr StreamUpdates()
@@ -183,13 +207,51 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMembershipUpdated"/>
         public async Task Update(ChatMembershipData membershipData)
         {
-            var newPointer = await Task.Run(() => pn_membership_update_dirty(pointer, membershipData.CustomDataJson,
+            var updateSuccess = await UpdateMembershipData(membershipData);
+            if (updateSuccess)
+            {
+                UpdateLocalData(membershipData);
+            }
+        }
+
+        internal async Task<bool> UpdateMembershipData(ChatMembershipData membershipData)
+        {
+            var updateResponse = await chat.PubnubInstance.SetMemberships().Uuid(UserId).Channels(new List<PNMembership>()
+            {
+                new()
+                {
+                    Channel = ChannelId,
+                    Custom = membershipData.CustomData,
+                    Status = membershipData.Status,
+                    Type = membershipData.Type
+                }
+            }).Include(new[]
+            {
+                PNMembershipField.TYPE,
+                PNMembershipField.CUSTOM,
+                PNMembershipField.STATUS,
+                PNMembershipField.CHANNEL,
+                PNMembershipField.CHANNEL_CUSTOM
+            }).ExecuteAsync();
+
+            if (updateResponse.Status.Error)
+            {
+                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to update membership (channel: {ChannelId}, user: {UserId}): {updateResponse.Status.ErrorData.Information}");
+                return false;
+            }
+
+            return true;
+        }
+        
+        public async Task OLD_Update(ChatMembershipData membershipData)
+        {
+            var newPointer = await Task.Run(() => pn_membership_update_dirty(pointer, membershipData.OLD_CustomDataJson,
                 membershipData.Type, membershipData.Status));
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
 
-        public string GetLastReadMessageTimeToken()
+        public string OLD_GetLastReadMessageTimeToken()
         {
             var buffer = new StringBuilder(128);
             CUtilities.CheckCFunctionResult(pn_membership_last_read_message_timetoken(pointer, buffer));
@@ -202,8 +264,17 @@ namespace PubNubChatAPI.Entities
             CUtilities.CheckCFunctionResult(newPointer);
             UpdatePointer(newPointer);
         }
-
+        
         public async Task SetLastReadMessageTimeToken(string timeToken)
+        {
+            MembershipData.CustomData["lastReadMessageTimetoken"] = timeToken;
+            if (await UpdateMembershipData(MembershipData))
+            {
+                await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId, $"{{\"messageTimetoken\": \"{timeToken}\"}}");
+            }
+        }
+
+        public async Task OLD_SetLastReadMessageTimeToken(string timeToken)
         {
             var newPointer = await Task.Run(() => pn_membership_set_last_read_message_timetoken(pointer, timeToken));
             CUtilities.CheckCFunctionResult(newPointer);

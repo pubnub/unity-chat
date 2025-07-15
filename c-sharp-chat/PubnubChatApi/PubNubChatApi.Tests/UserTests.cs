@@ -80,7 +80,7 @@ public class UserTests
         await testUser.OLD_Update(new ChatUserData()
         {
             Username = newRandomUserName,
-            CustomDataJson = "{\"some_key\":\"some_value\"}",
+            OLD_CustomDataJson = "{\"some_key\":\"some_value\"}",
             Email = "some@guy.com",
             ExternalId = "xxx_some_guy_420_xxx",
             ProfileUrl = "www.some.guy",

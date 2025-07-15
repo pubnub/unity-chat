@@ -5,12 +5,16 @@ using PubnubChatApi.Utilities;
 
 namespace PubnubChatApi.Entities.Data
 {
-    public struct MembersResponseWrapper
+    public class MembersResponseWrapper
     {
-        public List<Membership> Memberships;
-        public Page Page;
+        public List<Membership> Memberships = new ();
+        public Page Page = new ();
         public int Total;
         public string Status;
+
+        internal MembersResponseWrapper()
+        {
+        }
 
         internal MembersResponseWrapper(Chat chat, InternalMembersResponseWrapper internalWrapper)
         {
