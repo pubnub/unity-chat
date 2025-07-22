@@ -1,16 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
-using Newtonsoft.Json;
 using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
-using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
 namespace PubNubChatAPI.Entities
@@ -24,215 +19,6 @@ namespace PubNubChatAPI.Entities
     /// </summary>
     public class Channel : UniqueChatEntity
     {
-        #region DLL Imports
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_delete(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_connect(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_disconnect(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_join(IntPtr channel, string additional_params);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_leave(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_set_restrictions(IntPtr channel, string user_id, bool ban_user,
-            bool mute_user, string reason);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_channel_id(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_get_user_restrictions(
-            IntPtr channel,
-            IntPtr user,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_data_channel_name(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_data_description(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_data_custom_data_json(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_data_updated(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_data_status(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_channel_get_data_type(
-            IntPtr channel,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_is_present(IntPtr channel, string user_id);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_who_is_present(IntPtr channel, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_invite_user(IntPtr channel, IntPtr user);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_invite_multiple(IntPtr channel, IntPtr[] users, int users_length,
-            StringBuilder result_json);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_start_typing(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_stop_typing(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_pin_message(IntPtr channel, IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_unpin_message(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_get_pinned_message(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_create_message_draft_dirty(IntPtr channel,
-            int user_suggestion_source,
-            bool is_typing_indicator_triggered,
-            int user_limit,
-            int channel_limit);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_emit_user_mention(IntPtr channel, string user_id, string timetoken,
-            string text);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_update_with_base(IntPtr channel, IntPtr base_channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_get_user_suggestions(IntPtr channel, string text, int limit,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_send_text_dirty(
-            IntPtr channel,
-            string message,
-            bool store_in_history,
-            bool send_by_post,
-            string meta,
-            int mentioned_users_length,
-            int[] mentioned_users_indexes,
-            IntPtr[] mentioned_users,
-            IntPtr quoted_message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_channel_get_users_restrictions(IntPtr channel, string sort, int limit, string next,
-            string prev, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_stream_read_receipts(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_stream_message_reports(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_stream_updates(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_get_typing(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_stream_presence(IntPtr channel);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_channel_join_with_membership_data(
-            IntPtr channel,
-            string membership_custom_json,
-            string membership_type,
-            string membership_status
-        );
-
-        #endregion
-        
-        public string OLD_Name
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_channel_name(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public string OLD_Description
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_description(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public string OLD_CustomDataJson
-        {
-            get
-            {
-                var buffer = new StringBuilder(2048);
-                pn_channel_get_data_custom_data_json(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-        
-        public string OLD_Updated
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_updated(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public string OLD_Status
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_status(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-        
-        public string OLD_Type
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_channel_get_data_type(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
         /// <summary>
         /// The name of the channel.
         ///
@@ -258,10 +44,7 @@ namespace PubNubChatAPI.Entities
         /// The custom data that can be used to store additional information about the channel.
         /// </para>
         /// </summary>
-        /// <remarks>
-        /// The custom data is stored in JSON format.
-        /// </remarks>
-        public string CustomDataJson => channelData.ChannelCustomDataJson;
+        public Dictionary<string, object> CustomData => channelData.ChannelCustomData;
 
         /// <summary>
         /// The information about the last update of the channel.
@@ -290,12 +73,6 @@ namespace PubNubChatAPI.Entities
         private ChatChannelData channelData;
 
         protected Chat chat;
-        private IntPtr customEventsListeningHandle;
-        private IntPtr reportEventsListeningHandle;
-        private IntPtr readReceiptsListeningHandle;
-        private IntPtr typingListeningHandle;
-        private IntPtr presenceListeningHandle;
-        protected IntPtr connectionHandle;
 
         protected Subscription? subscription;
         
@@ -367,11 +144,6 @@ namespace PubNubChatAPI.Entities
         public event Action<ChatEvent> OnReportEvent;
         public event Action<ChatEvent> OnCustomEvent;
 
-        internal Channel(Chat chat, string channelId, IntPtr channelPointer) : base(channelPointer, channelId)
-        {
-            this.chat = chat;
-        }
-
         internal Channel(Chat chat, string channelId, ChatChannelData data) : base(channelId)
         {
             this.chat = chat;
@@ -393,12 +165,10 @@ namespace PubNubChatAPI.Entities
                 .Channel(channelId)
                 .Name(data.ChannelName)
                 .Description(data.ChannelDescription)
-                .Custom(new Dictionary<string, object>()
-                {
-                    {"custom", data.ChannelCustomDataJson},
-                    {"updated", data.ChannelUpdated},
-                    {"status", data.ChannelStatus},
-                })
+                //TODO: C# FIX
+                //.Status(data.ChannelStatus)
+                //.Updated(data.ChannelUpdated)
+                .Custom(data.ChannelCustomData)
                 .ExecuteAsync();
             if (result.Status.Error)
             {
@@ -435,15 +205,9 @@ namespace PubNubChatAPI.Entities
             UpdateLocalData(newData);
         }
 
-        protected override IntPtr StreamUpdates()
-        {
-            return pn_channel_stream_updates(pointer);
-        }
-
         public async void SetListeningForCustomEvents(bool listen)
         {
-            customEventsListeningHandle = await SetListening(customEventsListeningHandle, listen,
-                () => chat.ListenForEvents(Id, PubnubChatEventType.Custom));
+            throw new NotImplementedException();
         }
 
         internal void BroadcastCustomEvent(ChatEvent chatEvent)
@@ -453,8 +217,7 @@ namespace PubNubChatAPI.Entities
 
         public async void SetListeningForReportEvents(bool listen)
         {
-            reportEventsListeningHandle = await SetListening(reportEventsListeningHandle, listen,
-                () => pn_channel_stream_message_reports(pointer));
+            throw new NotImplementedException();
         }
 
         internal void BroadcastReportEvent(ChatEvent chatEvent)
@@ -464,29 +227,19 @@ namespace PubNubChatAPI.Entities
 
         public async void SetListeningForReadReceiptsEvents(bool listen)
         {
-            readReceiptsListeningHandle = await SetListening(readReceiptsListeningHandle, listen,
-                () => pn_channel_stream_read_receipts(pointer));
+            throw new NotImplementedException();
         }
 
         public async void SetListeningForTyping(bool listen)
         {
-            typingListeningHandle = await SetListening(typingListeningHandle, listen,
-                () => pn_channel_get_typing(pointer));
+            throw new NotImplementedException();
         }
 
         public async void SetListeningForPresence(bool listen)
         {
-            presenceListeningHandle = await SetListening(presenceListeningHandle, listen,
-                () => pn_channel_stream_presence(pointer));
+            throw new NotImplementedException();
         }
-
-        internal static string GetChannelIdFromPtr(IntPtr channelPointer)
-        {
-            var buffer = new StringBuilder(512);
-            pn_channel_get_channel_id(channelPointer, buffer);
-            return buffer.ToString();
-        }
-
+        
         internal void BroadcastMessageReceived(Message message)
         {
             OnMessageReceived?.Invoke(message);
@@ -495,13 +248,6 @@ namespace PubNubChatAPI.Entities
         internal void BroadcastReadReceipt(Dictionary<string, List<string>?> readReceiptEventData)
         {
             OnReadReceiptEvent?.Invoke(readReceiptEventData);
-        }
-
-        internal override void UpdateWithPartialPtr(IntPtr partialPointer)
-        {
-            var newFullPointer = pn_channel_update_with_base(partialPointer, pointer);
-            CUtilities.CheckCFunctionResult(newFullPointer);
-            UpdatePointer(newFullPointer);
         }
 
         internal void BroadcastChannelUpdate()
@@ -560,32 +306,27 @@ namespace PubNubChatAPI.Entities
 
         public async Task EmitUserMention(string userId, string timeToken, string text)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() =>
-                pn_channel_emit_user_mention(pointer, userId, timeToken, text)));
+            throw new NotImplementedException();
         }
 
         public async Task StartTyping()
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_start_typing(pointer)));
+            throw new NotImplementedException();
         }
 
         public async Task StopTyping()
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_stop_typing(pointer)));
+            throw new NotImplementedException();
         }
 
         public virtual async Task PinMessage(Message message)
         {
-            var newPointer = await Task.Run(() => pn_channel_pin_message(pointer, message.Pointer));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
+            throw new NotImplementedException();
         }
 
         public virtual async Task UnpinMessage()
         {
-            var newPointer = await Task.Run(() => pn_channel_unpin_message(pointer));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
+            throw new NotImplementedException();
         }
 
         //TODO: currently same result whether error or no pinned message present
@@ -597,21 +338,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetPinnedMessageAsync"/>
         public bool TryGetPinnedMessage(out Message pinnedMessage)
         {
-            var pinnedMessagePointer = pn_channel_get_pinned_message(pointer);
-            if (pinnedMessagePointer != IntPtr.Zero)
-            {
-                var id = Message.GetMessageIdFromPtr(pinnedMessagePointer);
-                //TODO: this loose wrapper will cause problems of it's own but I don't see another solution for now
-                //TODO: will be improved with the final ThreadMessage/Message divorce anyway
-                pinnedMessage = new Message(chat, pinnedMessagePointer, id);
-                return true;
-            }
-            else
-            {
-                pinnedMessage = null;
-                Debug.WriteLine($"Error when fetching pinned message: {CUtilities.GetErrorMessage()}");
-                return false;
-            }
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -629,22 +356,7 @@ namespace PubNubChatAPI.Entities
 
         public async Task<List<Membership>> GetUserSuggestions(string text, int limit = 10)
         {
-            var buffer = new StringBuilder(2048);
-            CUtilities.CheckCFunctionResult(await Task.Run(() =>
-                pn_channel_get_user_suggestions(pointer, text, limit, buffer)));
-            var resultJson = buffer.ToString();
-            if (!CUtilities.IsValidJson(resultJson))
-            {
-                return new List<Membership>();
-            }
-
-            var jsonDict = JsonConvert.DeserializeObject<Dictionary<string, IntPtr[]>>(resultJson);
-            if (jsonDict == null || !jsonDict.TryGetValue("value", out var pointers) || pointers == null)
-            {
-                return new List<Membership>();
-            }
-
-            return PointerParsers.ParseJsonMembershipPointers(chat, pointers);
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -658,10 +370,7 @@ namespace PubNubChatAPI.Entities
         public MessageDraft CreateMessageDraft(UserSuggestionSource userSuggestionSource = UserSuggestionSource.GLOBAL,
             bool isTypingIndicatorTriggered = true, int userLimit = 10, int channelLimit = 10)
         {
-            var draftPointer = pn_channel_create_message_draft_dirty(
-                pointer, (int)userSuggestionSource, isTypingIndicatorTriggered, userLimit, channelLimit);
-            CUtilities.CheckCFunctionResult(draftPointer);
-            return new MessageDraft(draftPointer);
+            throw new NotImplementedException();
         }
         
         /// <summary>
@@ -830,70 +539,6 @@ namespace PubNubChatAPI.Entities
             
             Connect();
         }
-        
-        public void OLD_Disconnect()
-        {
-            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
-            {
-                return;
-            }
-
-            CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer));
-            pn_callback_handle_dispose(connectionHandle);
-            connectionHandle = IntPtr.Zero;
-        }
-        
-        public async void OLD_Leave()
-        {
-            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
-            {
-                return;
-            }
-
-            var connectionHandleCopy = connectionHandle;
-            connectionHandle = IntPtr.Zero;
-            CUtilities.CheckCFunctionResult(await Task.Run(() =>
-            {
-                if (pointer == IntPtr.Zero)
-                {
-                    return 0;
-                }
-                
-                pn_channel_leave(pointer);
-                pn_callback_handle_dispose(connectionHandleCopy);
-                return 0;
-            }));
-        }
-        
-        public async void OLD_Connect()
-        {
-            if (connectionHandle != IntPtr.Zero)
-            {
-                return;
-            }
-
-            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
-        }
-        
-        public async void OLD_Join(ChatMembershipData? membershipData = null)
-        {
-            if (connectionHandle != IntPtr.Zero)
-            {
-                return;
-            }
-
-            if (membershipData == null)
-            {
-                connectionHandle =
-                    await SetListening(connectionHandle, true, () => pn_channel_join(pointer, string.Empty));
-            }
-            else
-            {
-                connectionHandle = await SetListening(connectionHandle, true,
-                    () => pn_channel_join_with_membership_data(pointer, membershipData.OLD_CustomDataJson,
-                        membershipData.Type, membershipData.Status));
-            }
-        }
 
         /// <summary>
         /// Sets the restrictions for the user.
@@ -916,9 +561,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetUserRestrictions"/>
         public async Task SetRestrictions(string userId, bool banUser, bool muteUser, string reason)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_set_restrictions(pointer, userId, banUser,
-                muteUser,
-                reason)));
+            throw new NotImplementedException();
         }
 
         public async Task SetRestrictions(string userId, Restriction restriction)
@@ -949,16 +592,7 @@ namespace PubNubChatAPI.Entities
 
         public virtual async Task SendText(string message, SendTextParams sendTextParams)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_send_text_dirty(
-                pointer,
-                message,
-                sendTextParams.StoreInHistory,
-                sendTextParams.SendByPost,
-                sendTextParams.Meta,
-                sendTextParams.MentionedUsers.Count,
-                sendTextParams.MentionedUsers.Keys.ToArray(),
-                sendTextParams.MentionedUsers.Values.Select(x => x.Pointer).ToArray(),
-                sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer)));
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1032,36 +666,13 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="SetRestrictions"/>
         public async Task<Restriction> GetUserRestrictions(User user)
         {
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() =>
-                pn_channel_get_user_restrictions(pointer, user.Pointer, buffer)));
-            var restrictionJson = buffer.ToString();
-            var restriction = new Restriction();
-            if (CUtilities.IsValidJson(restrictionJson))
-            {
-                restriction = JsonConvert.DeserializeObject<Restriction>(restrictionJson);
-            }
-
-            return restriction;
+            throw new NotImplementedException();
         }
 
         public async Task<UsersRestrictionsWrapper> GetUsersRestrictions(string sort = "", int limit = 0,
             Page page = null)
         {
-            page ??= new Page();
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(
-                await Task.Run(() =>
-                    pn_channel_get_users_restrictions(pointer, sort, limit, page.Next, page.Previous, buffer)));
-            var restrictionsJson = buffer.ToString();
-            if (!CUtilities.IsValidJson(restrictionsJson))
-            {
-                return new UsersRestrictionsWrapper();
-            }
-
-            var wrapper = JsonConvert.DeserializeObject<UsersRestrictionsWrapper>(restrictionsJson);
-            wrapper ??= new UsersRestrictionsWrapper();
-            return wrapper;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1083,9 +694,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="WhoIsPresent"/>
         public async Task<bool> IsUserPresent(string userId)
         {
-            var result = await Task.Run(() => pn_channel_is_present(pointer, userId));
-            CUtilities.CheckCFunctionResult(result);
-            return result == 1;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1108,17 +717,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="IsUserPresent"/>
         public async Task<List<string>> WhoIsPresent()
         {
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_who_is_present(pointer, buffer)));
-            var jsonResult = buffer.ToString();
-            var ret = new List<string>();
-            if (CUtilities.IsValidJson(jsonResult))
-            {
-                ret = JsonConvert.DeserializeObject<List<string>>(jsonResult);
-                ret ??= new List<string>();
-            }
-
-            return ret;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1147,12 +746,6 @@ namespace PubNubChatAPI.Entities
             PNPageObject page = null)
         {
             return await chat.GetChannelMemberships(Id, filter, sort, limit, page);
-        }
-        
-        public async Task<MembersResponseWrapper> OLD_GetMemberships(string filter = "", string sort = "", int limit = 0,
-            Page page = null)
-        {
-            return await chat.OLD_GetChannelMemberships(Id, filter, sort, limit, page);
         }
 
         /// <summary>
@@ -1200,50 +793,10 @@ namespace PubNubChatAPI.Entities
         {
             return await chat.InviteToChannel(Id, user.Id);
         }
-
-        public async Task<Membership> OLD_Invite(User user)
-        {
-            var membershipPointer = await Task.Run(() => pn_channel_invite_user(pointer, user.Pointer));
-            CUtilities.CheckCFunctionResult(membershipPointer);
-            var membershipId = Membership.GetMembershipIdFromPtr(membershipPointer);
-            chat.OLD_TryGetMembership(membershipId, membershipPointer, out var membership);
-            return membership;
-        }
         
         public async Task<List<Membership>> InviteMultiple(List<User> users)
         {
             return await chat.InviteMultipleToChannel(Id, users);
-        }
-
-        public async Task<List<Membership>> OLD_InviteMultiple(List<User> users)
-        {
-            var buffer = new StringBuilder(8192);
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_channel_invite_multiple(pointer,
-                users.Select(x => x.Pointer).ToArray(),
-                users.Count, buffer)));
-            return PointerParsers.ParseJsonMembershipPointers(chat, buffer.ToString());
-        }
-
-        protected override async Task CleanupConnectionHandles()
-        {
-            await base.CleanupConnectionHandles();
-            customEventsListeningHandle = await SetListening(customEventsListeningHandle, false,
-                () => chat.ListenForEvents(Id, PubnubChatEventType.Custom));
-            reportEventsListeningHandle = await SetListening(reportEventsListeningHandle, false,
-                () => pn_channel_stream_message_reports(pointer));
-            readReceiptsListeningHandle = await SetListening(readReceiptsListeningHandle, false,
-                () => pn_channel_stream_read_receipts(pointer));
-            typingListeningHandle = await SetListening(typingListeningHandle, false,
-                () => pn_channel_get_typing(pointer));
-            presenceListeningHandle = await SetListening(presenceListeningHandle, false,
-                () => pn_channel_stream_presence(pointer));
-            OLD_Disconnect();
-        }
-
-        protected override void DisposePointer()
-        {
-            pn_channel_delete(pointer);
-            pointer = IntPtr.Zero;
         }
     }
 }

@@ -13,12 +13,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Update="pubnub-chat.dll">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="PubnubPCL" Version="7.3.15" />
     </ItemGroup>

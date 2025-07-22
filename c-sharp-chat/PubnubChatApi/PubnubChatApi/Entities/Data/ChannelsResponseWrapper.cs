@@ -10,19 +10,5 @@ namespace PubnubChatApi.Entities.Data
         public List<Channel> Channels;
         public Page Page;
         public int Total;
-
-        internal ChannelsResponseWrapper(Chat chat, InternalChannelsResponseWrapper internalWrapper)
-        {
-            Page = internalWrapper.Page;
-            Total = internalWrapper.Total;
-            Channels = PointerParsers.ParseJsonChannelPointers(chat, internalWrapper.Channels);
-        }
-    }
-
-    internal struct InternalChannelsResponseWrapper
-    {
-        public IntPtr[] Channels;
-        public Page Page;
-        public int Total;
     }
 }

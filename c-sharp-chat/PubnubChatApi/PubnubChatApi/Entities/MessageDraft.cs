@@ -63,53 +63,6 @@ namespace PubNubChatAPI.Entities
             public List<SuggestedMention> SuggestedMentions;
         }
         
-        #region DLL Imports
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_draft_delete(IntPtr message_draft);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_insert_text(IntPtr message_draft, int position,
-            string text_to_insert);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_remove_text(IntPtr message_draft, int position, int length);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_insert_suggested_mention(IntPtr message_draft, int offset,
-            string replace_from, string replace_to, string target_json, string text);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_add_mention(IntPtr message_draft, int start, int length,
-            string target);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_remove_mention(IntPtr message_draft, int start);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_update(IntPtr message_draft, string text);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_send(IntPtr message_draft,
-            bool store_in_history,
-            bool send_by_post,
-            string meta,
-            int mentioned_users_length,
-            int[] mentioned_users_indexes,
-            IntPtr[] mentioned_users,
-            IntPtr quoted_message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_draft_consume_callback_data(IntPtr message_draft, StringBuilder data);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_draft_set_search_for_suggestions(IntPtr message_draft,
-            bool search_for_suggestions);
-
-        #endregion
-
-        private IntPtr pointer;
-        
         public event Action<List<MessageElement>, List<SuggestedMention>> OnDraftUpdated; 
         
         //TODO: will see if these stay non-accessible
@@ -139,22 +92,9 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         public Message QuotedMessage { get; }*/
 
-        internal MessageDraft(IntPtr pointer)
-        {
-            this.pointer = pointer;
-        }
-
         private void BroadcastDraftUpdate()
         {
-            var buffer = new StringBuilder(4096);
-            CUtilities.CheckCFunctionResult(pn_message_draft_consume_callback_data(pointer, buffer));
-            var callbackDataJson = buffer.ToString();
-            var callbackData = JsonConvert.DeserializeObject<DraftCallbackDataHelper>(callbackDataJson);
-            if (callbackData == null)
-            {
-                return;
-            }
-            OnDraftUpdated?.Invoke(callbackData.MessageElements, callbackData.SuggestedMentions);
+            throw new NotImplementedException();
         }
         
         /// <summary>
@@ -164,8 +104,7 @@ namespace PubNubChatAPI.Entities
         /// <param name="text">Text the text to insert at the given offset</param>
         public void InsertText(int offset, string text)
         {
-            CUtilities.CheckCFunctionResult(pn_message_draft_insert_text(pointer, offset, text));
-            BroadcastDraftUpdate();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -175,8 +114,7 @@ namespace PubNubChatAPI.Entities
         /// <param name="length">Length the number of characters to remove, starting at the given offset</param>
         public void RemoveText(int offset, int length)
         {
-            CUtilities.CheckCFunctionResult(pn_message_draft_remove_text(pointer, offset, length));
-            BroadcastDraftUpdate();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -187,10 +125,7 @@ namespace PubNubChatAPI.Entities
         /// <param name="text">The text to replace SuggestedMention.ReplaceFrom with. SuggestedMention.ReplaceTo can be used for example.</param>
         public void InsertSuggestedMention(SuggestedMention mention, string text)
         {
-            var jsonMentionTarget = JsonConvert.SerializeObject(mention.Target);
-            CUtilities.CheckCFunctionResult(pn_message_draft_insert_suggested_mention(pointer, mention.Offset,
-                mention.ReplaceFrom, mention.ReplaceTo, jsonMentionTarget, text));
-            BroadcastDraftUpdate();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -201,9 +136,7 @@ namespace PubNubChatAPI.Entities
         /// <param name="target">The target of the mention</param>
         public void AddMention(int offset, int length, MentionTarget target)
         {
-            var jsonMentionTarget = JsonConvert.SerializeObject(target);
-            CUtilities.CheckCFunctionResult(pn_message_draft_add_mention(pointer, offset, length, jsonMentionTarget));
-            BroadcastDraftUpdate();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -212,8 +145,7 @@ namespace PubNubChatAPI.Entities
         /// <param name="offset">Offset the start of the mention to remove</param>
         public void RemoveMention(int offset)
         {
-            CUtilities.CheckCFunctionResult(pn_message_draft_remove_mention(pointer, offset));
-            BroadcastDraftUpdate();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -226,8 +158,7 @@ namespace PubNubChatAPI.Entities
         /// <param name="text"></param>
         public void Update(string text)
         {
-            CUtilities.CheckCFunctionResult(pn_message_draft_update(pointer, text));
-            BroadcastDraftUpdate();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -244,25 +175,12 @@ namespace PubNubChatAPI.Entities
         /// <param name="sendTextParams">Additional parameters for sending the message.</param>
         public async Task Send(SendTextParams sendTextParams)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_message_draft_send(
-                pointer,
-                sendTextParams.StoreInHistory,
-                sendTextParams.SendByPost,
-                sendTextParams.Meta,
-                sendTextParams.MentionedUsers.Count,
-                sendTextParams.MentionedUsers.Keys.ToArray(),
-                sendTextParams.MentionedUsers.Values.Select(x => x.Pointer).ToArray(),
-                sendTextParams.QuotedMessage == null ? IntPtr.Zero : sendTextParams.QuotedMessage.Pointer)));
+            throw new NotImplementedException();
         }
 
         public void SetSearchForSuggestions(bool searchForSuggestions)
         {
-            pn_message_draft_set_search_for_suggestions(pointer, searchForSuggestions);
-        }
-
-        ~MessageDraft()
-        {
-            pn_message_draft_delete(pointer);
+            throw new NotImplementedException();
         }
     }
 }

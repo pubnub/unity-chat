@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
+using Channel = PubNubChatAPI.Entities.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,23 +16,24 @@ public class ChatTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "chats_tests_user_10_no_calkiem_nowy_2"));
-        channel = await chat.OLD_CreatePublicConversation("chat_tests_channel_2");
-        if (!chat.OLD_TryGetCurrentUser(out currentUser))
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("chats_tests_user_10_no_calkiem_nowy_2"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        channel = await chat.CreatePublicConversation("chat_tests_channel_2");
+        if (!chat.TryGetCurrentUser(out currentUser))
         {
             Assert.Fail();
         }
-        channel.OLD_Join();
+        channel.Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.OLD_Leave();
+        channel.Leave();
         await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
@@ -53,19 +56,19 @@ public class ChatTests
         var mentions = await chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10);
         
         Assert.True(mentions != null);
-        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.OLD_MessageText == messageContent));
+        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText == messageContent));
     }
 
     [Test]
     public async Task TestGetCurrentUser()
     {
-        Assert.True(chat.OLD_TryGetCurrentUser(out var currentUser) && currentUser.Id == this.currentUser.Id);
+        Assert.True(chat.TryGetCurrentUser(out var currentUser) && currentUser.Id == this.currentUser.Id);
     }
 
     [Test]
     public async Task TestGetEventHistory()
     {
-        await chat.OLD_EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
+        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
 
         await Task.Delay(5000);
 
@@ -76,7 +79,7 @@ public class ChatTests
     [Test]
     public async Task TestGetUsers()
     {
-        var users = await chat.OLD_GetUsers();
+        var users = await chat.GetUsers();
         Assert.True(users.Users.Any());
     }
 
@@ -93,11 +96,11 @@ public class ChatTests
     {
         var convoUser = await chat.GetOrCreateUser("direct_conversation_user");
         var directConversation =
-            await chat.OLD_CreateDirectConversation(convoUser, "direct_conversation_test");
+            await chat.CreateDirectConversation(convoUser, "direct_conversation_test");
         Assert.True(directConversation.CreatedChannel is { Id: "direct_conversation_test" });
-        Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.OLD_UserId == currentUser.Id);
+        Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(directConversation.InviteesMemberships != null &&
-                    directConversation.InviteesMemberships.First().OLD_UserId == convoUser.Id);
+                    directConversation.InviteesMemberships.First().UserId == convoUser.Id);
     }
 
     [Test]
@@ -107,12 +110,12 @@ public class ChatTests
         var convoUser2 = await chat.GetOrCreateUser("group_conversation_user_2");
         var convoUser3 = await chat.GetOrCreateUser("group_conversation_user_3");
         var groupConversation = await 
-            chat.OLD_CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
+            chat.CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test");
         Assert.True(groupConversation.CreatedChannel is { Id: "group_conversation_test" });
-        Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.OLD_UserId == currentUser.Id);
+        Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(groupConversation.InviteesMemberships is { Count: 3 });
         Assert.True(groupConversation.InviteesMemberships.Any(x =>
-            x.OLD_UserId == convoUser1.Id && x.OLD_ChannelId == "group_conversation_test"));
+            x.UserId == convoUser1.Id && x.ChannelId == "group_conversation_test"));
     }
 
     [Test]
@@ -120,13 +123,13 @@ public class ChatTests
     {
         var messageForwardReceivedManualEvent = new ManualResetEvent(false);
 
-        var forwardingChannel = await chat.OLD_CreatePublicConversation("forwarding_channel");
+        var forwardingChannel = await chat.CreatePublicConversation("forwarding_channel");
         forwardingChannel.OnMessageReceived += message =>
         {
-            Assert.True(message.OLD_MessageText == "message_to_forward");
+            Assert.True(message.MessageText == "message_to_forward");
             messageForwardReceivedManualEvent.Set();
         };
-        forwardingChannel.OLD_Join();
+        forwardingChannel.Join();
         await Task.Delay(2500);
         
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
@@ -148,7 +151,7 @@ public class ChatTests
         };
         channel.SetListeningForCustomEvents(true);
         await Task.Delay(2500);
-        await chat.OLD_EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
+        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
 
         var eventReceived = reportManualEvent.WaitOne(8000);
         Assert.True(eventReceived);
@@ -185,18 +188,18 @@ public class ChatTests
     [Test]
     public async Task TestReadReceipts()
     {
-        var otherChat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "other_chat_user")
-        );
-        if (!otherChat.OLD_TryGetChannel(channel.Id, out var otherChatChannel))
+        var otherChat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("other_chat_user"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        if (!otherChat.TryGetChannel(channel.Id, out var otherChatChannel))
         {
             Assert.Fail();
             return;
         }
 
-        otherChatChannel.OLD_Join();
+        otherChatChannel.Join();
         await Task.Delay(2500);
         otherChatChannel.SetListeningForReadReceiptsEvents(true);
         await Task.Delay(2500);
@@ -225,13 +228,12 @@ public class ChatTests
     {
         await Task.Delay(4000);
         
-        var accessChat = await Chat.CreateInstance(
-            new PubnubChatConfig(
-                PubnubTestsParameters.PublishKey,
-                PubnubTestsParameters.SubscribeKey,
-                "can_i_test_user",
-                authKey: "qEF2AkF0Gma8TDFDdHRsGX0AQ3Jlc6VEY2hhbqFyY2FuX2lfdGVzdF9jaGFubmVsEUNncnCgQ3NwY6BDdXNyoER1dWlkoW9jYW5faV90ZXN0X3VzZXIY_0NwYXSlRGNoYW6gQ2dycKBDc3BjoEN1c3KgRHV1aWSgRG1ldGGgRHV1aWRvY2FuX2lfdGVzdF91c2VyQ3NpZ1ggAEijACv1wHoiwQulMhEPFRKEb1C4MYIgfS0wyYMCj3Y="
-                ));
+        var accessChat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("can_i_test_user"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey,
+            AuthKey = "qEF2AkF0Gma8TDFDdHRsGX0AQ3Jlc6VEY2hhbqFyY2FuX2lfdGVzdF9jaGFubmVsEUNncnCgQ3NwY6BDdXNyoER1dWlkoW9jYW5faV90ZXN0X3VzZXIY_0NwYXSlRGNoYW6gQ2dycKBDc3BjoEN1c3KgRHV1aWSgRG1ldGGgRHV1aWRvY2FuX2lfdGVzdF91c2VyQ3NpZ1ggAEijACv1wHoiwQulMhEPFRKEb1C4MYIgfS0wyYMCj3Y="
+        });
         Assert.False(await accessChat.ChatAccessManager.CanI(PubnubAccessPermission.Write, PubnubAccessResourceType.Channels,
             "can_i_test_channel"));
         Assert.True(await accessChat.ChatAccessManager.CanI(PubnubAccessPermission.Read, PubnubAccessResourceType.Channels,

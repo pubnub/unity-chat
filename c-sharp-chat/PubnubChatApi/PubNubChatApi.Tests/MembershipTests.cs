@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
+using Channel = PubNubChatAPI.Entities.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,25 +16,25 @@ public class MembershipTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "membership_tests_user_54")
-        );
-        channel = await chat.OLD_CreatePublicConversation("membership_tests_channel");
-        if (!chat.OLD_TryGetCurrentUser(out user))
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("membership_tests_user_54"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        channel = await chat.CreatePublicConversation("membership_tests_channel");
+        if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
 
-        channel.OLD_Join();
+        channel.Join();
         await Task.Delay(3500);
     }
 
     [TearDown]
     public async Task CleanUp()
     {
-        channel.OLD_Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -42,7 +44,7 @@ public class MembershipTests
     public async Task TestGetMemberships()
     {
         var memberships = await user.GetMemberships();
-        Assert.True(memberships.Memberships.Any(x => x.OLD_ChannelId == channel.Id && x.OLD_UserId == user.Id));
+        Assert.True(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
 
     [Test]
@@ -58,22 +60,25 @@ public class MembershipTests
 
         var updateData = new ChatMembershipData()
         {
-            OLD_CustomDataJson = "{\"key\":\"" + Guid.NewGuid() + "\"}"
+            CustomData = new Dictionary<string, object>()
+            {
+                {"key", Guid.NewGuid().ToString()}
+            }
         };
 
         var manualUpdatedEvent = new ManualResetEvent(false);
         testMembership.OnMembershipUpdated += membership =>
         {
             Assert.True(membership.Id == testMembership.Id);
-            var updatedData = membership.OLD_MembershipData.OLD_CustomDataJson;
-            Assert.True(updatedData == updateData.OLD_CustomDataJson, $"{updatedData} != {updateData.OLD_CustomDataJson}");
+            var updatedData = membership.MembershipData.CustomData;
+            Assert.True(updatedData["key"].ToString() == updateData.CustomData["key"].ToString());
             manualUpdatedEvent.Set();
         };
         testMembership.SetListeningForUpdates(true);
 
         await Task.Delay(4000);
 
-        await testMembership.OLD_Update(updateData);
+        await testMembership.Update(updateData);
         var updated = manualUpdatedEvent.WaitOne(8000);
         Assert.IsTrue(updated);
     }
@@ -81,39 +86,39 @@ public class MembershipTests
     [Test]
     public async Task TestInvite()
     {
-        var testChannel = (await chat.OLD_CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
+        var testChannel = (await chat.CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
         var testUser = await chat.GetOrCreateUser("test_invite_user");
-        var returnedMembership = await testChannel.OLD_Invite(testUser);
-        Assert.True(returnedMembership.OLD_ChannelId == testChannel.Id && returnedMembership.OLD_UserId == testUser.Id);
+        var returnedMembership = await testChannel.Invite(testUser);
+        Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id);
     }
 
     [Test]
     public async Task TestInviteMultiple()
     {
-        var testChannel = (await chat.OLD_CreateGroupConversation([user], "invite_multiple_test_group_channel_3"))
+        var testChannel = (await chat.CreateGroupConversation([user], "invite_multiple_test_group_channel_3"))
             .CreatedChannel;
         var secondUser = await chat.GetOrCreateUser("second_invite_user");
         var thirdUser = await chat.GetOrCreateUser("third_invite_user");
-        var returnedMemberships = await testChannel.OLD_InviteMultiple([
+        var returnedMemberships = await testChannel.InviteMultiple([
             secondUser,
             thirdUser
         ]);
         Assert.True(
             returnedMemberships.Count == 2 &&
-            returnedMemberships.Any(x => x.OLD_UserId == secondUser.Id && x.OLD_ChannelId == testChannel.Id) &&
-            returnedMemberships.Any(x => x.OLD_UserId == thirdUser.Id && x.OLD_ChannelId == testChannel.Id));
+            returnedMemberships.Any(x => x.UserId == secondUser.Id && x.ChannelId == testChannel.Id) &&
+            returnedMemberships.Any(x => x.UserId == thirdUser.Id && x.ChannelId == testChannel.Id));
     }
 
     [Test]
     public async Task TestLastRead()
     {
-        var testChannel = await chat.OLD_CreatePublicConversation("last_read_test_channel_57");
-        testChannel.OLD_Join();
+        var testChannel = await chat.CreatePublicConversation("last_read_test_channel_57");
+        testChannel.Join();
 
         await Task.Delay(4000);
 
         var membership = (await user.GetMemberships(limit: 20)).Memberships
-            .FirstOrDefault(x => x.OLD_ChannelId == testChannel.Id);
+            .FirstOrDefault(x => x.ChannelId == testChannel.Id);
         if (membership == null)
         {
             Assert.Fail();
@@ -128,13 +133,13 @@ public class MembershipTests
 
             await Task.Delay(7000);
 
-            var lastTimeToken = membership.OLD_GetLastReadMessageTimeToken();
-            Assert.True(lastTimeToken == message.OLD_TimeToken);
-            await membership.OLD_SetLastReadMessageTimeToken("99999999999999999");
+            var lastTimeToken = membership.LastReadMessageTimeToken;
+            Assert.True(lastTimeToken == message.TimeToken);
+            await membership.SetLastReadMessageTimeToken("99999999999999999");
 
             await Task.Delay(3000);
 
-            Assert.True(membership.OLD_GetLastReadMessageTimeToken() == "99999999999999999");
+            Assert.True(membership.LastReadMessageTimeToken == "99999999999999999");
             messageReceivedManual.Set();
         };
         await testChannel.SendText("some_message");
@@ -146,8 +151,8 @@ public class MembershipTests
     [Test]
     public async Task TestUnreadMessagesCount()
     {
-        var unreadChannel = await chat.OLD_CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
-        unreadChannel.OLD_Join();
+        var unreadChannel = await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
+        unreadChannel.Join();
         
         await Task.Delay(3500);
         
@@ -157,8 +162,8 @@ public class MembershipTests
 
         await Task.Delay(8000);
         
-        var membership = (await unreadChannel.OLD_GetMemberships())
-            .Memberships.FirstOrDefault(x => x.OLD_UserId == user.Id);
+        var membership = (await unreadChannel.GetMemberships())
+            .Memberships.FirstOrDefault(x => x.UserId == user.Id);
         var unreadCount = membership == null ? -1 : await membership.GetUnreadMessagesCount();
         Assert.True(unreadCount >= 3, $"Expected >=3 unread but got: {unreadCount}");
     }
@@ -170,7 +175,7 @@ public class MembershipTests
     {
         await channel.SendText("some_text");
         var membership = (await user.GetMemberships())
-            .Memberships.FirstOrDefault(x => x.OLD_ChannelId == channel.Id);
+            .Memberships.FirstOrDefault(x => x.ChannelId == channel.Id);
         if (membership == null)
         {
             Assert.Fail("Couldn't find membership");

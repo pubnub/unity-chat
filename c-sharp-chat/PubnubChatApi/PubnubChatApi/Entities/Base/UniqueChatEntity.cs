@@ -10,10 +10,5 @@ namespace PubNubChatAPI.Entities
         {
             Id = uniqueId;
         }
-        
-        internal UniqueChatEntity(IntPtr pointer, string uniqueId) : base(pointer)
-        {
-            Id = uniqueId;
-        }
     }
 }

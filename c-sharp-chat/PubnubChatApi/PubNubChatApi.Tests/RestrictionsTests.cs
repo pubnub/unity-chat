@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -12,11 +13,11 @@ public class RestrictionsTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "restrictions_tests_user")
-        );
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("restrictions_tests_user"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
     }
     
     [TearDown]
@@ -30,7 +31,7 @@ public class RestrictionsTests
     public async Task TestSetRestrictions()
     {
         var user = await chat.GetOrCreateUser("user123");
-        var channel = await chat.OLD_CreatePublicConversation("new_channel");
+        var channel = await chat.CreatePublicConversation("new_channel");
 
         await Task.Delay(2000);
 
@@ -59,7 +60,7 @@ public class RestrictionsTests
     public async Task TestGetRestrictionsSets()
     {
         var user = await chat.GetOrCreateUser("user1234");
-        var channel = await chat.OLD_CreatePublicConversation("new_channel_2");
+        var channel = await chat.CreatePublicConversation("new_channel_2");
 
         await Task.Delay(4000);
 

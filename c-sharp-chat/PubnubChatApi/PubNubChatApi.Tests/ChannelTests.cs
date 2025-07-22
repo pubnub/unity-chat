@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
@@ -14,16 +15,16 @@ public class ChannelTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "ctuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
-        );
-        if (!chat.OLD_TryGetCurrentUser(out user))
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("ctuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        await user.OLD_Update(new ChatUserData()
+        await user.Update(new ChatUserData()
         {
             Username = "Testificate"
         });
@@ -40,7 +41,7 @@ public class ChannelTests
     [Test]
     public async Task TestUpdateChannel()
     {
-        var channel = await chat.OLD_CreatePublicConversation();
+        var channel = await chat.CreatePublicConversation();
         channel.SetListeningForUpdates(true);
 
         await Task.Delay(3000);
@@ -49,18 +50,18 @@ public class ChannelTests
         var updatedData = new ChatChannelData()
         {
             ChannelDescription = "some description",
-            ChannelCustomDataJson = "{\"key\":\"value\"}",
+            ChannelCustomData = new Dictionary<string, object>(){{"key", "value"}},
             ChannelName = "some name",
             ChannelStatus = "yes",
             ChannelType = "sometype"
         };
         channel.OnChannelUpdate += updatedChannel =>
         {
-            Assert.True(updatedChannel.OLD_Description == updatedData.ChannelDescription, "updatedChannel.Description != updatedData.ChannelDescription");
-            Assert.True(updatedChannel.OLD_CustomDataJson == updatedData.ChannelCustomDataJson, "updatedChannel.CustomDataJson != updatedData.ChannelCustomDataJson");
-            Assert.True(updatedChannel.OLD_Name == updatedData.ChannelName, "updatedChannel.Name != updatedData.ChannelDescription");
-            Assert.True(updatedChannel.OLD_Status == updatedData.ChannelStatus, "updatedChannel.Status != updatedData.ChannelStatus");
-            Assert.True(updatedChannel.OLD_Type == updatedData.ChannelType, "updatedChannel.Type != updatedData.ChannelType");
+            Assert.True(updatedChannel.Description == updatedData.ChannelDescription, "updatedChannel.Description != updatedData.ChannelDescription");
+            Assert.True(updatedChannel.CustomData.TryGetValue("key", out var value) && value.ToString() == "value", "updatedChannel.CustomDataJson != updatedData.ChannelCustomDataJson");
+            Assert.True(updatedChannel.Name == updatedData.ChannelName, "updatedChannel.Name != updatedData.ChannelDescription");
+            Assert.True(updatedChannel.Status == updatedData.ChannelStatus, "updatedChannel.Status != updatedData.ChannelStatus");
+            Assert.True(updatedChannel.Type == updatedData.ChannelType, "updatedChannel.Type != updatedData.ChannelType");
             updateReset.Set();
         };
         await channel.Update(updatedData);
@@ -71,71 +72,71 @@ public class ChannelTests
     [Test]
     public async Task TestDeleteChannel()
     {
-        var channel = await chat.OLD_CreatePublicConversation();
+        var channel = await chat.CreatePublicConversation();
 
         await Task.Delay(3000);
         
-        Assert.True(chat.OLD_TryGetChannel(channel.Id, out _), "Couldn't fetch created channel from chat");
+        Assert.True(chat.TryGetChannel(channel.Id, out _), "Couldn't fetch created channel from chat");
         
         await channel.Delete();
 
         await Task.Delay(3000);
         
-        Assert.False(chat.OLD_TryGetChannel(channel.Id, out _), "Fetched the supposedly-deleted channel from chat");
+        Assert.False(chat.TryGetChannel(channel.Id, out _), "Fetched the supposedly-deleted channel from chat");
     }
     
     [Test]
     public async Task TestLeaveChannel()
     {
-        var currentChatUser = await chat.OLD_GetCurrentUserAsync();
+        var currentChatUser = await chat.GetCurrentUserAsync();
         
         Assert.IsNotNull(currentChatUser, "currentChatUser was null");
         
-        var channel = await chat.OLD_CreatePublicConversation();
-        channel.OLD_Join();
+        var channel = await chat.CreatePublicConversation();
+        channel.Join();
 
         await Task.Delay(3000);
 
-        var memberships = await channel.OLD_GetMemberships();
+        var memberships = await channel.GetMemberships();
         
-        Assert.True(memberships.Memberships.Any(x => x.OLD_UserId == currentChatUser.Id), "Join failed, current user not found in channel memberships");
+        Assert.True(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Join failed, current user not found in channel memberships");
         
-        channel.OLD_Leave();
+        channel.Leave();
         
         await Task.Delay(3000);
         
-        memberships = await channel.OLD_GetMemberships();
+        memberships = await channel.GetMemberships();
         
-        Assert.False(memberships.Memberships.Any(x => x.OLD_UserId == currentChatUser.Id), "Leave failed, current user found in channel memberships");
+        Assert.False(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Leave failed, current user found in channel memberships");
     }
 
     [Test]
     public async Task TestGetUserSuggestions()
     {
-        var channel = await chat.OLD_CreatePublicConversation("user_suggestions_test_channel");
-        channel.OLD_Join();
+        var channel = await chat.CreatePublicConversation("user_suggestions_test_channel");
+        channel.Join();
 
         await Task.Delay(5000);
         
         var suggestions = await channel.GetUserSuggestions("@Test");
-        Assert.True(suggestions.Any(x => x.OLD_UserId == user.Id));
+        Assert.True(suggestions.Any(x => x.UserId == user.Id));
     }
     
     [Test]
     public async Task TestGetMemberships()
     {
-        var channel = await chat.OLD_CreatePublicConversation("get_members_test_channel");
-        channel.OLD_Join();
+        var channel = await chat.CreatePublicConversation("get_members_test_channel");
+        channel.Join();
         await Task.Delay(3500);
-        var memberships = await channel.OLD_GetMemberships();
+        var memberships = await channel.GetMemberships();
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
     }
 
     [Test]
     public async Task TestStartTyping()
     {
-        var channel = (await chat.OLD_CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
-        channel.OLD_Join();
+        var channel = (await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
+        channel.Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
@@ -156,8 +157,8 @@ public class ChannelTests
     [Test]
     public async Task TestStopTyping()
     {
-        var channel = (await chat.OLD_CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
-        channel.OLD_Join();
+        var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
+        channel.Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         await Task.Delay(2500);
@@ -181,8 +182,8 @@ public class ChannelTests
     [Test]
     public async Task TestStopTypingFromTimer()
     {
-        var channel = (await chat.OLD_CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
-        channel.OLD_Join();
+        var channel = (await chat.CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
+        channel.Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
@@ -206,8 +207,8 @@ public class ChannelTests
     [Test]
     public async Task TestPinMessage()
     {
-        var channel = await chat.OLD_CreatePublicConversation("pin_message_test_channel_37");
-        channel.OLD_Join();
+        var channel = await chat.CreatePublicConversation("pin_message_test_channel_37");
+        channel.Join();
         await Task.Delay(3500);
         
         var receivedManualEvent = new ManualResetEvent(false);
@@ -221,7 +222,7 @@ public class ChannelTests
             
             await Task.Delay(2000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.OLD_MessageText == "message to pin");
+            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "message to pin");
             receivedManualEvent.Set();
         };
         await channel.SendText("message to pin");
@@ -233,8 +234,8 @@ public class ChannelTests
     [Test]
     public async Task TestUnPinMessage()
     {
-        var channel = await chat.OLD_CreatePublicConversation("unpin_message_test_channel");
-        channel.OLD_Join();
+        var channel = await chat.CreatePublicConversation("unpin_message_test_channel");
+        channel.Join();
         await Task.Delay(3500);
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
@@ -243,7 +244,7 @@ public class ChannelTests
 
             await Task.Delay(2000);
             
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.OLD_MessageText == "message to pin");
+            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "message to pin");
             await channel.UnpinMessage();
             
             await Task.Delay(2000);
@@ -260,7 +261,7 @@ public class ChannelTests
     [Test]
     public async Task TestCreateMessageDraft()
     {
-        var channel = await chat.OLD_CreatePublicConversation("message_draft_test_channel");
+        var channel = await chat.CreatePublicConversation("message_draft_test_channel");
         try
         {
             var draft = channel.CreateMessageDraft();
@@ -275,8 +276,8 @@ public class ChannelTests
     [Test]
     public async Task TestEmitUserMention()
     {
-        var channel = await chat.OLD_CreatePublicConversation("user_mention_test_channel");
-        channel.OLD_Join();
+        var channel = await chat.CreatePublicConversation("user_mention_test_channel");
+        channel.Join();
         await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
@@ -294,8 +295,8 @@ public class ChannelTests
     [Test]
     public async Task TestChannelIsPresent()
     {
-        var someChannel = await chat.OLD_CreatePublicConversation();
-        someChannel.OLD_Join();
+        var someChannel = await chat.CreatePublicConversation();
+        someChannel.Join();
 
         await Task.Delay(4000);
 
@@ -307,8 +308,8 @@ public class ChannelTests
     [Test]
     public async Task TestChannelWhoIsPresent()
     {
-        var someChannel = await chat.OLD_CreatePublicConversation();
-        someChannel.OLD_Join();
+        var someChannel = await chat.CreatePublicConversation();
+        someChannel.Join();
 
         await Task.Delay(4000);
 

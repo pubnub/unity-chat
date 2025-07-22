@@ -23,258 +23,6 @@ namespace PubNubChatAPI.Entities
     /// <seealso cref="Channel"/>
     public class Message : UniqueChatEntity
     {
-        #region DLL Imports
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_delete(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_edit_text(IntPtr message, string text);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_text(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_delete_message(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_delete_message_hard(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_deleted(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_get_timetoken(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_get_data_type(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_get_data_text(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_get_data_channel_id(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_get_data_user_id(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_message_get_data_meta(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_get_data_message_actions(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_pin(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_get_reactions(IntPtr message, StringBuilder reactions_json);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_toggle_reaction(IntPtr message, string reaction);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_has_user_reaction(IntPtr message, string reaction);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_report(IntPtr message, string reason);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_has_thread(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_update_with_base_message(IntPtr message, IntPtr base_message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_mentioned_users(IntPtr message, IntPtr chat, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_referenced_channels(IntPtr message, IntPtr chat, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_quoted_message(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_message_text_links(IntPtr message, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_restore(IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_message_stream_updates(IntPtr message);
-
-        #endregion
-
-        public virtual string OLD_MessageText
-        {
-            get
-            {
-                var buffer = new StringBuilder(32768);
-                CUtilities.CheckCFunctionResult(pn_message_text(pointer, buffer));
-                return buffer.ToString();
-            }
-        }
-
-        public virtual string OLD_OriginalMessageText
-        {
-            get
-            {
-                var buffer = new StringBuilder(32768);
-                pn_message_get_data_text(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public virtual string OLD_TimeToken
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_message_get_timetoken(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public virtual string OLD_ChannelId
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_message_get_data_channel_id(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public virtual string OLD_UserId
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_message_get_data_user_id(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public virtual string OLD_Meta
-        {
-            get
-            {
-                var buffer = new StringBuilder(4096);
-                pn_message_get_data_meta(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-
-        public virtual bool OLD_IsDeleted
-        {
-            get
-            {
-                var result = pn_message_deleted(pointer);
-                CUtilities.CheckCFunctionResult(result);
-                return result == 1;
-            }
-        }
-
-        public virtual List<User> OLD_MentionedUsers
-        {
-            get
-            {
-                var buffer = new StringBuilder(1024);
-                CUtilities.CheckCFunctionResult(pn_message_mentioned_users(pointer, chat.Pointer, buffer));
-                var usersJson = buffer.ToString();
-                if (!CUtilities.IsValidJson(usersJson))
-                {
-                    return new List<User>();
-                }
-
-                var jsonDict = JsonConvert.DeserializeObject<Dictionary<string, IntPtr[]>>(usersJson);
-                if (jsonDict == null || !jsonDict.TryGetValue("value", out var pointers) || pointers == null)
-                {
-                    return new List<User>();
-                }
-
-                return PointerParsers.ParseJsonUserPointers(chat, pointers);
-            }
-        }
-
-        public virtual List<Channel> OLD_ReferencedChannels
-        {
-            get
-            {
-                var buffer = new StringBuilder(1024);
-                CUtilities.CheckCFunctionResult(pn_message_referenced_channels(pointer, chat.Pointer, buffer));
-                var channelsJson = buffer.ToString();
-                if (!CUtilities.IsValidJson(channelsJson))
-                {
-                    return new List<Channel>();
-                }
-
-                var jsonDict = JsonConvert.DeserializeObject<Dictionary<string, IntPtr[]>>(channelsJson);
-                if (jsonDict == null || !jsonDict.TryGetValue("value", out var pointers) || pointers == null)
-                {
-                    return new List<Channel>();
-                }
-
-                return PointerParsers.ParseJsonChannelPointers(chat, pointers);
-            }
-        }
-
-        public virtual List<TextLink> OLD_TextLinks
-        {
-            get
-            {
-                var buffer = new StringBuilder(2048);
-                CUtilities.CheckCFunctionResult(pn_message_text_links(pointer, buffer));
-                var jsonString = buffer.ToString();
-                if (!CUtilities.IsValidJson(jsonString))
-                {
-                    return new List<TextLink>();
-                }
-
-                var textLinks = JsonConvert.DeserializeObject<Dictionary<string, List<TextLink>>>(jsonString);
-                if (textLinks == null || !textLinks.TryGetValue("value", out var links) || links == null)
-                {
-                    return new List<TextLink>();
-                }
-
-                return links;
-            }
-        }
-
-        protected List<MessageAction> OLD_DeserializeMessageActions(string json)
-        {
-            var reactions = new List<MessageAction>();
-            if (CUtilities.IsValidJson(json))
-            {
-                reactions = JsonConvert.DeserializeObject<List<MessageAction>>(json);
-                reactions ??= new List<MessageAction>();
-            }
-
-            return reactions;
-        }
-
-        public virtual List<MessageAction> OLD_MessageActions
-        {
-            get
-            {
-                var buffer = new StringBuilder(4096);
-                CUtilities.CheckCFunctionResult(pn_message_get_data_message_actions(pointer, buffer));
-                return OLD_DeserializeMessageActions(buffer.ToString());
-            }
-        }
-
-        public virtual List<MessageAction> OLD_Reactions
-        {
-            get
-            {
-                var buffer = new StringBuilder(4096);
-                CUtilities.CheckCFunctionResult(pn_message_get_reactions(pointer, buffer));
-                return OLD_DeserializeMessageActions(buffer.ToString());
-            }
-        }
-
-        public virtual PubnubChatMessageType OLD_Type => (PubnubChatMessageType)pn_message_get_data_type(pointer);
-
         protected Chat chat;
 
         /// <summary>
@@ -391,11 +139,6 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Delete"/>
         public event Action<Message> OnMessageUpdated;
 
-        internal Message(Chat chat, IntPtr messagePointer, string timeToken) : base(messagePointer, timeToken)
-        {
-            this.chat = chat;
-        }
-
         internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, Dictionary<string, object> meta) : base(timeToken)
         {
             this.chat = chat;
@@ -404,32 +147,6 @@ namespace PubNubChatAPI.Entities
             ChannelId = channelId;
             UserId = userId;
             Meta = meta;
-        }
-
-        protected override IntPtr StreamUpdates()
-        {
-            return pn_message_stream_updates(pointer);
-        }
-
-        internal static string GetMessageIdFromPtr(IntPtr messagePointer)
-        {
-            var buffer = new StringBuilder(512);
-            pn_message_get_timetoken(messagePointer, buffer);
-            return buffer.ToString();
-        }
-
-        internal static string GetChannelIdFromMessagePtr(IntPtr messagePointer)
-        {
-            var buffer = new StringBuilder(512);
-            pn_message_get_data_channel_id(messagePointer, buffer);
-            return buffer.ToString();
-        }
-
-        internal override void UpdateWithPartialPtr(IntPtr partialPointer)
-        {
-            var newFullPointer = pn_message_update_with_base_message(partialPointer, pointer);
-            CUtilities.CheckCFunctionResult(newFullPointer);
-            UpdatePointer(newFullPointer);
         }
 
         internal virtual void BroadcastMessageUpdate()
@@ -454,29 +171,17 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageUpdated"/>
         public virtual async Task EditMessageText(string newText)
         {
-            var newPointer = await Task.Run(() => pn_message_edit_text(pointer, newText));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
+            throw new NotImplementedException();
         }
 
         public virtual bool TryGetQuotedMessage(out Message quotedMessage)
         {
-            var quotedMessagePointer = pn_message_quoted_message(pointer);
-            if (quotedMessagePointer == IntPtr.Zero)
-            {
-                Debug.WriteLine(CUtilities.GetErrorMessage());
-                quotedMessage = null;
-                return false;
-            }
-
-            return chat.TryGetMessage(quotedMessagePointer, out quotedMessage);
+            throw new NotImplementedException();
         }
 
         public bool HasThread()
         {
-            var result = pn_message_has_thread(pointer);
-            CUtilities.CheckCFunctionResult(result);
-            return result == 1;
+            throw new NotImplementedException();
         }
 
         public async Task<ThreadChannel> CreateThread()
@@ -511,17 +216,18 @@ namespace PubNubChatAPI.Entities
 
         public async Task Pin()
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_message_pin(pointer)));
+            throw new NotImplementedException();
         }
 
         public virtual async Task Report(string reason)
         {
-            CUtilities.CheckCFunctionResult(await Task.Run(() => pn_message_report(pointer, reason)));
+            throw new NotImplementedException();
         }
 
         public virtual async Task Forward(string channelId)
         {
-            if (chat.OLD_TryGetChannel(channelId, out var channel))
+            var channel = await chat.GetChannelAsync(channelId);
+            if (channel != null)
             {
                 await chat.ForwardMessage(this, channel);
             }
@@ -529,23 +235,17 @@ namespace PubNubChatAPI.Entities
 
         public virtual bool HasUserReaction(string reactionValue)
         {
-            var result = pn_message_has_user_reaction(pointer, reactionValue);
-            CUtilities.CheckCFunctionResult(result);
-            return result == 1;
+            throw new NotImplementedException();
         }
 
         public virtual async Task ToggleReaction(string reactionValue)
         {
-            var newPointer = await Task.Run(() => pn_message_toggle_reaction(pointer, reactionValue));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
+            throw new NotImplementedException();
         }
 
         public virtual async Task Restore()
         {
-            var newPointer = await Task.Run(() => pn_message_restore(pointer));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -563,28 +263,16 @@ namespace PubNubChatAPI.Entities
         /// message.DeleteMessage();
         /// </code>
         /// </example>
-        /// <seealso cref="OLD_IsDeleted"/>
+        /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
         public virtual async Task Delete(bool soft)
         {
-            await Task.Run(() =>
-            {
-                if (soft)
-                {
-                    var newPointer = pn_message_delete_message(pointer);
-                    CUtilities.CheckCFunctionResult(newPointer);
-                    UpdatePointer(newPointer);
-                }
-                else
-                {
-                    CUtilities.CheckCFunctionResult(pn_message_delete_message_hard(pointer));
-                }
-            });
+            throw new NotImplementedException();
         }
 
-        protected override void DisposePointer()
+        public override Task Resync()
         {
-            pn_message_delete(pointer);
+            throw new NotImplementedException();
         }
     }
 }

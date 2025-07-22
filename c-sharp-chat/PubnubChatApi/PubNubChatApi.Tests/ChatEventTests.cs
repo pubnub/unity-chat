@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
+using Channel = PubNubChatAPI.Entities.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,24 +16,24 @@ public class ChatEventTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "event_tests_user")
-        );
-        channel = await chat.OLD_CreatePublicConversation("event_tests_channel");
-        if (!chat.OLD_TryGetCurrentUser(out user))
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("event_tests_user"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        channel = await chat.CreatePublicConversation("event_tests_channel");
+        if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        channel.OLD_Join();
+        channel.Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.OLD_Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);

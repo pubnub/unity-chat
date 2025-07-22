@@ -14,7 +14,6 @@ namespace PubnubChatApi.Entities.Data
     /// </remarks>
     public class ChatMembershipData
     {
-        public string OLD_CustomDataJson { get; set; } = string.Empty;
         public Dictionary<string, object> CustomData { get; set; } = new ();
         public string Status { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;

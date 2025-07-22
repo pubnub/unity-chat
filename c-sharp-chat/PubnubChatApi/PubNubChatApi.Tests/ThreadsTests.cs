@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
+using Channel = PubNubChatAPI.Entities.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,25 +16,25 @@ public class ThreadsTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "threads_tests_user_2")
-        );
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("threads_tests_user_2"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
         var randomId = Guid.NewGuid().ToString()[..10];
-        channel = await chat.OLD_CreatePublicConversation(randomId);
-        if (!chat.OLD_TryGetCurrentUser(out user))
+        channel = await chat.CreatePublicConversation(randomId);
+        if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        channel.OLD_Join();
+        channel.Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.OLD_Leave();
+        channel.Leave();
         await Task.Delay(3000);
         await channel.Delete();
         chat.Destroy();
@@ -47,7 +49,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            thread.OLD_Join();
+            thread.Join();
 
             await Task.Delay(5000);
             
@@ -58,7 +60,7 @@ public class ThreadsTests
             await Task.Delay(10000);
 
             var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
-            Assert.True(history.Count == 3 && history.Any(x => x.OLD_MessageText == "one"));
+            Assert.True(history.Count == 3 && history.Any(x => x.MessageText == "one"));
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");
@@ -74,7 +76,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            thread.OLD_Join();
+            thread.Join();
             await thread.SendText("thread init message");
 
             await Task.Delay(7000);
@@ -86,7 +88,7 @@ public class ThreadsTests
             await Task.Delay(7000);
             
             var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
-            var correctText = hasPinned && pinnedMessage.OLD_MessageText == "thread init message";
+            var correctText = hasPinned && pinnedMessage.MessageText == "thread init message";
             Assert.True(hasPinned && correctText);
             await thread.UnPinMessageFromParentChannel();
             
@@ -107,7 +109,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = await message.CreateThread();
-            thread.OLD_Join();
+            thread.Join();
             await Task.Delay(2500);
             user.SetListeningForMentionEvents(true);
             await Task.Delay(2500);
@@ -131,7 +133,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            thread.OLD_Join();
+            thread.Join();
 
             await Task.Delay(3500);
             
@@ -147,7 +149,7 @@ public class ThreadsTests
             
             await Task.Delay(5000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.OLD_MessageText == threadMessage.OLD_MessageText);
+            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == threadMessage.MessageText);
             
             await threadMessage.UnPinMessageFromParentChannel();
             
@@ -169,7 +171,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = await message.CreateThread();
-            thread.OLD_Join();
+            thread.Join();
             
             await Task.Delay(3000);
             
@@ -185,7 +187,7 @@ public class ThreadsTests
             threadMessage.SetListeningForUpdates(true);
             threadMessage.OnThreadMessageUpdated += updatedThreadMessage =>
             {
-                Assert.True(updatedThreadMessage.OLD_MessageText == "new_text");
+                Assert.True(updatedThreadMessage.MessageText == "new_text");
                 messageUpdatedReset.Set();
             };
             await threadMessage.EditMessageText("new_text");

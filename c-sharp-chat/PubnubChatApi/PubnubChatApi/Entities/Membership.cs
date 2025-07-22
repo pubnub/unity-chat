@@ -26,55 +26,6 @@ namespace PubNubChatAPI.Entities
     /// <seealso cref="Channel"/>
     public class Membership : UniqueChatEntity
     {
-        #region DLL Imports
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_membership_delete(IntPtr membership);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_membership_get_user_id(
-            IntPtr membership,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_membership_get_channel_id(
-            IntPtr membership,
-            StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_membership_update_dirty(
-            IntPtr membership,
-            string custom_data_json,
-            string type,
-            string status);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_membership_last_read_message_timetoken(IntPtr membership, StringBuilder result);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_membership_set_last_read_message_timetoken(IntPtr membership, string timetoken);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_membership_set_last_read_message(IntPtr membership, IntPtr message);
-
-        [DllImport("pubnub-chat")]
-        private static extern int pn_membership_get_unread_messages_count(IntPtr membership);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_membership_update_with_base(IntPtr membership,
-            IntPtr base_membership);
-
-        [DllImport("pubnub-chat")]
-        private static extern IntPtr pn_membership_stream_updates(IntPtr membership);
-
-        [DllImport("pubnub-chat")]
-        private static extern void pn_membership_get_membership_data(
-            IntPtr membership,
-            StringBuilder result);
-
-        #endregion
-
-
         /// <summary>
         /// The user ID of the user that this membership belongs to.
         /// </summary>
@@ -89,43 +40,6 @@ namespace PubNubChatAPI.Entities
         /// The string time token of last read message on the membership channel.
         /// </summary>
         public string LastReadMessageTimeToken => MembershipData.CustomData.TryGetValue("lastReadMessageTimetoken", out var timeToken) ? timeToken.ToString() : "";
-        
-        public string OLD_UserId
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_membership_get_user_id(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-        
-        public string OLD_ChannelId
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_membership_get_channel_id(pointer, buffer);
-                return buffer.ToString();
-            }
-        }
-        
-        public ChatMembershipData OLD_MembershipData
-        {
-            get
-            {
-                var buffer = new StringBuilder(512);
-                pn_membership_get_membership_data(pointer, buffer);
-                var jsonString = buffer.ToString();
-                var data = new ChatMembershipData();
-                if (CUtilities.IsValidJson(jsonString))
-                {
-                    data = JsonConvert.DeserializeObject<ChatMembershipData>(jsonString);
-                }
-
-                return data;
-            }
-        }
 
         public ChatMembershipData MembershipData { get; private set; }
 
@@ -144,16 +58,10 @@ namespace PubNubChatAPI.Entities
         /// };
         /// </code>
         /// </example>
-        /// <seealso cref="OLD_Update"/>
+        /// <seealso cref="Update"/>
         public event Action<Membership> OnMembershipUpdated;
 
         private Chat chat;
-
-        internal Membership(Chat chat, IntPtr membershipPointer, string membershipId) : base(membershipPointer,
-            membershipId)
-        {
-            this.chat = chat;
-        }
 
         internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(userId+channelId)
         {
@@ -168,32 +76,9 @@ namespace PubNubChatAPI.Entities
             MembershipData = newData;
         }
 
-        protected override IntPtr StreamUpdates()
-        {
-            return pn_membership_stream_updates(pointer);
-        }
-
-        internal static string GetMembershipIdFromPtr(IntPtr membershipPointer)
-        {
-            var userIdBuffer = new StringBuilder(512);
-            pn_membership_get_user_id(membershipPointer, userIdBuffer);
-            var userId = userIdBuffer.ToString();
-            var channelIdBuffer = new StringBuilder(512);
-            pn_membership_get_channel_id(membershipPointer, channelIdBuffer);
-            var channelId = channelIdBuffer.ToString();
-            return userId + channelId;
-        }
-
         internal void BroadcastMembershipUpdate()
         {
             OnMembershipUpdated?.Invoke(this);
-        }
-
-        internal override void UpdateWithPartialPtr(IntPtr partialPointer)
-        {
-            var newFullPointer = pn_membership_update_with_base(partialPointer, pointer);
-            CUtilities.CheckCFunctionResult(newFullPointer);
-            UpdatePointer(newFullPointer);
         }
 
         /// <summary>
@@ -242,27 +127,10 @@ namespace PubNubChatAPI.Entities
 
             return true;
         }
-        
-        public async Task OLD_Update(ChatMembershipData membershipData)
-        {
-            var newPointer = await Task.Run(() => pn_membership_update_dirty(pointer, membershipData.OLD_CustomDataJson,
-                membershipData.Type, membershipData.Status));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
-        }
-
-        public string OLD_GetLastReadMessageTimeToken()
-        {
-            var buffer = new StringBuilder(128);
-            CUtilities.CheckCFunctionResult(pn_membership_last_read_message_timetoken(pointer, buffer));
-            return buffer.ToString();
-        }
 
         public async Task SetLastReadMessage(Message message)
         {
-            var newPointer = await Task.Run(() => pn_membership_set_last_read_message(pointer, message.Pointer));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
+            throw new NotImplementedException();
         }
         
         public async Task SetLastReadMessageTimeToken(string timeToken)
@@ -273,24 +141,15 @@ namespace PubNubChatAPI.Entities
                 await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId, $"{{\"messageTimetoken\": \"{timeToken}\"}}");
             }
         }
-
-        public async Task OLD_SetLastReadMessageTimeToken(string timeToken)
-        {
-            var newPointer = await Task.Run(() => pn_membership_set_last_read_message_timetoken(pointer, timeToken));
-            CUtilities.CheckCFunctionResult(newPointer);
-            UpdatePointer(newPointer);
-        }
-
+        
         public async Task<int> GetUnreadMessagesCount()
         {
-            var result = await Task.Run(() => pn_membership_get_unread_messages_count(pointer));
-            CUtilities.CheckCFunctionResult(result);
-            return result;
+            throw new NotImplementedException();
         }
 
-        protected override void DisposePointer()
+        public override Task Resync()
         {
-            pn_membership_delete(pointer);
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,5 +1,7 @@
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
+using Channel = PubNubChatAPI.Entities.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,34 +16,34 @@ public class MessageDraftTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "message_draft_tests_user")
-        );
-        channel = await chat.OLD_CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_draft_tests_user"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        channel = await chat.CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
         {
             ChannelName = "MessageDraftTestingChannel"
         });
-        if (!chat.OLD_TryGetCurrentUser(out var user))
+        if (!chat.TryGetCurrentUser(out var user))
         {
             Assert.Fail();
         }
 
-        channel.OLD_Join();
+        channel.Join();
         await Task.Delay(3000);
         
-        if (!chat.OLD_TryGetUser("mock_user", out dummyUser))
+        if (!chat.TryGetUser("mock_user", out dummyUser))
         {
-            dummyUser = await chat.OLD_CreateUser("mock_user", new ChatUserData()
+            dummyUser = await chat.CreateUser("mock_user", new ChatUserData()
             {
                 Username = "Mock Usernamiski"
             });
         }
 
-        if (!chat.OLD_TryGetChannel("dummy_channel", out dummyChannel))
+        if (!chat.TryGetChannel("dummy_channel", out dummyChannel))
         {
-            dummyChannel = await chat.OLD_CreatePublicConversation("dummy_channel");
+            dummyChannel = await chat.CreatePublicConversation("dummy_channel");
         }
     }
 
@@ -231,7 +233,7 @@ public class MessageDraftTests
         var successReset = new ManualResetEvent(false);
         channel.OnMessageReceived += message =>
         {
-            Assert.True(message.OLD_MessageText == "draft_text");
+            Assert.True(message.MessageText == "draft_text");
             successReset.Set();
         };
         var messageDraft = channel.CreateMessageDraft();

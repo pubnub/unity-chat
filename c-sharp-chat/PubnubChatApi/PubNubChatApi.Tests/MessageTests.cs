@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
+using Channel = PubNubChatAPI.Entities.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,24 +16,24 @@ public class MessageTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "message_tests_user_2")
-        );
-        channel = await chat.OLD_CreatePublicConversation("message_tests_channel_2");
-        if (!chat.OLD_TryGetCurrentUser(out user))
+        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_tests_user_2"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        });
+        channel = await chat.CreatePublicConversation("message_tests_channel_2");
+        if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
         }
-        channel.OLD_Join();
+        channel.Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.OLD_Leave();
+        channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -44,8 +46,8 @@ public class MessageTests
 
         channel.OnMessageReceived += message =>
         {
-            Assert.True(message.OLD_MessageText == "Test message text");
-            Assert.True(message.OLD_Type == PubnubChatMessageType.Text);
+            Assert.True(message.MessageText == "Test message text");
+            Assert.True(message.Type == PubnubChatMessageType.Text);
             manualReceiveEvent.Set();
         };
         await channel.SendText("Test message text", new SendTextParams()
@@ -60,12 +62,12 @@ public class MessageTests
     public async Task TestReceivingMessageData()
     {
         var manualReceiveEvent = new ManualResetEvent(false);
-        var testChannel = await chat.OLD_CreatePublicConversation("message_data_test_channel");
-        testChannel.OLD_Join();
+        var testChannel = await chat.CreatePublicConversation("message_data_test_channel");
+        testChannel.Join();
         await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
         {
-            if (message.OLD_MessageText == "message_to_be_quoted")
+            if (message.MessageText == "message_to_be_quoted")
             {
                 await testChannel.SendText("message_with_data", new SendTextParams()
                 {
@@ -73,11 +75,11 @@ public class MessageTests
                     QuotedMessage = message
                 });
             }
-            else if (message.OLD_MessageText == "message_with_data")
+            else if (message.MessageText == "message_with_data")
             {
-                Assert.True(message.OLD_MentionedUsers.Any(x => x.Id == user.Id));
+                Assert.True(message.MentionedUsers.Any(x => x.Id == user.Id));
                 Assert.True(message.TryGetQuotedMessage(out var quotedMessage) &&
-                            quotedMessage.OLD_MessageText == "message_to_be_quoted");
+                            quotedMessage.MessageText == "message_to_be_quoted");
                 manualReceiveEvent.Set();
             }
         };
@@ -93,9 +95,9 @@ public class MessageTests
         var manualReceiveEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += message =>
         {
-            if (message.OLD_ChannelId == channel.Id)
+            if (message.ChannelId == channel.Id)
             {
-                Assert.True(chat.TryGetMessage(channel.Id, message.OLD_TimeToken, out _));
+                Assert.True(chat.TryGetMessage(channel.Id, message.TimeToken, out _));
                 manualReceiveEvent.Set();
             }
         };
@@ -117,7 +119,7 @@ public class MessageTests
             message.OnMessageUpdated += updatedMessage =>
             {
                 manualUpdatedEvent.Set();
-                Assert.True(updatedMessage.OLD_MessageText == "new-text");
+                Assert.True(updatedMessage.MessageText == "new-text");
             };
             await message.EditMessageText("new-text");
         };
@@ -138,7 +140,7 @@ public class MessageTests
             await Task.Delay(2000);
             message.OnMessageUpdated += updatedMessage =>
             {
-                originalTextAfterUpdate = updatedMessage.OLD_OriginalMessageText;
+                originalTextAfterUpdate = updatedMessage.OriginalMessageText;
                 manualUpdatedEvent.Set();
             };
             await message.EditMessageText("new-text");
@@ -163,7 +165,7 @@ public class MessageTests
 
             await Task.Delay(2000);
 
-            Assert.True(message.OLD_IsDeleted);
+            Assert.True(message.IsDeleted);
             manualReceivedEvent.Set();
         };
         await channel.SendText("something");
@@ -179,16 +181,16 @@ public class MessageTests
         channel.OnMessageReceived += async message =>
         {
             await message.Delete(true);
-            Assert.True(message.OLD_IsDeleted);
+            Assert.True(message.IsDeleted);
 
             await Task.Delay(4000);
             
-            Assert.True(message.OLD_IsDeleted);
+            Assert.True(message.IsDeleted);
             await message.Restore();
 
             await Task.Delay(4000);
 
-            Assert.False(message.OLD_IsDeleted);
+            Assert.False(message.IsDeleted);
             manualReceivedEvent.Set();
         };
         await channel.SendText("some text here ladi ladi la");
@@ -200,8 +202,8 @@ public class MessageTests
     [Test]
     public async Task TestPinMessage()
     {
-        var pinTestChannel = await chat.OLD_CreatePublicConversation();
-        pinTestChannel.OLD_Join();
+        var pinTestChannel = await chat.CreatePublicConversation();
+        pinTestChannel.Join();
         await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);
         await Task.Delay(3000);
@@ -214,7 +216,7 @@ public class MessageTests
             await Task.Delay(3000);
 
             var got = pinTestChannel.TryGetPinnedMessage(out var pinnedMessage);
-            Assert.True(got && pinnedMessage.OLD_MessageText == "message to pin");
+            Assert.True(got && pinnedMessage.MessageText == "message to pin");
             manualReceivedEvent.Set();
         };
         await pinTestChannel.SendText("message to pin");
@@ -235,7 +237,7 @@ public class MessageTests
 
             var has = message.HasUserReaction("happy");
             Assert.True(has);
-            var reactions = message.OLD_Reactions;
+            var reactions = message.Reactions;
             Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));
             manualReset.Set();
         };
@@ -273,7 +275,7 @@ public class MessageTests
             {
                 message.SetListeningForUpdates(true);
                 var thread = await message.CreateThread();
-                thread.OLD_Join();
+                thread.Join();
                 await Task.Delay(3500);
                 await thread.SendText("thread_init_text");
                 await Task.Delay(5000);
