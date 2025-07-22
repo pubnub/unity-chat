@@ -24,14 +24,14 @@ public class MessageTests
         {
             Assert.Fail();
         }
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        channel.OLD_Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -44,8 +44,8 @@ public class MessageTests
 
         channel.OnMessageReceived += message =>
         {
-            Assert.True(message.MessageText == "Test message text");
-            Assert.True(message.Type == PubnubChatMessageType.Text);
+            Assert.True(message.OLD_MessageText == "Test message text");
+            Assert.True(message.OLD_Type == PubnubChatMessageType.Text);
             manualReceiveEvent.Set();
         };
         await channel.SendText("Test message text", new SendTextParams()
@@ -61,11 +61,11 @@ public class MessageTests
     {
         var manualReceiveEvent = new ManualResetEvent(false);
         var testChannel = await chat.OLD_CreatePublicConversation("message_data_test_channel");
-        testChannel.Join();
+        testChannel.OLD_Join();
         await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
         {
-            if (message.MessageText == "message_to_be_quoted")
+            if (message.OLD_MessageText == "message_to_be_quoted")
             {
                 await testChannel.SendText("message_with_data", new SendTextParams()
                 {
@@ -73,11 +73,11 @@ public class MessageTests
                     QuotedMessage = message
                 });
             }
-            else if (message.MessageText == "message_with_data")
+            else if (message.OLD_MessageText == "message_with_data")
             {
-                Assert.True(message.MentionedUsers.Any(x => x.Id == user.Id));
+                Assert.True(message.OLD_MentionedUsers.Any(x => x.Id == user.Id));
                 Assert.True(message.TryGetQuotedMessage(out var quotedMessage) &&
-                            quotedMessage.MessageText == "message_to_be_quoted");
+                            quotedMessage.OLD_MessageText == "message_to_be_quoted");
                 manualReceiveEvent.Set();
             }
         };
@@ -93,9 +93,9 @@ public class MessageTests
         var manualReceiveEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += message =>
         {
-            if (message.ChannelId == channel.Id)
+            if (message.OLD_ChannelId == channel.Id)
             {
-                Assert.True(chat.TryGetMessage(channel.Id, message.TimeToken, out _));
+                Assert.True(chat.TryGetMessage(channel.Id, message.OLD_TimeToken, out _));
                 manualReceiveEvent.Set();
             }
         };
@@ -117,7 +117,7 @@ public class MessageTests
             message.OnMessageUpdated += updatedMessage =>
             {
                 manualUpdatedEvent.Set();
-                Assert.True(updatedMessage.MessageText == "new-text");
+                Assert.True(updatedMessage.OLD_MessageText == "new-text");
             };
             await message.EditMessageText("new-text");
         };
@@ -138,7 +138,7 @@ public class MessageTests
             await Task.Delay(2000);
             message.OnMessageUpdated += updatedMessage =>
             {
-                originalTextAfterUpdate = updatedMessage.OriginalMessageText;
+                originalTextAfterUpdate = updatedMessage.OLD_OriginalMessageText;
                 manualUpdatedEvent.Set();
             };
             await message.EditMessageText("new-text");
@@ -163,7 +163,7 @@ public class MessageTests
 
             await Task.Delay(2000);
 
-            Assert.True(message.IsDeleted);
+            Assert.True(message.OLD_IsDeleted);
             manualReceivedEvent.Set();
         };
         await channel.SendText("something");
@@ -179,16 +179,16 @@ public class MessageTests
         channel.OnMessageReceived += async message =>
         {
             await message.Delete(true);
-            Assert.True(message.IsDeleted);
+            Assert.True(message.OLD_IsDeleted);
 
             await Task.Delay(4000);
             
-            Assert.True(message.IsDeleted);
+            Assert.True(message.OLD_IsDeleted);
             await message.Restore();
 
             await Task.Delay(4000);
 
-            Assert.False(message.IsDeleted);
+            Assert.False(message.OLD_IsDeleted);
             manualReceivedEvent.Set();
         };
         await channel.SendText("some text here ladi ladi la");
@@ -201,7 +201,7 @@ public class MessageTests
     public async Task TestPinMessage()
     {
         var pinTestChannel = await chat.OLD_CreatePublicConversation();
-        pinTestChannel.Join();
+        pinTestChannel.OLD_Join();
         await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);
         await Task.Delay(3000);
@@ -214,7 +214,7 @@ public class MessageTests
             await Task.Delay(3000);
 
             var got = pinTestChannel.TryGetPinnedMessage(out var pinnedMessage);
-            Assert.True(got && pinnedMessage.MessageText == "message to pin");
+            Assert.True(got && pinnedMessage.OLD_MessageText == "message to pin");
             manualReceivedEvent.Set();
         };
         await pinTestChannel.SendText("message to pin");
@@ -235,7 +235,7 @@ public class MessageTests
 
             var has = message.HasUserReaction("happy");
             Assert.True(has);
-            var reactions = message.Reactions;
+            var reactions = message.OLD_Reactions;
             Assert.True(reactions.Count == 1 && reactions.Any(x => x.Value == "happy"));
             manualReset.Set();
         };
@@ -273,7 +273,7 @@ public class MessageTests
             {
                 message.SetListeningForUpdates(true);
                 var thread = await message.CreateThread();
-                thread.Join();
+                thread.OLD_Join();
                 await Task.Delay(3500);
                 await thread.SendText("thread_init_text");
                 await Task.Delay(5000);

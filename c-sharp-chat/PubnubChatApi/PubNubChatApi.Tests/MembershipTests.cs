@@ -25,14 +25,14 @@ public class MembershipTests
             Assert.Fail();
         }
 
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
     }
 
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        channel.OLD_Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -108,7 +108,7 @@ public class MembershipTests
     public async Task TestLastRead()
     {
         var testChannel = await chat.OLD_CreatePublicConversation("last_read_test_channel_57");
-        testChannel.Join();
+        testChannel.OLD_Join();
 
         await Task.Delay(4000);
 
@@ -129,7 +129,7 @@ public class MembershipTests
             await Task.Delay(7000);
 
             var lastTimeToken = membership.OLD_GetLastReadMessageTimeToken();
-            Assert.True(lastTimeToken == message.TimeToken);
+            Assert.True(lastTimeToken == message.OLD_TimeToken);
             await membership.OLD_SetLastReadMessageTimeToken("99999999999999999");
 
             await Task.Delay(3000);
@@ -147,7 +147,7 @@ public class MembershipTests
     public async Task TestUnreadMessagesCount()
     {
         var unreadChannel = await chat.OLD_CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
-        unreadChannel.Join();
+        unreadChannel.OLD_Join();
         
         await Task.Delay(3500);
         

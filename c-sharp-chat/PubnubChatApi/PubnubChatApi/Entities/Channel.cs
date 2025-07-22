@@ -297,7 +297,7 @@ namespace PubNubChatAPI.Entities
         private IntPtr presenceListeningHandle;
         protected IntPtr connectionHandle;
 
-        protected Subscription subscription;
+        protected Subscription? subscription;
         
         private Dictionary<string, Timer> typingIndicators = new();
 
@@ -663,7 +663,7 @@ namespace PubNubChatAPI.Entities
             CUtilities.CheckCFunctionResult(draftPointer);
             return new MessageDraft(draftPointer);
         }
-
+        
         /// <summary>
         /// Disconnects from the channel.
         /// <para>
@@ -684,14 +684,11 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public void Disconnect()
         {
-            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
+            if (subscription == null)
             {
                 return;
             }
-
-            CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer));
-            pn_callback_handle_dispose(connectionHandle);
-            connectionHandle = IntPtr.Zero;
+            subscription.Unsubscribe<object>();
         }
 
         /// <summary>
@@ -716,24 +713,18 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Disconnect"/>
         public async void Leave()
         {
-            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
+            Disconnect();
+            var currentUserId = chat.PubnubInstance.GetCurrentUserId();
+            var remove = await chat.PubnubInstance.RemoveMemberships().Uuid(currentUserId).Channels(new List<string>() { Id })
+                .ExecuteAsync();
+            if (remove.Status.Error)
             {
+                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to leave channel \"{Id}\": {remove.Status.ErrorData.Information}");
                 return;
             }
-
-            var connectionHandleCopy = connectionHandle;
-            connectionHandle = IntPtr.Zero;
-            CUtilities.CheckCFunctionResult(await Task.Run(() =>
-            {
-                if (pointer == IntPtr.Zero)
-                {
-                    return 0;
-                }
-                
-                pn_channel_leave(pointer);
-                pn_callback_handle_dispose(connectionHandleCopy);
-                return 0;
-            }));
+            
+            //TODO: wrappers rethink
+            chat.membershipWrappers.Remove(currentUserId + Id);
         }
 
         /// <summary>
@@ -756,14 +747,23 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Disconnect"/>
         /// <seealso cref="Join"/>
-        public async void Connect()
+        public void Connect()
         {
-            if (connectionHandle != IntPtr.Zero)
+            if (subscription != null)
             {
                 return;
             }
-
-            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
+            subscription = chat.PubnubInstance.Channel(Id).Subscription(SubscriptionOptions.ReceivePresenceEvents);
+            subscription.AddListener(chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseMessageResult(chat, m, out var message))
+                    {
+                        chat.RegisterMessage(message);
+                        OnMessageReceived?.Invoke(message);
+                    }
+                }));
+            subscription.Subscribe<string>();
         }
         
         /// <summary>
@@ -789,6 +789,93 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
         public async void Join(ChatMembershipData? membershipData = null)
+        {
+            membershipData ??= new ChatMembershipData();
+            var currentUserId = chat.PubnubInstance.GetCurrentUserId();
+            var response = await chat.PubnubInstance.SetMemberships().Uuid(currentUserId)
+                .Channels(new List<PNMembership>()
+                {
+                    new PNMembership()
+                    {
+                        Channel = Id,
+                        Custom = membershipData.CustomData,
+                        Status = membershipData.Status,
+                        Type = membershipData.Type
+                    }
+                })
+                .Include(new []
+                {
+                    PNMembershipField.TYPE,
+                    PNMembershipField.CUSTOM,
+                    PNMembershipField.STATUS,
+                    PNMembershipField.CHANNEL,
+                    PNMembershipField.CHANNEL_CUSTOM
+                }).ExecuteAsync();
+            if (response.Status.Error)
+            {
+                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to Join() to channel \"{Id}\": {response.Status.ErrorData.Information}");
+                return;
+            }
+            
+            //TODO: wrappers rethink
+            if (chat.membershipWrappers.TryGetValue(currentUserId + Id, out var existingHostMembership))
+            {
+                existingHostMembership.UpdateLocalData(membershipData);
+            }
+            else
+            {
+                var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
+                chat.membershipWrappers.Add(joinMembership.Id, joinMembership);
+            }
+            
+            Connect();
+        }
+        
+        public void OLD_Disconnect()
+        {
+            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
+            {
+                return;
+            }
+
+            CUtilities.CheckCFunctionResult(pn_channel_disconnect(pointer));
+            pn_callback_handle_dispose(connectionHandle);
+            connectionHandle = IntPtr.Zero;
+        }
+        
+        public async void OLD_Leave()
+        {
+            if (connectionHandle == IntPtr.Zero || pointer == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var connectionHandleCopy = connectionHandle;
+            connectionHandle = IntPtr.Zero;
+            CUtilities.CheckCFunctionResult(await Task.Run(() =>
+            {
+                if (pointer == IntPtr.Zero)
+                {
+                    return 0;
+                }
+                
+                pn_channel_leave(pointer);
+                pn_callback_handle_dispose(connectionHandleCopy);
+                return 0;
+            }));
+        }
+        
+        public async void OLD_Connect()
+        {
+            if (connectionHandle != IntPtr.Zero)
+            {
+                return;
+            }
+
+            connectionHandle = await SetListening(connectionHandle, true, () => pn_channel_connect(pointer));
+        }
+        
+        public async void OLD_Join(ChatMembershipData? membershipData = null)
         {
             if (connectionHandle != IntPtr.Zero)
             {
@@ -1150,7 +1237,7 @@ namespace PubNubChatAPI.Entities
                 () => pn_channel_get_typing(pointer));
             presenceListeningHandle = await SetListening(presenceListeningHandle, false,
                 () => pn_channel_stream_presence(pointer));
-            Disconnect();
+            OLD_Disconnect();
         }
 
         protected override void DisposePointer()

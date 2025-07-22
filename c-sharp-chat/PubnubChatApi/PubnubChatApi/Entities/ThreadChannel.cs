@@ -72,7 +72,7 @@ namespace PubNubChatAPI.Entities
         
         internal static string MessageToThreadChannelId(Message message)
         {
-            return $"PUBNUB_INTERNAL_THREAD_{message.ChannelId}_{message.Id}";
+            return $"PUBNUB_INTERNAL_THREAD_{message.OLD_ChannelId}_{message.Id}";
         }
 
         internal ThreadChannel(Chat chat, Message sourceMessage, IntPtr channelPointer) : base(chat,

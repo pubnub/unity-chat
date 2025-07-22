@@ -23,14 +23,14 @@ public class ChatTests
         {
             Assert.Fail();
         }
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        channel.OLD_Leave();
         await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
@@ -53,7 +53,7 @@ public class ChatTests
         var mentions = await chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10);
         
         Assert.True(mentions != null);
-        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText == messageContent));
+        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.OLD_MessageText == messageContent));
     }
 
     [Test]
@@ -123,10 +123,10 @@ public class ChatTests
         var forwardingChannel = await chat.OLD_CreatePublicConversation("forwarding_channel");
         forwardingChannel.OnMessageReceived += message =>
         {
-            Assert.True(message.MessageText == "message_to_forward");
+            Assert.True(message.OLD_MessageText == "message_to_forward");
             messageForwardReceivedManualEvent.Set();
         };
-        forwardingChannel.Join();
+        forwardingChannel.OLD_Join();
         await Task.Delay(2500);
         
         channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
@@ -196,7 +196,7 @@ public class ChatTests
             return;
         }
 
-        otherChatChannel.Join();
+        otherChatChannel.OLD_Join();
         await Task.Delay(2500);
         otherChatChannel.SetListeningForReadReceiptsEvents(true);
         await Task.Delay(2500);

@@ -102,7 +102,7 @@ namespace PubNubChatAPI.Entities
         /// This is the main content of the message. It can be any text that the user wants to send.
         /// </para>
         /// </summary>
-        public override string MessageText
+        public override string OLD_MessageText
         {
             get
             {
@@ -115,7 +115,7 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// The original, un-edited text of the thread message.
         /// </summary>
-        public override string OriginalMessageText
+        public override string OLD_OriginalMessageText
         {
             get
             {
@@ -132,7 +132,7 @@ namespace PubNubChatAPI.Entities
         /// It is used to identify the message in the chat.
         /// </para>
         /// </summary>
-        public override string TimeToken
+        public override string OLD_TimeToken
         {
             get
             {
@@ -148,7 +148,7 @@ namespace PubNubChatAPI.Entities
         /// This is the ID of the channel that the message was sent to.
         /// </para>
         /// </summary>
-        public override string ChannelId
+        public override string OLD_ChannelId
         {
             get
             {
@@ -165,7 +165,7 @@ namespace PubNubChatAPI.Entities
         /// Do not confuse this with the username of the user.
         /// </para>
         /// </summary>
-        public override string UserId
+        public override string OLD_UserId
         {
             get
             {
@@ -175,7 +175,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public override PubnubChatMessageType Type => (PubnubChatMessageType)pn_thread_message_get_data_type(pointer);
+        public override PubnubChatMessageType OLD_Type => (PubnubChatMessageType)pn_thread_message_get_data_type(pointer);
 
         /// <summary>
         /// The metadata of the message.
@@ -184,7 +184,7 @@ namespace PubNubChatAPI.Entities
         /// It can be used to store additional information about the message.
         /// </para>
         /// </summary>
-        public override string Meta
+        public override string OLD_Meta
         {
             get
             {
@@ -202,7 +202,7 @@ namespace PubNubChatAPI.Entities
         /// It means that all the deletions are soft deletions.
         /// </para>
         /// </summary>
-        public override bool IsDeleted
+        public override bool OLD_IsDeleted
         {
             get
             {
@@ -212,7 +212,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public override List<User> MentionedUsers
+        public override List<User> OLD_MentionedUsers
         {
             get
             {
@@ -232,7 +232,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public override List<Channel> ReferencedChannels
+        public override List<Channel> OLD_ReferencedChannels
         {
             get
             {
@@ -252,7 +252,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public override List<TextLink> TextLinks
+        public override List<TextLink> OLD_TextLinks
         {
             get
             {
@@ -272,23 +272,23 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public override List<MessageAction> MessageActions
+        public override List<MessageAction> OLD_MessageActions
         {
             get
             {
                 var buffer = new StringBuilder(4096);
                 CUtilities.CheckCFunctionResult(pn_thread_message_get_data_message_actions(pointer, buffer));
-                return DeserializeMessageActions(buffer.ToString());
+                return OLD_DeserializeMessageActions(buffer.ToString());
             }
         }
         
-        public override List<MessageAction> Reactions
+        public override List<MessageAction> OLD_Reactions
         {
             get
             {
                 var buffer = new StringBuilder(4096);
                 CUtilities.CheckCFunctionResult(pn_thread_message_get_reactions(pointer, buffer));
-                return DeserializeMessageActions(buffer.ToString());
+                return OLD_DeserializeMessageActions(buffer.ToString());
             }
         }
         

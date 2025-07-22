@@ -309,11 +309,13 @@ namespace PubNubChatAPI.Entities
         internal IntPtr Pointer => chatPointer;
         private Dictionary<string, Channel> channelWrappers = new();
         private Dictionary<string, User> userWrappers = new();
-        private Dictionary<string, Membership> membershipWrappers = new();
+        //TODO: wrappers rethink
+        internal Dictionary<string, Membership> membershipWrappers = new();
         private Dictionary<string, Message> messageWrappers = new();
         private bool fetchUpdates = true;
 
-        public Pubnub PubnubInstance { get; private set; }
+        public Pubnub PubnubInstance { get; }
+        internal ChatListenerFactory ListenerFactory { get; }
 
         public event Action<ChatEvent> OnAnyEvent;
 
@@ -337,7 +339,7 @@ namespace PubNubChatAPI.Entities
             Config = config;
             ChatAccessManager = new ChatAccessManager(chatPointer);
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
         /// <para>
@@ -346,12 +348,14 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="chatConfig">Config with Chat specific parameters</param>
         /// <param name="pubnubConfig">Config with PubNub keys and values</param>
+        /// <param name="listenerFactory">Optional injectable listener factory, used in Unity to allow for dispatching Chat callbacks on main thread.</param>
         /// <remarks>
         /// The constructor initializes the Chat object with a new Pubnub instance.
         /// </remarks>
-        public Chat(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig)
+        public Chat(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, ChatListenerFactory? listenerFactory = null)
         {
             PubnubInstance = new Pubnub(pubnubConfig);
+            ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             Config = chatConfig;
             ChatAccessManager = new ChatAccessManager(chatPointer);
         }
@@ -364,19 +368,21 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="chatConfig">Config with Chat specific parameters</param>
         /// <param name="pubnub">An already initialised instance of Pubnub</param>
+        /// /// <param name="listenerFactory">Optional injectable listener factory, used in Unity to allow for dispatching Chat callbacks on main thread.</param>
         /// <remarks>
         /// The constructor initializes the Chat object with the provided existing Pubnub instance.
         /// </remarks>
-        public Chat(PubnubChatConfig chatConfig, Pubnub pubnub)
+        public Chat(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
         {
             Config = chatConfig;
             PubnubInstance = pubnub;
+            ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             ChatAccessManager = new ChatAccessManager(chatPointer);
         }
 
         #region Updates handling
 
-        //TODO: cancellation token?
+        //TODO: REMOVE
         internal async Task FetchUpdatesLoop()
         {
             while (fetchUpdates)
@@ -395,6 +401,8 @@ namespace PubNubChatAPI.Entities
             }
         }
 
+        
+        //TODO: REMOVE
         internal void ParseJsonUpdatePointers(string jsonString)
         {
             if (string.IsNullOrEmpty(jsonString) || jsonString == "[]")
@@ -2036,6 +2044,12 @@ namespace PubNubChatAPI.Entities
 
         #region Messages
 
+        //TODO: wrappers rethink
+        internal void RegisterMessage(Message message)
+        {
+            messageWrappers.TryAdd(message.Id, message);
+        }
+        
         public async Task<EventsHistoryWrapper> GetMessageReportsHistory(string channelId, string startTimeToken,
             string endTimeToken, int count)
         {

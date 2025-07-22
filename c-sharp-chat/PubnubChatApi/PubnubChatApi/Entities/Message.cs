@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -77,37 +78,34 @@ namespace PubNubChatAPI.Entities
 
         [DllImport("pubnub-chat")]
         private static extern int pn_message_report(IntPtr message, string reason);
-        
+
         [DllImport("pubnub-chat")]
         private static extern int pn_message_has_thread(IntPtr message);
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_message_update_with_base_message(IntPtr message, IntPtr base_message);
-        
+
         [DllImport("pubnub-chat")]
         private static extern int pn_message_mentioned_users(IntPtr message, IntPtr chat, StringBuilder result);
+
         [DllImport("pubnub-chat")]
         private static extern int pn_message_referenced_channels(IntPtr message, IntPtr chat, StringBuilder result);
+
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_message_quoted_message(IntPtr message);
+
         [DllImport("pubnub-chat")]
         private static extern int pn_message_text_links(IntPtr message, StringBuilder result);
 
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_message_restore(IntPtr message);
-        
+
         [DllImport("pubnub-chat")]
         private static extern IntPtr pn_message_stream_updates(IntPtr message);
-        
+
         #endregion
 
-        /// <summary>
-        /// The text content of the message.
-        /// <para>
-        /// This is the main content of the message. It can be any text that the user wants to send.
-        /// </para>
-        /// </summary>
-        public virtual string MessageText
+        public virtual string OLD_MessageText
         {
             get
             {
@@ -117,10 +115,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The original, un-edited text of the message.
-        /// </summary>
-        public virtual string OriginalMessageText
+        public virtual string OLD_OriginalMessageText
         {
             get
             {
@@ -130,14 +125,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The time token of the message.
-        /// <para>
-        /// The time token is a unique identifier for the message.
-        /// It is used to identify the message in the chat.
-        /// </para>
-        /// </summary>
-        public virtual string TimeToken
+        public virtual string OLD_TimeToken
         {
             get
             {
@@ -147,13 +135,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The channel ID of the channel that the message belongs to.
-        /// <para>
-        /// This is the ID of the channel that the message was sent to.
-        /// </para>
-        /// </summary>
-        public virtual string ChannelId
+        public virtual string OLD_ChannelId
         {
             get
             {
@@ -163,14 +145,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The user ID of the user that sent the message.
-        /// <para>
-        /// This is the unique ID of the user that sent the message.
-        /// Do not confuse this with the username of the user.
-        /// </para>
-        /// </summary>
-        public virtual string UserId
+        public virtual string OLD_UserId
         {
             get
             {
@@ -180,14 +155,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// The metadata of the message.
-        /// <para>
-        /// The metadata is additional data that can be attached to the message.
-        /// It can be used to store additional information about the message.
-        /// </para>
-        /// </summary>
-        public virtual string Meta
+        public virtual string OLD_Meta
         {
             get
             {
@@ -197,15 +165,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        /// <summary>
-        /// Whether the message has been deleted.
-        /// <para>
-        /// This property indicates whether the message has been deleted.
-        /// If the message has been deleted, this property will be true.
-        /// It means that all the deletions are soft deletions.
-        /// </para>
-        /// </summary>
-        public virtual bool IsDeleted
+        public virtual bool OLD_IsDeleted
         {
             get
             {
@@ -215,7 +175,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public virtual List<User> MentionedUsers
+        public virtual List<User> OLD_MentionedUsers
         {
             get
             {
@@ -226,16 +186,18 @@ namespace PubNubChatAPI.Entities
                 {
                     return new List<User>();
                 }
+
                 var jsonDict = JsonConvert.DeserializeObject<Dictionary<string, IntPtr[]>>(usersJson);
                 if (jsonDict == null || !jsonDict.TryGetValue("value", out var pointers) || pointers == null)
                 {
                     return new List<User>();
                 }
+
                 return PointerParsers.ParseJsonUserPointers(chat, pointers);
             }
         }
-        
-        public virtual List<Channel> ReferencedChannels
+
+        public virtual List<Channel> OLD_ReferencedChannels
         {
             get
             {
@@ -246,16 +208,18 @@ namespace PubNubChatAPI.Entities
                 {
                     return new List<Channel>();
                 }
+
                 var jsonDict = JsonConvert.DeserializeObject<Dictionary<string, IntPtr[]>>(channelsJson);
                 if (jsonDict == null || !jsonDict.TryGetValue("value", out var pointers) || pointers == null)
                 {
                     return new List<Channel>();
                 }
+
                 return PointerParsers.ParseJsonChannelPointers(chat, pointers);
             }
         }
-        
-        public virtual List<TextLink> TextLinks
+
+        public virtual List<TextLink> OLD_TextLinks
         {
             get
             {
@@ -266,16 +230,18 @@ namespace PubNubChatAPI.Entities
                 {
                     return new List<TextLink>();
                 }
+
                 var textLinks = JsonConvert.DeserializeObject<Dictionary<string, List<TextLink>>>(jsonString);
                 if (textLinks == null || !textLinks.TryGetValue("value", out var links) || links == null)
                 {
                     return new List<TextLink>();
                 }
+
                 return links;
             }
         }
 
-        protected List<MessageAction> DeserializeMessageActions(string json)
+        protected List<MessageAction> OLD_DeserializeMessageActions(string json)
         {
             var reactions = new List<MessageAction>();
             if (CUtilities.IsValidJson(json))
@@ -283,28 +249,116 @@ namespace PubNubChatAPI.Entities
                 reactions = JsonConvert.DeserializeObject<List<MessageAction>>(json);
                 reactions ??= new List<MessageAction>();
             }
+
             return reactions;
         }
-        
-        public virtual List<MessageAction> MessageActions
+
+        public virtual List<MessageAction> OLD_MessageActions
         {
             get
             {
                 var buffer = new StringBuilder(4096);
                 CUtilities.CheckCFunctionResult(pn_message_get_data_message_actions(pointer, buffer));
-                return DeserializeMessageActions(buffer.ToString());
+                return OLD_DeserializeMessageActions(buffer.ToString());
             }
         }
-        
-        public virtual List<MessageAction> Reactions
+
+        public virtual List<MessageAction> OLD_Reactions
         {
             get
             {
                 var buffer = new StringBuilder(4096);
                 CUtilities.CheckCFunctionResult(pn_message_get_reactions(pointer, buffer));
-                return DeserializeMessageActions(buffer.ToString());
+                return OLD_DeserializeMessageActions(buffer.ToString());
             }
         }
+
+        public virtual PubnubChatMessageType OLD_Type => (PubnubChatMessageType)pn_message_get_data_type(pointer);
+
+        protected Chat chat;
+
+        /// <summary>
+        /// The text content of the message.
+        /// <para>
+        /// This is the main content of the message. It can be any text that the user wants to send.
+        /// </para>
+        /// </summary>
+        public virtual string MessageText {
+            get
+            {
+                var edits = MessageActions.Where(x => x.Type == PubnubMessageActionType.Edited).ToList();
+                return edits.Any() ? edits[0].Value : OriginalMessageText;
+            }
+        }
+
+        /// <summary>
+        /// The original, un-edited text of the message.
+        /// </summary>
+        public virtual string OriginalMessageText { get; internal set; }
+
+        /// <summary>
+        /// The time token of the message.
+        /// <para>
+        /// The time token is a unique identifier for the message.
+        /// It is used to identify the message in the chat.
+        /// </para>
+        /// </summary>
+        public virtual string TimeToken { get; internal set; }
+
+        /// <summary>
+        /// The channel ID of the channel that the message belongs to.
+        /// <para>
+        /// This is the ID of the channel that the message was sent to.
+        /// </para>
+        /// </summary>
+        public virtual string ChannelId { get; internal set; }
+
+        /// <summary>
+        /// The user ID of the user that sent the message.
+        /// <para>
+        /// This is the unique ID of the user that sent the message.
+        /// Do not confuse this with the username of the user.
+        /// </para>
+        /// </summary>
+        public virtual string UserId { get; internal set; }
+
+        /// <summary>
+        /// The metadata of the message.
+        /// <para>
+        /// The metadata is additional data that can be attached to the message.
+        /// It can be used to store additional information about the message.
+        /// </para>
+        /// </summary>
+        public Dictionary<string, object> Meta { get; internal set; }
+
+        /// <summary>
+        /// Whether the message has been deleted.
+        /// <para>
+        /// This property indicates whether the message has been deleted.
+        /// If the message has been deleted, this property will be true.
+        /// It means that all the deletions are soft deletions.
+        /// </para>
+        /// </summary>
+        public virtual bool IsDeleted => MessageActions.Any(x => x.Type == PubnubMessageActionType.Deleted);
+        
+        public virtual List<MentionedUser> MentionedUsers {
+            get
+            {
+                var mentioned = new List<MentionedUser>();
+                if (Meta.TryGetValue("mentionedUsers", out var rawMentionedUsers))
+                {
+                    //TODO: might break
+                    var deserialized = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToObject<List<MentionedUser>>(rawMentionedUsers.ToString());
+                    mentioned.AddRange(deserialized);
+                }
+                return mentioned;
+            }
+        }
+
+        public virtual List<MessageAction> MessageActions { get; internal set; }
+
+        public virtual List<MessageAction> Reactions =>
+            MessageActions.Where(x => x.Type == PubnubMessageActionType.Reaction).ToList();
 
         /// <summary>
         /// The data type of the message.
@@ -314,9 +368,8 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <seealso cref="pubnub_chat_message_type"/>
-        public virtual PubnubChatMessageType Type => (PubnubChatMessageType)pn_message_get_data_type(pointer);
+        public virtual PubnubChatMessageType Type { get; protected set; }
 
-        protected Chat chat;
 
         /// <summary>
         /// Event that is triggered when the message is updated.
@@ -342,7 +395,17 @@ namespace PubNubChatAPI.Entities
         {
             this.chat = chat;
         }
-        
+
+        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, Dictionary<string, object> meta) : base(timeToken)
+        {
+            this.chat = chat;
+            TimeToken = timeToken;
+            OriginalMessageText = originalMessageText;
+            ChannelId = channelId;
+            UserId = userId;
+            Meta = meta;
+        }
+
         protected override IntPtr StreamUpdates()
         {
             return pn_message_stream_updates(pointer);
@@ -361,7 +424,7 @@ namespace PubNubChatAPI.Entities
             pn_message_get_data_channel_id(messagePointer, buffer);
             return buffer.ToString();
         }
-        
+
         internal override void UpdateWithPartialPtr(IntPtr partialPointer)
         {
             var newFullPointer = pn_message_update_with_base_message(partialPointer, pointer);
@@ -405,6 +468,7 @@ namespace PubNubChatAPI.Entities
                 quotedMessage = null;
                 return false;
             }
+
             return chat.TryGetMessage(quotedMessagePointer, out quotedMessage);
         }
 
@@ -499,7 +563,7 @@ namespace PubNubChatAPI.Entities
         /// message.DeleteMessage();
         /// </code>
         /// </example>
-        /// <seealso cref="IsDeleted"/>
+        /// <seealso cref="OLD_IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
         public virtual async Task Delete(bool soft)
         {

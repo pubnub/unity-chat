@@ -92,7 +92,7 @@ public class ChannelTests
         Assert.IsNotNull(currentChatUser, "currentChatUser was null");
         
         var channel = await chat.OLD_CreatePublicConversation();
-        channel.Join();
+        channel.OLD_Join();
 
         await Task.Delay(3000);
 
@@ -100,7 +100,7 @@ public class ChannelTests
         
         Assert.True(memberships.Memberships.Any(x => x.OLD_UserId == currentChatUser.Id), "Join failed, current user not found in channel memberships");
         
-        channel.Leave();
+        channel.OLD_Leave();
         
         await Task.Delay(3000);
         
@@ -113,7 +113,7 @@ public class ChannelTests
     public async Task TestGetUserSuggestions()
     {
         var channel = await chat.OLD_CreatePublicConversation("user_suggestions_test_channel");
-        channel.Join();
+        channel.OLD_Join();
 
         await Task.Delay(5000);
         
@@ -125,7 +125,7 @@ public class ChannelTests
     public async Task TestGetMemberships()
     {
         var channel = await chat.OLD_CreatePublicConversation("get_members_test_channel");
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
         var memberships = await channel.OLD_GetMemberships();
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
@@ -135,7 +135,7 @@ public class ChannelTests
     public async Task TestStartTyping()
     {
         var channel = (await chat.OLD_CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
@@ -157,7 +157,7 @@ public class ChannelTests
     public async Task TestStopTyping()
     {
         var channel = (await chat.OLD_CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         await Task.Delay(2500);
@@ -182,7 +182,7 @@ public class ChannelTests
     public async Task TestStopTypingFromTimer()
     {
         var channel = (await chat.OLD_CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
@@ -207,7 +207,7 @@ public class ChannelTests
     public async Task TestPinMessage()
     {
         var channel = await chat.OLD_CreatePublicConversation("pin_message_test_channel_37");
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
         
         var receivedManualEvent = new ManualResetEvent(false);
@@ -221,7 +221,7 @@ public class ChannelTests
             
             await Task.Delay(2000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "message to pin");
+            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.OLD_MessageText == "message to pin");
             receivedManualEvent.Set();
         };
         await channel.SendText("message to pin");
@@ -234,7 +234,7 @@ public class ChannelTests
     public async Task TestUnPinMessage()
     {
         var channel = await chat.OLD_CreatePublicConversation("unpin_message_test_channel");
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
@@ -243,7 +243,7 @@ public class ChannelTests
 
             await Task.Delay(2000);
             
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "message to pin");
+            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.OLD_MessageText == "message to pin");
             await channel.UnpinMessage();
             
             await Task.Delay(2000);
@@ -276,7 +276,7 @@ public class ChannelTests
     public async Task TestEmitUserMention()
     {
         var channel = await chat.OLD_CreatePublicConversation("user_mention_test_channel");
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
@@ -295,7 +295,7 @@ public class ChannelTests
     public async Task TestChannelIsPresent()
     {
         var someChannel = await chat.OLD_CreatePublicConversation();
-        someChannel.Join();
+        someChannel.OLD_Join();
 
         await Task.Delay(4000);
 
@@ -308,7 +308,7 @@ public class ChannelTests
     public async Task TestChannelWhoIsPresent()
     {
         var someChannel = await chat.OLD_CreatePublicConversation();
-        someChannel.Join();
+        someChannel.OLD_Join();
 
         await Task.Delay(4000);
 

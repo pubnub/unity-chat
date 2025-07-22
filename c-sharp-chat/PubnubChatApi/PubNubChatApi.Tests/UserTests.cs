@@ -25,14 +25,14 @@ public class UserTests
         {
             Assert.Fail();
         }
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        channel.OLD_Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -109,7 +109,7 @@ public class UserTests
     public async Task TestUserWherePresent()
     {
         var someChannel = await chat.OLD_CreatePublicConversation();
-        someChannel.Join();
+        someChannel.OLD_Join();
 
         await Task.Delay(4000);
 
@@ -122,7 +122,7 @@ public class UserTests
     public async Task TestUserIsPresentOn()
     {
         var someChannel = await chat.OLD_CreatePublicConversation();
-        someChannel.Join();
+        someChannel.OLD_Join();
 
         await Task.Delay(4000);
 

@@ -28,7 +28,7 @@ public class MessageDraftTests
             Assert.Fail();
         }
 
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3000);
         
         if (!chat.OLD_TryGetUser("mock_user", out dummyUser))
@@ -231,7 +231,7 @@ public class MessageDraftTests
         var successReset = new ManualResetEvent(false);
         channel.OnMessageReceived += message =>
         {
-            Assert.True(message.MessageText == "draft_text");
+            Assert.True(message.OLD_MessageText == "draft_text");
             successReset.Set();
         };
         var messageDraft = channel.CreateMessageDraft();

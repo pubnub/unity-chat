@@ -24,14 +24,14 @@ public class ChatEventTests
         {
             Assert.Fail();
         }
-        channel.Join();
+        channel.OLD_Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        channel.OLD_Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
