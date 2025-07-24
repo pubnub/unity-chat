@@ -24,7 +24,7 @@ namespace PubnubChatApi.Entities.Data
             RateLimitPerChannel rateLimitPerChannel = null, bool storeUserActivityTimestamp = false,
             int storeUserActivityInterval = 60000)
         {
-            RateLimitsPerChannel = rateLimitPerChannel;
+            RateLimitsPerChannel = rateLimitPerChannel ?? new RateLimitPerChannel();
             RateLimitFactor = rateLimitFactor;
             StoreUserActivityTimestamp = storeUserActivityTimestamp;
             StoreUserActivityInterval = storeUserActivityInterval;

@@ -2,11 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
@@ -37,12 +33,15 @@ namespace PubNubChatAPI.Entities
         private bool fetchUpdates = true;
 
         public Pubnub PubnubInstance { get; }
+        public PubnubLogModule Logger => PubnubInstance.PNConfig.Logger;
+        
         internal ChatListenerFactory ListenerFactory { get; }
 
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
         public PubnubChatConfig Config { get; }
+        internal ExponentialRateLimiter RateLimiter { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
@@ -56,14 +55,26 @@ namespace PubNubChatAPI.Entities
         /// <remarks>
         /// The constructor initializes the Chat object with a new Pubnub instance.
         /// </remarks>
-        public Chat(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, ChatListenerFactory? listenerFactory = null)
+        public static async Task<Chat> CreateInstance(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, ChatListenerFactory? listenerFactory = null)
+        {
+            var chat = new Chat(chatConfig, pubnubConfig, listenerFactory);
+            var user = await chat.GetCurrentUserAsync();
+            if (user == null)
+            {
+                await chat.CreateUser(chat.PubnubInstance.GetCurrentUserId());
+            }
+            return chat;
+        }
+        
+        internal Chat(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, ChatListenerFactory? listenerFactory = null)
         {
             PubnubInstance = new Pubnub(pubnubConfig);
             ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             Config = chatConfig;
             ChatAccessManager = new ChatAccessManager(this);
+            RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
         /// <para>
@@ -76,12 +87,24 @@ namespace PubNubChatAPI.Entities
         /// <remarks>
         /// The constructor initializes the Chat object with the provided existing Pubnub instance.
         /// </remarks>
-        public Chat(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
+        public static async Task<Chat> CreateInstance(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
+        {
+            var chat = new Chat(chatConfig, pubnub, listenerFactory);
+            var user = await chat.GetCurrentUserAsync();
+            if (user == null)
+            {
+                await chat.CreateUser(chat.PubnubInstance.GetCurrentUserId());
+            }
+            return chat;
+        }
+        
+        internal Chat(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
         {
             Config = chatConfig;
             PubnubInstance = pubnub;
             ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             ChatAccessManager = new ChatAccessManager(this);
+            RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
         
         #region Channels
@@ -152,7 +175,7 @@ namespace PubNubChatAPI.Entities
             var existingChannel = await GetChannelAsync(channelId);
             if (existingChannel != null)
             {
-                PubnubInstance.PNConfig.Logger?.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
+                Logger.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
                 return existingChannel;
             }
 
@@ -185,7 +208,7 @@ namespace PubNubChatAPI.Entities
             var existingChannel = await GetChannelAsync(channelId);
             if (existingChannel != null)
             {
-                PubnubInstance.PNConfig.Logger?.Warn("Trying to create a channel with ID that already exists! Aborting.");
+                Logger.Warn("Trying to create a channel with ID that already exists! Aborting.");
                 return null;
             }
             
@@ -221,7 +244,7 @@ namespace PubNubChatAPI.Entities
             
             if (setMembershipResult.Status.Error)
             {
-                PubnubInstance.PNConfig.Logger?.Error($"Error when trying to set memberships for {type} conversation: {setMembershipResult.Status.Error}");
+                Logger.Error($"Error when trying to set memberships for {type} conversation: {setMembershipResult.Status.Error}");
                 return null;
             }
 
@@ -246,7 +269,7 @@ namespace PubNubChatAPI.Entities
                 var inviteMembership = await InviteToChannel(channelId, users[0].Id);
                 if (inviteMembership == null)
                 {
-                    PubnubInstance.PNConfig.Logger?.Error($"Error when trying to invite user \"{users[0].Id}\" to direct conversation \"{channelId}\": {setMembershipResult.Status.Error}");
+                    Logger.Error($"Error when trying to invite user \"{users[0].Id}\" to direct conversation \"{channelId}\": {setMembershipResult.Status.Error}");
                     return null;
                 }
                 responseWrapper.InviteesMemberships = new List<Membership>() { inviteMembership };
@@ -255,7 +278,7 @@ namespace PubNubChatAPI.Entities
                 var inviteMembership = await InviteMultipleToChannel(channelId, users);
                 if (inviteMembership?.Count == 0)
                 {
-                    PubnubInstance.PNConfig.Logger?.Error($"Error when trying to invite users to group conversation \"{channelId}\": {setMembershipResult.Status.Error}");
+                    Logger.Error($"Error when trying to invite users to group conversation \"{channelId}\": {setMembershipResult.Status.Error}");
                     return null;
                 }
                 responseWrapper.InviteesMemberships = new List<Membership>(inviteMembership);
@@ -348,11 +371,14 @@ namespace PubNubChatAPI.Entities
             }
             var inviteResponse = await PubnubInstance.SetChannelMembers().Channel(channelId)
                 .Include(
-                    //TODO: C# FIX, MISSING VALUES
                     new[] { 
                         PNChannelMemberField.UUID, 
                         PNChannelMemberField.CUSTOM, 
-                        PNChannelMemberField.UUID_CUSTOM
+                        PNChannelMemberField.UUID_CUSTOM,
+                        PNChannelMemberField.TYPE,
+                        PNChannelMemberField.STATUS,
+                        PNChannelMemberField.UUID_TYPE,
+                        PNChannelMemberField.UUID_STATUS
                     })
                 //TODO: again, should ChatMembershipData from Create(...)Channel  also be passed here?
                 .Uuids(users.Select(x => new PNChannelMember() { Custom = x.CustomData, Uuid = x.Id }).ToList())
@@ -812,7 +838,7 @@ namespace PubNubChatAPI.Entities
                 .Limit(limit).Page(page).ExecuteAsync();
             if (result.Status.Error)
             {
-                PubnubInstance.PNConfig.Logger?.Error($"Error when trying to GetUsers(): {result.Status.ErrorData.Information}");
+                Logger.Error($"Error when trying to GetUsers(): {result.Status.ErrorData.Information}");
                 return default;
             }
 
@@ -974,16 +1000,17 @@ namespace PubNubChatAPI.Entities
             var result = await PubnubInstance.GetChannelMembers().Include(
                     new[]
                     {
-                        //TODO: C# FIX
-                        //PNChannelMemberField.CHANNEL_CUSTOM,
+                        PNChannelMemberField.UUID_CUSTOM,
+                        PNChannelMemberField.UUID_TYPE,
+                        PNChannelMemberField.UUID_STATUS,
                         PNChannelMemberField.CUSTOM,
-                        //PNChannelMemberField.CHANNEL,
-                        //PNChannelMemberField.STATUS,
+                        PNChannelMemberField.TYPE,
+                        PNChannelMemberField.STATUS,
                     }).Channel(channelId).Filter(filter).Sort(new List<string>() { sort })
                 .Limit(limit).Page(page).ExecuteAsync();
             if (result.Status.Error)
             {
-                PubnubInstance.PNConfig.Logger?.Error($"Error when trying to get \"{channelId}\" channel members: {result.Status.ErrorData.Information}");
+                Logger.Error($"Error when trying to get \"{channelId}\" channel members: {result.Status.ErrorData.Information}");
                 return null;
             }
 
@@ -1216,6 +1243,7 @@ namespace PubNubChatAPI.Entities
         public void Destroy()
         {
             PubnubInstance.Destroy();
+            RateLimiter.Dispose();
         }
 
         ~Chat()

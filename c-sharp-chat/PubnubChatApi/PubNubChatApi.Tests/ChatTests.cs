@@ -16,7 +16,7 @@ public class ChatTests
     [SetUp]
     public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("chats_tests_user_10_no_calkiem_nowy_2"))
+        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("chats_tests_user_10_no_calkiem_nowy_2"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
@@ -45,9 +45,13 @@ public class ChatTests
         var messageContent = "wololo";
         await channel.SendText(messageContent, new SendTextParams()
         {
-            MentionedUsers = new Dictionary<int, User>()
+            MentionedUsers = new Dictionary<int, MentionedUser>()
             {
-                {0, currentUser}
+                {0, new MentionedUser()
+                {
+                    Id = currentUser.Id,
+                    Name = currentUser.UserName
+                }}
             }
         });
 
@@ -188,7 +192,7 @@ public class ChatTests
     [Test]
     public async Task TestReadReceipts()
     {
-        var otherChat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("other_chat_user"))
+        var otherChat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("other_chat_user"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
@@ -228,7 +232,7 @@ public class ChatTests
     {
         await Task.Delay(4000);
         
-        var accessChat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("can_i_test_user"))
+        var accessChat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("can_i_test_user"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey,

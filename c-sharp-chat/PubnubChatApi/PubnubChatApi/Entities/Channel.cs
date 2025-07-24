@@ -165,14 +165,12 @@ namespace PubNubChatAPI.Entities
                 .Channel(channelId)
                 .Name(data.ChannelName)
                 .Description(data.ChannelDescription)
-                //TODO: C# FIX
-                //.Status(data.ChannelStatus)
-                //.Updated(data.ChannelUpdated)
+                .Status(data.ChannelStatus)
                 .Custom(data.ChannelCustomData)
                 .ExecuteAsync();
             if (result.Status.Error)
             {
-                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to set data for channel \"{channelId}\": {result.Status.ErrorData.Information}");
+                chat.Logger.Error($"Error when trying to set data for channel \"{channelId}\": {result.Status.ErrorData.Information}");
                 return false;
             }
             return true;
@@ -185,7 +183,7 @@ namespace PubNubChatAPI.Entities
                 .ExecuteAsync();
             if (result.Status.Error)
             {
-                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to get data for channel \"{channelId}\": {result.Status.ErrorData.Information}");
+                chat.Logger.Error($"Error when trying to get data for channel \"{channelId}\": {result.Status.ErrorData.Information}");
                 return null;
             }
             try
@@ -428,7 +426,7 @@ namespace PubNubChatAPI.Entities
                 .ExecuteAsync();
             if (remove.Status.Error)
             {
-                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to leave channel \"{Id}\": {remove.Status.ErrorData.Information}");
+                chat.Logger.Error($"Error when trying to leave channel \"{Id}\": {remove.Status.ErrorData.Information}");
                 return;
             }
             
@@ -472,7 +470,7 @@ namespace PubNubChatAPI.Entities
                         OnMessageReceived?.Invoke(message);
                     }
                 }));
-            subscription.Subscribe<string>();
+            subscription.Subscribe<object>();
         }
         
         /// <summary>
@@ -522,10 +520,9 @@ namespace PubNubChatAPI.Entities
                 }).ExecuteAsync();
             if (response.Status.Error)
             {
-                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to Join() to channel \"{Id}\": {response.Status.ErrorData.Information}");
+                chat.Logger.Error($"Error when trying to Join() to channel \"{Id}\": {response.Status.ErrorData.Information}");
                 return;
             }
-            
             //TODO: wrappers rethink
             if (chat.membershipWrappers.TryGetValue(currentUserId + Id, out var existingHostMembership))
             {
@@ -534,6 +531,7 @@ namespace PubNubChatAPI.Entities
             else
             {
                 var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
+                await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
                 chat.membershipWrappers.Add(joinMembership.Id, joinMembership);
             }
             
@@ -592,7 +590,62 @@ namespace PubNubChatAPI.Entities
 
         public virtual async Task SendText(string message, SendTextParams sendTextParams)
         {
-            throw new NotImplementedException();
+            //TODO: maybe move this to a method in config?
+            var baseInterval = Type switch
+            {
+                "public" => chat.Config.RateLimitsPerChannel.PublicConversation,
+                "direct" => chat.Config.RateLimitsPerChannel.DirectConversation,
+                "group" => chat.Config.RateLimitsPerChannel.GroupConversation,
+                _ => chat.Config.RateLimitsPerChannel.UnknownConversation
+            };
+
+            TaskCompletionSource<bool> completionSource = new ();
+            chat.RateLimiter.RunWithinLimits(Id, baseInterval, async () =>
+            {
+                var messageDict = new Dictionary<string, string>()
+                {
+                    {"text", message},
+                    {"type", "text"}
+                };
+                //TODO: "meta" here too?
+                var meta = new Dictionary<string, object>();
+                if (sendTextParams.QuotedMessage != null)
+                {
+                    //TODO: may create some "ToJSON()" methods for chat entities
+                    //TODO: what about edited messages??
+                    meta.Add("quotedMessage", new Dictionary<string, string>()
+                    {
+                        {"timetoken", sendTextParams.QuotedMessage.TimeToken},
+                        {"text", sendTextParams.QuotedMessage.OriginalMessageText},
+                        {"userId", sendTextParams.QuotedMessage.UserId},
+                        {"channelId", sendTextParams.QuotedMessage.ChannelId},
+                    });
+                }
+                if (sendTextParams.MentionedUsers.Any())
+                {
+                    meta.Add("mentionedUsers", sendTextParams.MentionedUsers);
+                }
+                return await chat.PubnubInstance.Publish()
+                    .Channel(Id)
+                    .ShouldStore(sendTextParams.StoreInHistory)
+                    .UsePOST(sendTextParams.SendByPost)
+                    .Message(chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(messageDict))
+                    .Meta(meta)
+                    .ExecuteAsync();
+            }, response =>
+            {
+                if (response is PNResult<PNPublishResult> result && result.Status.Error)
+                {
+                    chat.Logger.Error($"Error occured when trying to SendText(): {result.Status.ErrorData.Information}");
+                }
+                completionSource.SetResult(true);
+            }, exception =>
+            {
+                chat.Logger.Error($"Error occured when trying to SendText(): {exception.Message}");
+                completionSource.SetResult(true);
+            });
+
+            await completionSource.Task;
         }
 
         /// <summary>

@@ -121,7 +121,7 @@ namespace PubNubChatAPI.Entities
 
             if (updateResponse.Status.Error)
             {
-                chat.PubnubInstance.PNConfig.Logger?.Error($"Error when trying to update membership (channel: {ChannelId}, user: {UserId}): {updateResponse.Status.ErrorData.Information}");
+                chat.Logger.Error($"Error when trying to update membership (channel: {ChannelId}, user: {UserId}): {updateResponse.Status.ErrorData.Information}");
                 return false;
             }
 

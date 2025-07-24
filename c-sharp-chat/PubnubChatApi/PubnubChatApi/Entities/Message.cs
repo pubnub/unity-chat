@@ -77,7 +77,7 @@ namespace PubNubChatAPI.Entities
         /// It can be used to store additional information about the message.
         /// </para>
         /// </summary>
-        public Dictionary<string, object> Meta { get; internal set; }
+        public Dictionary<string, object> Meta { get; internal set; } = new ();
 
         /// <summary>
         /// Whether the message has been deleted.
@@ -103,7 +103,7 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public virtual List<MessageAction> MessageActions { get; internal set; }
+        public virtual List<MessageAction> MessageActions { get; internal set; } = new();
 
         public virtual List<MessageAction> Reactions =>
             MessageActions.Where(x => x.Type == PubnubMessageActionType.Reaction).ToList();
@@ -116,7 +116,7 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <seealso cref="pubnub_chat_message_type"/>
-        public virtual PubnubChatMessageType Type { get; protected set; }
+        public virtual PubnubChatMessageType Type { get; internal set; }
 
 
         /// <summary>
@@ -139,13 +139,14 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Delete"/>
         public event Action<Message> OnMessageUpdated;
 
-        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, Dictionary<string, object> meta) : base(timeToken)
+        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(timeToken)
         {
             this.chat = chat;
             TimeToken = timeToken;
             OriginalMessageText = originalMessageText;
             ChannelId = channelId;
             UserId = userId;
+            Type = type;
             Meta = meta;
         }
 

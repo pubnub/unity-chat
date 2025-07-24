@@ -20,12 +20,11 @@ namespace PubnubChatApi.Entities.Data
         
         public static implicit operator ChatMembershipData(PNChannelMembersItemResult membersItem)
         {
-            //TODO: C# FIX, MISSING VALUES
             return new ChatMembershipData()
             {
                 CustomData = membersItem.Custom,
-                //Status = membersItem.Status,
-                //Type = membersItem.Type
+                Status = membersItem.Status,
+                Type = membersItem.Type
             };
         }
     }

@@ -8,7 +8,7 @@ namespace PubnubChatApi.Entities.Data
         public bool StoreInHistory = true;
         public bool SendByPost = false;
         public string Meta = string.Empty;
-        public Dictionary<int, User> MentionedUsers = new();
+        public Dictionary<int, MentionedUser> MentionedUsers = new();
         public Message QuotedMessage = null;
     }
 }

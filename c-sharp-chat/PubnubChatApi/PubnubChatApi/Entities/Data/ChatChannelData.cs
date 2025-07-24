@@ -25,13 +25,12 @@ namespace PubnubChatApi.Entities.Data
         {
             return new ChatChannelData()
             {
-                //TODO: C# FIX
                 ChannelName = metadataResult.Name,
                 ChannelDescription = metadataResult.Description,
                 ChannelCustomData = metadataResult.Custom,
-                //ChannelStatus = metadataResult.Status,
+                ChannelStatus = metadataResult.Status,
                 ChannelUpdated = metadataResult.Updated,
-                //ChannelType = metadataResult.Type
+                ChannelType = metadataResult.Type
             };
         }
     }

@@ -16,7 +16,7 @@ public class MessageDraftTests
     [SetUp]
     public async Task Setup()
     {
-        chat = new Chat(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_draft_tests_user"))
+        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_draft_tests_user"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey

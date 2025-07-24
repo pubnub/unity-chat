@@ -23,7 +23,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId, string userId, Dictionary<string, object> meta) : base(chat, timeToken, originalMessageText, channelId, userId, meta)
+        internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(chat, timeToken, originalMessageText, channelId, userId, type, meta)
         {
         }
 

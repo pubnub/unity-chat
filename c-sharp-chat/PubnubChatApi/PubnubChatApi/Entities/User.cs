@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -190,17 +191,37 @@ namespace PubNubChatAPI.Entities
 
         internal static async Task<bool> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
         {
-            var result = await chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true)
-                .Uuid(userId)
-                .Name(chatUserData.Username)
-                .Email(chatUserData.Email)
-                .ExternalId(chatUserData.ExternalId)
-                .ProfileUrl(chatUserData.ProfileUrl)
-                //TODO: C# FIX
-                //.Status(chatUserData.Status)
-                //.Type(chatUserData.Type)
-                .Custom(chatUserData.CustomData)
-                .ExecuteAsync();
+            //TODO: Create a better way to do this
+            var operation = chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true).Uuid(userId);
+            if (!string.IsNullOrEmpty(chatUserData.Username))
+            {
+                operation = operation.Name(chatUserData.Username);
+            }
+            if (!string.IsNullOrEmpty(chatUserData.Email))
+            {
+                operation = operation.Email(chatUserData.Email);
+            }
+            if (!string.IsNullOrEmpty(chatUserData.ExternalId))
+            {
+                operation = operation.ExternalId(chatUserData.ExternalId);
+            }
+            if (!string.IsNullOrEmpty(chatUserData.ProfileUrl))
+            {
+                operation = operation.ProfileUrl(chatUserData.ProfileUrl);
+            }
+            if (!string.IsNullOrEmpty(chatUserData.Type))
+            {
+                operation = operation.Type(chatUserData.Type);
+            }
+            if (!string.IsNullOrEmpty(chatUserData.Status))
+            {
+                operation = operation.Status(chatUserData.Status);
+            }
+            if (chatUserData.CustomData.Any())
+            {
+                operation = operation.Custom(chatUserData.CustomData);
+            }
+            var result = await operation.ExecuteAsync();
             if (result.Status.Error)
             {
                 chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to update user data for user \"{userId}\": {result.Status.ErrorData.Information}");
