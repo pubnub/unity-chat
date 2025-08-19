@@ -366,7 +366,13 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public async Task<bool> IsPresentOn(string channelId)
         {
-            throw new NotImplementedException();
+            var response = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync();
+            if (response.Status.Error)
+            {
+                chat.Logger.Error($"Error when trying to perform IsPresentOn(): {response.Status.ErrorData.Information}");
+                return false;
+            }
+            return response.Result.Channels.Contains(channelId);
         }
 
         /// <summary>
@@ -425,7 +431,7 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="Membership"/>
         public async Task<MembersResponseWrapper> GetMemberships(string filter = "", string sort = "", int limit = 0,
-            Page page = null)
+            PNPageObject page = null)
         {
             return await chat.GetUserMemberships(Id, filter, sort, limit, page);
         }

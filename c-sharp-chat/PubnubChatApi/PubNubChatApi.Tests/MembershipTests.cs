@@ -22,6 +22,10 @@ public class MembershipTests
             SubscribeKey = PubnubTestsParameters.SubscribeKey
         });
         channel = await chat.CreatePublicConversation("membership_tests_channel");
+        if (channel == null)
+        {
+            Assert.Fail();
+        }
         if (!chat.TryGetCurrentUser(out user))
         {
             Assert.Fail();
@@ -34,6 +38,8 @@ public class MembershipTests
     [TearDown]
     public async Task CleanUp()
     {
+        await chat.PubnubInstance.RemoveMemberships().Channels(new List<string>() { "membership_tests_channel", "test_invite_group_channel" })
+            .Uuid("membership_tests_user_54").ExecuteAsync();
         channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
@@ -63,7 +69,9 @@ public class MembershipTests
             CustomData = new Dictionary<string, object>()
             {
                 {"key", Guid.NewGuid().ToString()}
-            }
+            },
+            Type = "some_membership",
+            Status = "active"
         };
 
         var manualUpdatedEvent = new ManualResetEvent(false);

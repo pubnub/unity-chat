@@ -93,13 +93,78 @@ namespace PubNubChatAPI.Entities
             get
             {
                 var mentioned = new List<MentionedUser>();
-                if (Meta.TryGetValue("mentionedUsers", out var rawMentionedUsers))
+                if (!Meta.TryGetValue("mentionedUsers", out var rawMentionedUsers))
                 {
-                    //TODO: might break
-                    var deserialized = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToObject<List<MentionedUser>>(rawMentionedUsers.ToString());
-                    mentioned.AddRange(deserialized);
+                    return mentioned;
+                }
+                if (rawMentionedUsers is Dictionary<string, object> mentionedDict)
+                {
+                    foreach (var kvp in mentionedDict)
+                    {
+                        if (kvp.Value is Dictionary<string, object> mentionedUser)
+                        {
+                            mentioned.Add(new MentionedUser()
+                            {
+                                Id = (string)mentionedUser["id"],
+                                Name = (string)mentionedUser["name"]
+                            });
+                        }
+                    }
                 }
                 return mentioned;
+            }
+        }
+        
+        public virtual List<ReferencedChannel> ReferencedChannels {
+            get
+            {
+                var referenced = new List<ReferencedChannel>();
+                if (!Meta.TryGetValue("referencedChannels", out var rawReferenced))
+                {
+                    return referenced;
+                }
+                if (rawReferenced is Dictionary<string, object> referencedDict)
+                {
+                    foreach (var kvp in referencedDict)
+                    {
+                        if (kvp.Value is Dictionary<string, object> referencedChannel)
+                        {
+                            referenced.Add(new ReferencedChannel()
+                            {
+                                Id = (string)referencedChannel["id"],
+                                Name = (string)referencedChannel["name"]
+                            });
+                        }
+                    }
+                }
+                return referenced;
+            }
+        }
+        
+        public virtual List<TextLink> TextLinks {
+            get
+            {
+                var links = new List<TextLink>();
+                if (!Meta.TryGetValue("textLinks", out var rawLinks))
+                {
+                    return links;
+                }
+                if (rawLinks is Dictionary<string, object> linksDick)
+                {
+                    foreach (var kvp in linksDick)
+                    {
+                        if (kvp.Value is Dictionary<string, object> link)
+                        {
+                            links.Add(new TextLink()
+                            {
+                                StartIndex = Convert.ToInt32(link["start_index"]),
+                                EndIndex = Convert.ToInt32(link["end_index"]),
+                                Link = (string)link["link"]
+                            });
+                        }
+                    }
+                }
+                return links;
             }
         }
 

@@ -1,9 +1,14 @@
+using Newtonsoft.Json;
+
 namespace PubnubChatApi.Entities.Data
 {
     public class TextLink
     {
+        [JsonProperty("start_index")]
         public int StartIndex;
-        public int  EndIndex; 
+        [JsonProperty("end_index")]
+        public int  EndIndex;
+        [JsonProperty("link")]
         public string Link = string.Empty;
     }
 }

@@ -472,9 +472,53 @@ namespace PubNubChatAPI.Entities
         }
 
         public async Task<ChannelsResponseWrapper> GetChannels(string filter = "", string sort = "", int limit = 0,
-            Page page = null)
+            PNPageObject page = null)
         {
-            throw new NotImplementedException();
+            var operation = PubnubInstance.GetAllChannelMetadata().IncludeCustom(true).IncludeCount(true).IncludeStatus(true).IncludeType(true);
+            if (!string.IsNullOrEmpty(filter))
+            {
+                operation = operation.Filter(filter);
+            }
+            if (!string.IsNullOrEmpty(sort))
+            {
+                operation = operation.Sort(new List<string>(){sort});
+            }
+            if (limit > 0)
+            {
+                operation = operation.Limit(limit);
+            }
+            if (page != null)
+            {
+                operation = operation.Page(page);
+            }
+            var response = await operation.ExecuteAsync();
+            
+            if (response.Status.Error)
+            {
+                Logger.Error($"Error when trying to GetChannels(): {response.Status.ErrorData.Information}");
+                return default;
+            }
+            var wrapper = new ChannelsResponseWrapper()
+            {
+                Channels = new List<Channel>(),
+                Total = response.Result.TotalCount,
+                Page = response.Result.Page
+            };
+            foreach (var resultMetadata in response.Result.Channels)
+            {
+                if (channelWrappers.TryGetValue(resultMetadata.Channel, out var existingChannelWrapper))
+                {
+                    existingChannelWrapper.UpdateLocalData(resultMetadata);
+                    wrapper.Channels.Add(existingChannelWrapper);
+                }
+                else
+                {
+                    var channel = new Channel(this, resultMetadata.Channel, resultMetadata);
+                    channelWrappers.Add(channel.Id, channel);
+                    wrapper.Channels.Add(channel);
+                }
+            }
+            return wrapper;
         }
 
         /// <summary>
@@ -834,8 +878,25 @@ namespace PubNubChatAPI.Entities
         public async Task<UsersResponseWrapper> GetUsers(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
-            var result = await PubnubInstance.GetAllUuidMetadata().Filter(filter).Sort(new List<string>() { sort })
-                .Limit(limit).Page(page).ExecuteAsync();
+            var operation = PubnubInstance.GetAllUuidMetadata().IncludeCustom(true).IncludeStatus(true).IncludeType(true);
+            if (!string.IsNullOrEmpty(filter))
+            {
+                operation = operation.Filter(filter);
+            }
+            if (!string.IsNullOrEmpty(sort))
+            {
+                operation = operation.Sort(new List<string>(){sort});
+            }
+            if (limit > 0)
+            {
+                operation = operation.Limit(limit);
+            }
+            if (page != null)
+            {
+                operation = operation.Page(page);
+            }
+            var result = await operation.ExecuteAsync();
+            
             if (result.Status.Error)
             {
                 Logger.Error($"Error when trying to GetUsers(): {result.Status.ErrorData.Information}");
@@ -949,9 +1010,68 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Membership"/>
         public async Task<MembersResponseWrapper> GetUserMemberships(string userId, string filter = "",
             string sort = "",
-            int limit = 0, Page page = null)
+            int limit = 0, PNPageObject page = null)
         {
-            throw new NotImplementedException();
+            
+            //TODO: here also, has to be a better way to structure this arguments -> builder pattern
+            var operation = PubnubInstance.GetMemberships().Include(
+                new[]
+                {
+                    PNMembershipField.CHANNEL_CUSTOM,
+                    PNMembershipField.CHANNEL_TYPE,
+                    PNMembershipField.CHANNEL_STATUS,
+                    PNMembershipField.CUSTOM,
+                    PNMembershipField.TYPE,
+                    PNMembershipField.STATUS,
+                }).Uuid(userId);
+            if (!string.IsNullOrEmpty(filter))
+            {
+                operation = operation.Filter(filter);
+            }
+            if (!string.IsNullOrEmpty(sort))
+            {
+                operation = operation.Sort(new List<string>() { sort });
+            }
+            if (limit > 0)
+            {
+                operation = operation.Limit(limit);
+            }
+            if (page != null)
+            {
+                operation.Page(page);
+            }
+            var result = await operation.ExecuteAsync();
+            if (result.Status.Error)
+            {
+                Logger.Error($"Error when trying to get \"{userId}\" user memberships: {result.Status.ErrorData.Information}");
+                return null;
+            }
+
+            var memberships = new List<Membership>();
+            foreach (var membershipResult in result.Result.Memberships)
+            {
+                var membershipId = userId + membershipResult.ChannelMetadata.Channel;
+                if (membershipWrappers.TryGetValue(membershipId, out var existingMembershipWrapper))
+                {
+                    existingMembershipWrapper.MembershipData.CustomData = membershipResult.Custom;
+                    memberships.Add(existingMembershipWrapper);
+                }
+                else
+                {
+                    memberships.Add(new Membership(this, userId, membershipResult.ChannelMetadata.Channel, new ChatMembershipData()
+                    {
+                        CustomData = membershipResult.Custom,
+                        Status = membershipResult.Status,
+                        Type = membershipResult.Type
+                    }));
+                }
+            }
+            return new MembersResponseWrapper()
+            {
+                Memberships = memberships,
+                Page = result.Result.Page,
+                Total = result.Result.TotalCount
+            };
         }
 
         public void AddListenerToMembershipsUpdate(List<string> membershipIds, Action<Membership> listener)
@@ -1027,18 +1147,16 @@ namespace PubNubChatAPI.Entities
                 {
                     memberships.Add(new Membership(this, channelMemberResult.UuidMetadata.Uuid, channelId, new ChatMembershipData()
                     {
-                        CustomData = channelMemberResult.Custom
+                        CustomData = channelMemberResult.Custom,
+                        Status = channelMemberResult.Status,
+                        Type = channelMemberResult.Type
                     }));
                 }
             }
             return new MembersResponseWrapper()
             {
                 Memberships = memberships,
-                Page = new Page()
-                {
-                    Next = result.Result.Page.Next,
-                    Previous = result.Result.Page.Prev
-                },
+                Page = result.Result.Page,
                 Total = result.Result.TotalCount
             };
         }

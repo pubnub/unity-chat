@@ -109,18 +109,6 @@ public class ChannelTests
         
         Assert.False(memberships.Memberships.Any(x => x.UserId == currentChatUser.Id), "Leave failed, current user found in channel memberships");
     }
-
-    [Test]
-    public async Task TestGetUserSuggestions()
-    {
-        var channel = await chat.CreatePublicConversation("user_suggestions_test_channel");
-        channel.Join();
-
-        await Task.Delay(5000);
-        
-        var suggestions = await channel.GetUserSuggestions("@Test");
-        Assert.True(suggestions.Any(x => x.UserId == user.Id));
-    }
     
     [Test]
     public async Task TestGetMemberships()

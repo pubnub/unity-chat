@@ -30,10 +30,8 @@ namespace PubnubChatApi.Entities.Data
                 Email = metadataResult.Email,
                 ProfileUrl = metadataResult.ProfileUrl,
                 Username = metadataResult.Name,
-                Status = metadataResult.Custom.TryGetValue("status", out var status) ? status.ToString() : string.Empty,
-                Type = metadataResult.Custom.TryGetValue("type", out var dataType)
-                    ? dataType.ToString()
-                    : string.Empty,
+                Status = metadataResult.Status,
+                Type = metadataResult.Type,
                 //TODO: I think this is correct?
                 CustomData = metadataResult.Custom//.TryGetValue("custom", out var custom) ? (Dictionary<string, object>)custom : new ()
             };

@@ -14,9 +14,9 @@ namespace PubnubChatApi.Entities.Data
     /// </remarks>
     public class ChatMembershipData
     {
-        public Dictionary<string, object> CustomData { get; set; } = new ();
-        public string Status { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
+        public Dictionary<string, object> CustomData { get; set; } = new();
+        public string Status { get; set; }
+        public string Type { get; set; }
         
         public static implicit operator ChatMembershipData(PNChannelMembersItemResult membersItem)
         {

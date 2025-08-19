@@ -6,6 +6,7 @@ using System.Timers;
 using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Entities.Events;
+using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
 namespace PubNubChatAPI.Entities
@@ -309,12 +310,12 @@ namespace PubNubChatAPI.Entities
 
         public async Task StartTyping()
         {
-            throw new NotImplementedException();
+            await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":true}}");
         }
 
         public async Task StopTyping()
         {
-            throw new NotImplementedException();
+            await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":false}}");
         }
 
         public virtual async Task PinMessage(Message message)
@@ -352,11 +353,6 @@ namespace PubNubChatAPI.Entities
             });
         }
 
-        public async Task<List<Membership>> GetUserSuggestions(string text, int limit = 10)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Creates a new MessageDraft.
         /// </summary>
@@ -364,11 +360,12 @@ namespace PubNubChatAPI.Entities
         /// <param name="isTypingIndicatorTriggered">Typing indicator trigger status.</param>
         /// <param name="userLimit">User limit.</param>
         /// <param name="channelLimit">Channel limit.</param>
+        /// <param name="shouldSearchForSuggestions">Whether the MessageDraft should search for suggestions whenever the text is changed.</param>
         /// <returns></returns>
         public MessageDraft CreateMessageDraft(UserSuggestionSource userSuggestionSource = UserSuggestionSource.GLOBAL,
-            bool isTypingIndicatorTriggered = true, int userLimit = 10, int channelLimit = 10)
+            bool isTypingIndicatorTriggered = true, int userLimit = 10, int channelLimit = 10, bool shouldSearchForSuggestions = false)
         {
-            throw new NotImplementedException();
+            return new MessageDraft(chat, this, userSuggestionSource, isTypingIndicatorTriggered, userLimit, channelLimit, shouldSearchForSuggestions);
         }
         
         /// <summary>
@@ -607,8 +604,7 @@ namespace PubNubChatAPI.Entities
                     {"text", message},
                     {"type", "text"}
                 };
-                //TODO: "meta" here too?
-                var meta = new Dictionary<string, object>();
+                var meta = sendTextParams.Meta ?? new Dictionary<string, object>();
                 if (sendTextParams.QuotedMessage != null)
                 {
                     //TODO: may create some "ToJSON()" methods for chat entities
@@ -770,7 +766,21 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="IsUserPresent"/>
         public async Task<List<string>> WhoIsPresent()
         {
-            throw new NotImplementedException();
+            var result = new List<string>();
+            var response = await chat.PubnubInstance.HereNow().Channels(new[] { Id }).IncludeState(true)
+                .IncludeUUIDs(true).ExecuteAsync();
+            if (response.Status.Error)
+            {
+                chat.Logger.Error($"Error when trying to perform WhoIsPresent(): {response.Status.ErrorData.Information}");
+                return result;
+            }
+
+            foreach (var occupant in response.Result.Channels[Id].Occupants)
+            {
+                result.Add(occupant.Uuid);
+            }
+
+            return result;
         }
 
         /// <summary>

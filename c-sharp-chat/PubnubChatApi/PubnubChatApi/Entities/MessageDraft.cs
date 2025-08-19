@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Utilities;
+using DiffMatchPatch;
 
 namespace PubNubChatAPI.Entities
 {
@@ -31,7 +30,26 @@ namespace PubNubChatAPI.Entities
         public string ReplaceFrom { get; set; }
         public string ReplaceTo { get; set; }
         public MentionTarget Target { get; set; }
-    };
+    }
+
+    /// <summary>
+    /// Internal class to track mentions within the draft text
+    /// </summary>
+    internal class InternalMention
+    {
+        public int Start { get; set; }
+        public int Length { get; set; }
+        public MentionTarget Target { get; set; }
+
+        public int EndExclusive => Start + Length;
+
+        public InternalMention(int start, int length, MentionTarget target)
+        {
+            Start = start;
+            Length = length;
+            Target = target;
+        }
+    }
 
     public class MessageElement
     {
@@ -63,38 +81,186 @@ namespace PubNubChatAPI.Entities
             public List<SuggestedMention> SuggestedMentions;
         }
         
-        public event Action<List<MessageElement>, List<SuggestedMention>> OnDraftUpdated; 
+        // Static regex patterns for mention detection
+        private static readonly Regex UserMentionRegex = new Regex(@"((?=\s?)@[a-zA-Z0-9_]+)", RegexOptions.Compiled);
+        private static readonly Regex ChannelReferenceRegex = new Regex(@"((?=\s?)#[a-zA-Z0-9_]+)", RegexOptions.Compiled);
         
-        //TODO: will see if these stay non-accessible
-        /*
+        // Schema prefixes for rendering mentions
+        private static readonly string SchemaUser = "pn-user://";
+        private static readonly string SchemaChannel = "pn-channel://";
+        
+        // Internal state
+        private string _value = string.Empty;
+        private List<InternalMention> _mentions = new ();
+        private diff_match_patch _diffMatchPatch = new ();
+        
+        public event Action<List<MessageElement>, List<SuggestedMention>> OnDraftUpdated;
+        
         /// <summary>
-        /// The Channel where this MessageDraft will be published.
+        /// Gets the current text of the draft
         /// </summary>
-        public Channel Channel { get; }
+        public string Text => _value;
+        
         /// <summary>
-        /// The scope for searching for suggested users - either [UserSuggestionSource.GLOBAL] or [UserSuggestionSource.CHANNEL].
+        /// Gets the current message elements
         /// </summary>
-        private UserSuggestionSource UserSuggestionSourceSetting { get; }
-        /// <summary>
-        /// Whether modifying the message text triggers the typing indicator on [channel].
-        /// </summary>
-        public bool IsTypingIndicatorTriggered { get; }
-        /// <summary>
-        /// The limit on the number of users returned when searching for users to mention.
-        /// </summary>
-        public int UserLimit { get; }
-        /// <summary>
-        /// The limit on the number of channels returned when searching for channels to reference.
-        /// </summary>
-        public int ChannelLimit { get; }
-        /// <summary>
-        /// Can be used to set a [Message] to quote when sending this [MessageDraft].
-        /// </summary>
-        public Message QuotedMessage { get; }*/
+        public List<MessageElement> MessageElements => GetMessageElements();
 
-        private void BroadcastDraftUpdate()
+        public bool ShouldSearchForSuggestions { get; set; }
+        
+        private Channel channel;
+        private Chat chat;
+        
+        private bool isTypingIndicatorTriggered;
+        private UserSuggestionSource userSuggestionSource;
+        private int userLimit;
+        private int channelLimit;
+
+        internal MessageDraft(Chat chat, Channel channel, UserSuggestionSource userSuggestionSource, bool isTypingIndicatorTriggered, int userLimit, int channelLimit, bool shouldSearchForSuggestions)
         {
-            throw new NotImplementedException();
+            this.chat = chat;
+            this.channel = channel;
+            this.isTypingIndicatorTriggered = isTypingIndicatorTriggered;
+            this.userSuggestionSource = userSuggestionSource;
+            this.userLimit = userLimit;
+            this.channelLimit = channelLimit;
+            ShouldSearchForSuggestions = shouldSearchForSuggestions;
+        }
+
+        private async void BroadcastDraftUpdate()
+        {
+            try
+            {
+                var messageElements = GetMessageElements();
+                var suggestedMentions = ShouldSearchForSuggestions ? await GenerateSuggestedMentions() : new List<SuggestedMention>();
+                OnDraftUpdated?.Invoke(messageElements, suggestedMentions);
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Error($"Error has occured when trying to broadcast MessageDraft update: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Generates suggested mentions based on current text patterns
+        /// </summary>
+        private async Task<List<SuggestedMention>> GenerateSuggestedMentions()
+        {
+            var suggestions = new List<SuggestedMention>();
+            var rawMentions = SuggestRawMentions();
+
+            foreach (var rawMention in rawMentions)
+            {
+                var suggestion = new SuggestedMention
+                {
+                    Offset = rawMention.Start,
+                    ReplaceFrom = _value.Substring(rawMention.Start, rawMention.Length),
+                };
+                switch (rawMention.Target.Type)
+                {
+                    case MentionType.User:
+                        var usersWrapper =
+                            await chat.GetUsers(filter: $"name LIKE \"{rawMention.Target.Target}*\"", limit:userLimit);   
+                        if (usersWrapper.Users != null && usersWrapper.Users.Any())
+                        {
+                            var user = usersWrapper.Users[0];
+                            suggestion.Target = new MentionTarget() { Target = user.Id, Type = rawMention.Target.Type };
+                            suggestion.ReplaceTo = user.UserName;
+                            if (userSuggestionSource == UserSuggestionSource.CHANNEL &&
+                                !await user.IsPresentOn(channel.Id))
+                            {
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                        break;
+                    case MentionType.Channel:
+                        var channelsWrapper = await chat.GetChannels(filter: $"name LIKE \"{rawMention.Target.Target}*\"",
+                            limit: channelLimit);
+                        if (channelsWrapper.Channels != null && channelsWrapper.Channels.Any())
+                        {
+                            var mentionedChannel = channelsWrapper.Channels[0];
+                            suggestion.Target = new MentionTarget() { Target = channel.Id, Type = rawMention.Target.Type };
+                            suggestion.ReplaceTo = mentionedChannel.Name;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                        break;
+                }
+                suggestions.Add(suggestion);
+            }
+
+            return suggestions;
+        }
+        
+        /// <summary>
+        /// Suggests raw mentions based on regex patterns in the text
+        /// </summary>
+        internal List<InternalMention> SuggestRawMentions()
+        {
+            var allMentions = new List<InternalMention>();
+
+            // Find user mentions (@username)
+            var userMatches = UserMentionRegex.Matches(_value);
+            foreach (Match match in userMatches)
+            {
+                bool alreadyMentioned = _mentions.Any(mention => mention.Start == match.Index);
+                if (!alreadyMentioned)
+                {
+                    var target = new MentionTarget { Type = MentionType.User, Target = match.Value[1..] };
+                    allMentions.Add(new InternalMention(match.Index, match.Length, target));
+                }
+            }
+
+            // Find channel mentions (#channel)
+            var channelMatches = ChannelReferenceRegex.Matches(_value);
+            foreach (Match match in channelMatches)
+            {
+                bool alreadyMentioned = _mentions.Any(mention => mention.Start == match.Index);
+                if (!alreadyMentioned)
+                {
+                    var target = new MentionTarget { Type = MentionType.Channel, Target = match.Value[1..] };
+                    allMentions.Add(new InternalMention(match.Index, match.Length, target));
+                }
+            }
+
+            // Sort by start position
+            allMentions.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+            return allMentions;
+        }
+        
+        /// <summary>
+        /// Insert mention into the MessageDraft according to SuggestedMention.Offset, SuggestedMention.ReplaceFrom and
+        /// SuggestedMention.target.
+        /// </summary>
+        /// <param name="mention">A SuggestedMention that can be obtained from OnDraftUpdated when ShouldSearchForSuggestions is set to true</param>
+        /// <param name="text">The text to replace SuggestedMention.ReplaceFrom with. SuggestedMention.ReplaceTo can be used for example.</param>
+        public void InsertSuggestedMention(SuggestedMention mention, string text)
+        {
+            if (mention == null || string.IsNullOrEmpty(text) || mention.Target == null) return;
+            if (!ValidateSuggestedMention(mention)) return;
+            
+            TriggerTypingIndicator();
+
+            // Remove the text that should be replaced
+            ApplyRemoveTextInternal(mention.Offset, mention.ReplaceFrom.Length);
+            
+            // Insert the new text
+            ApplyInsertTextInternal(mention.Offset, text);
+            
+            // Add mention for the inserted text
+            _mentions.Add(new InternalMention(mention.Offset, text.Length, mention.Target));
+            
+            // Sort mentions by start position
+            _mentions.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+            BroadcastDraftUpdate();
         }
         
         /// <summary>
@@ -104,7 +270,38 @@ namespace PubNubChatAPI.Entities
         /// <param name="text">Text the text to insert at the given offset</param>
         public void InsertText(int offset, string text)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(text) || offset < 0 || offset > _value.Length)
+            {
+                return;
+            }
+
+            TriggerTypingIndicator();
+
+            // Insert text at the specified position
+            _value = _value.Insert(offset, text);
+
+            // Filter out mentions that overlap with the insertion point and adjust positions
+            var newMentions = new List<InternalMention>();
+            
+            foreach (var mention in _mentions)
+            {
+                // Only keep mentions that don't overlap with the insertion point
+                if (offset <= mention.Start || offset >= mention.EndExclusive)
+                {
+                    var newMention = new InternalMention(mention.Start, mention.Length, mention.Target);
+                    
+                    // Adjust start position if the mention comes after the insertion point
+                    if (offset <= mention.Start)
+                    {
+                        newMention.Start += text.Length;
+                    }
+                    
+                    newMentions.Add(newMention);
+                }
+            }
+            
+            _mentions = newMentions;
+            BroadcastDraftUpdate();
         }
 
         /// <summary>
@@ -114,18 +311,41 @@ namespace PubNubChatAPI.Entities
         /// <param name="length">Length the number of characters to remove, starting at the given offset</param>
         public void RemoveText(int offset, int length)
         {
-            throw new NotImplementedException();
-        }
+            if (offset < 0 || offset >= _value.Length || length <= 0)
+            {
+                return;
+            }
 
-        /// <summary>
-        /// Insert mention into the MessageDraft according to SuggestedMention.Offset, SuggestedMention.ReplaceFrom and
-        /// SuggestedMention.target.
-        /// </summary>
-        /// <param name="mention">A SuggestedMention that can be obtained from MessageDraftStateListener</param>
-        /// <param name="text">The text to replace SuggestedMention.ReplaceFrom with. SuggestedMention.ReplaceTo can be used for example.</param>
-        public void InsertSuggestedMention(SuggestedMention mention, string text)
-        {
-            throw new NotImplementedException();
+            TriggerTypingIndicator();
+            
+            // Clamp length to not exceed the text bounds
+            length = Math.Min(length, _value.Length - offset);
+
+            // Remove text from the specified position
+            _value = _value.Remove(offset, length);
+
+            // Filter out mentions that overlap with the removal range and adjust positions
+            var newMentions = new List<InternalMention>();
+            
+            foreach (var mention in _mentions)
+            {
+                // Only keep mentions that don't overlap with the removal range
+                if (offset > mention.EndExclusive || offset + length <= mention.Start)
+                {
+                    var newMention = new InternalMention(mention.Start, mention.Length, mention.Target);
+                    
+                    // Adjust start position if the mention comes after the removal range
+                    if (offset < mention.Start)
+                    {
+                        newMention.Start -= Math.Min(length, mention.Start - offset);
+                    }
+                    
+                    newMentions.Add(newMention);
+                }
+            }
+            
+            _mentions = newMentions;
+            BroadcastDraftUpdate();
         }
 
         /// <summary>
@@ -136,7 +356,15 @@ namespace PubNubChatAPI.Entities
         /// <param name="target">The target of the mention</param>
         public void AddMention(int offset, int length, MentionTarget target)
         {
-            throw new NotImplementedException();
+            if (target == null || offset < 0 || length <= 0 || offset + length > _value.Length) return;
+
+            // Add the mention to the list
+            _mentions.Add(new InternalMention(offset, length, target));
+
+            // Sort mentions by start position
+            _mentions.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+            BroadcastDraftUpdate();
         }
 
         /// <summary>
@@ -145,7 +373,13 @@ namespace PubNubChatAPI.Entities
         /// <param name="offset">Offset the start of the mention to remove</param>
         public void RemoveMention(int offset)
         {
-            throw new NotImplementedException();
+            // Remove mentions that start at the specified offset
+            _mentions.RemoveAll(mention => mention.Start == offset);
+
+            // Sort mentions by start position
+            _mentions.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+            BroadcastDraftUpdate();
         }
 
         /// <summary>
@@ -158,7 +392,109 @@ namespace PubNubChatAPI.Entities
         /// <param name="text"></param>
         public void Update(string text)
         {
-            throw new NotImplementedException();
+            if (text == null) text = string.Empty;
+            
+            TriggerTypingIndicator();
+
+            // Use diff-match-patch to compute differences
+            var diffs = _diffMatchPatch.diff_main(_value, text);
+            _diffMatchPatch.diff_cleanupSemantic(diffs);
+
+            int consumed = 0;
+
+            // Apply each diff operation
+            foreach (var diff in diffs)
+            {
+                switch (diff.operation)
+                {
+                    case Operation.DELETE:
+                        // Apply removal without broadcasting
+                        ApplyRemoveTextInternal(consumed, diff.text.Length);
+                        break;
+
+                    case Operation.INSERT:
+                        // Apply insertion without broadcasting
+                        ApplyInsertTextInternal(consumed, diff.text);
+                        consumed += diff.text.Length;
+                        break;
+
+                    case Operation.EQUAL:
+                        consumed += diff.text.Length;
+                        break;
+                }
+            }
+
+            BroadcastDraftUpdate();
+        }
+
+        /// <summary>
+        /// Internal method to apply text insertion without triggering broadcasts
+        /// </summary>
+        private void ApplyInsertTextInternal(int offset, string text)
+        {
+            if (text == null) text = string.Empty;
+            if (offset < 0 || offset > _value.Length) return;
+
+            // Insert text at the specified position
+            _value = _value.Insert(offset, text);
+
+            // Filter out mentions that overlap with the insertion point and adjust positions
+            var newMentions = new List<InternalMention>();
+            
+            foreach (var mention in _mentions)
+            {
+                // Only keep mentions that don't overlap with the insertion point
+                if (offset <= mention.Start || offset >= mention.EndExclusive)
+                {
+                    var newMention = new InternalMention(mention.Start, mention.Length, mention.Target);
+                    
+                    // Adjust start position if the mention comes after the insertion point
+                    if (offset <= mention.Start)
+                    {
+                        newMention.Start += text.Length;
+                    }
+                    
+                    newMentions.Add(newMention);
+                }
+            }
+            
+            _mentions = newMentions;
+        }
+
+        /// <summary>
+        /// Internal method to apply text removal without triggering broadcasts
+        /// </summary>
+        private void ApplyRemoveTextInternal(int offset, int length)
+        {
+            if (offset < 0 || offset >= _value.Length || length <= 0) return;
+            
+            // Clamp length to not exceed the text bounds
+            length = Math.Min(length, _value.Length - offset);
+
+            // Remove text from the specified position
+            _value = _value.Remove(offset, length);
+
+            // Filter out mentions that overlap with the removal range and adjust positions
+            var newMentions = new List<InternalMention>();
+            
+            foreach (var mention in _mentions)
+            {
+                // Only keep mentions that don't overlap with the removal range
+                if (offset > mention.EndExclusive || offset + length <= mention.Start)
+                {
+                    var newMention = new InternalMention(mention.Start, mention.Length, mention.Target);
+                    
+                    // Adjust start position if the mention comes after the removal range
+                    if (offset < mention.Start)
+                    {
+                        newMention.Start -= Math.Min(length, mention.Start - offset);
+                    }
+                    
+                    newMentions.Add(newMention);
+                }
+            }
+            
+            _mentions = newMentions;
         }
 
         /// <summary>
@@ -170,17 +506,186 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Send the MessageDraft, along with its quotedMessage if any, on the channel.
+        /// Send the rendered MessageDraft on the channel.
         /// </summary>
         /// <param name="sendTextParams">Additional parameters for sending the message.</param>
         public async Task Send(SendTextParams sendTextParams)
         {
-            throw new NotImplementedException();
+            var mentions = new Dictionary<int, MentionedUser>();
+            //TODO: revisit if this is the final data format and how to solve that we don't include name anywhere
+            var userMentionIndex = 0;
+            var channelReferenceIndex = 0;
+            var textLinkIndex = 0;
+            foreach (var internalMention in _mentions)
+            {
+                switch (internalMention.Target.Type)
+                {
+                    case MentionType.User:
+                        mentions.Add(userMentionIndex++, new MentionedUser(){Id = internalMention.Target.Target});
+                        break;
+                    case MentionType.Channel:
+                        var reference = new ReferencedChannel() { Id = internalMention.Target.Target };
+                        if (sendTextParams.Meta.TryGetValue("referencedChannels", out var refs))
+                        {
+                            if (refs is Dictionary<int, object> referencedChannels)
+                            {
+                                referencedChannels.Add(channelReferenceIndex++, reference);
+                            }
+                        }
+                        else
+                        {
+                            sendTextParams.Meta.Add("referencedChannels", new Dictionary<int, object>(){{channelReferenceIndex++, reference}});
+                        }
+                        break;
+                    case MentionType.Url:
+                        var link = new TextLink() { StartIndex = internalMention.Start, EndIndex = internalMention.EndExclusive, Link = internalMention.Target.Target };
+                        if (sendTextParams.Meta.TryGetValue("textLinks", out var linkObjects))
+                        {
+                            if (linkObjects is Dictionary<int, object> links)
+                            {
+                                links.Add(textLinkIndex++, link);
+                            }
+                        }
+                        else
+                        {
+                            sendTextParams.Meta.Add("textLinks", new Dictionary<int, object>(){{textLinkIndex++, link}});
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            sendTextParams.MentionedUsers = mentions;
+            await channel.SendText(Render(), sendTextParams);
         }
 
-        public void SetSearchForSuggestions(bool searchForSuggestions)
+        /// <summary>
+        /// Validates that a suggested mention is valid for the current text
+        /// </summary>
+        private bool ValidateSuggestedMention(SuggestedMention suggestedMention)
         {
-            throw new NotImplementedException();
+            if (suggestedMention.Offset < 0 || suggestedMention.Offset >= _value.Length) return false;
+            if (string.IsNullOrEmpty(suggestedMention.ReplaceFrom)) return false;
+            if (suggestedMention.Offset + suggestedMention.ReplaceFrom.Length > _value.Length) return false;
+
+            var substring = _value.Substring(suggestedMention.Offset, suggestedMention.ReplaceFrom.Length);
+            return substring == suggestedMention.ReplaceFrom;
+        }
+
+        /// <summary>
+        /// Validates that mentions don't overlap
+        /// </summary>
+        public bool ValidateMentions()
+        {
+            for (int i = 0; i < _mentions.Count; i++)
+            {
+                if (i > 0 && _mentions[i].Start < _mentions[i - 1].EndExclusive)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Gets message elements with plain text and links
+        /// </summary>
+        public List<MessageElement> GetMessageElements()
+        {
+            var elements = new List<MessageElement>();
+            int lastPosition = 0;
+
+            foreach (var mention in _mentions)
+            {
+                // Add plain text before the mention
+                if (lastPosition < mention.Start)
+                {
+                    var plainText = _value.Substring(lastPosition, mention.Start - lastPosition);
+                    if (!string.IsNullOrEmpty(plainText))
+                    {
+                        elements.Add(new MessageElement { Text = plainText, MentionTarget = null });
+                    }
+                }
+
+                // Add the mention element
+                var mentionText = _value.Substring(mention.Start, mention.Length);
+                elements.Add(new MessageElement { Text = mentionText, MentionTarget = mention.Target });
+
+                lastPosition = mention.EndExclusive;
+            }
+
+            // Add remaining text after last mention
+            if (lastPosition < _value.Length)
+            {
+                var remainingText = _value.Substring(lastPosition);
+                if (!string.IsNullOrEmpty(remainingText))
+                {
+                    elements.Add(new MessageElement { Text = remainingText, MentionTarget = null });
+                }
+            }
+
+            return elements;
+        }
+
+        /// <summary>
+        /// Renders the message with markdown-style links
+        /// </summary>
+        public string Render()
+        {
+            var elements = GetMessageElements();
+            var result = new System.Text.StringBuilder();
+
+            foreach (var element in elements)
+            {
+                if (element.MentionTarget == null)
+                {
+                    result.Append(element.Text);
+                }
+                else
+                {
+                    var escapedText = EscapeLinkText(element.Text);
+                    var escapedUrl = EscapeLinkUrl(element.MentionTarget.Target);
+
+                    switch (element.MentionTarget.Type)
+                    {
+                        case MentionType.User:
+                            result.Append($"[{escapedText}]({SchemaUser}{escapedUrl})");
+                            break;
+                        case MentionType.Channel:
+                            result.Append($"[{escapedText}]({SchemaChannel}{escapedUrl})");
+                            break;
+                        case MentionType.Url:
+                            result.Append($"[{escapedText}]({escapedUrl})");
+                            break;
+                    }
+                }
+            }
+
+            return result.ToString();
+        }
+
+        private async void TriggerTypingIndicator()
+        {
+            if (isTypingIndicatorTriggered && channel.Type == "public")
+            {
+                await channel.StartTyping();
+            }
+        }
+
+        /// <summary>
+        /// Escapes text for use in markdown links
+        /// </summary>
+        private static string EscapeLinkText(string text)
+        {
+            return text?.Replace("\\", "\\\\").Replace("]", "\\]") ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Escapes URLs for use in markdown links
+        /// </summary>
+        private static string EscapeLinkUrl(string url)
+        {
+            return url?.Replace("\\", "\\\\").Replace(")", "\\)") ?? string.Empty;
         }
     }
 }

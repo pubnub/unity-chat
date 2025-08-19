@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
@@ -26,6 +23,9 @@ namespace PubNubChatAPI.Entities
     /// <seealso cref="Channel"/>
     public class Membership : UniqueChatEntity
     {
+        //Message counts requires a valid timetoken, so this one will be like "0", from beginning of the channel
+        private const long EMPTY_TIMETOKEN = 17000000000000000;
+        
         /// <summary>
         /// The user ID of the user that this membership belongs to.
         /// </summary>
@@ -76,9 +76,30 @@ namespace PubNubChatAPI.Entities
             MembershipData = newData;
         }
 
-        internal void BroadcastMembershipUpdate()
+        public override void SetListeningForUpdates(bool listen)
         {
-            OnMembershipUpdated?.Invoke(this);
+            if (listen)
+            {
+                if (updateSubscription != null)
+                {
+                    return;
+                }
+                updateSubscription = chat.PubnubInstance.Channel(ChannelId).Subscription(SubscriptionOptions.ReceivePresenceEvents);
+                updateSubscription.AddListener(chat.ListenerFactory.ProduceListener(objectEventCallback:
+                    delegate(Pubnub pn, PNObjectEventResult e)
+                    {
+                        if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData))
+                        {
+                            UpdateLocalData(updatedData);
+                            OnMembershipUpdated?.Invoke(this);
+                        }
+                    }));
+                updateSubscription.Subscribe<object>();
+            }
+            else
+            {
+                updateSubscription?.Unsubscribe<object>();
+            }
         }
 
         /// <summary>
@@ -116,7 +137,9 @@ namespace PubNubChatAPI.Entities
                 PNMembershipField.CUSTOM,
                 PNMembershipField.STATUS,
                 PNMembershipField.CHANNEL,
-                PNMembershipField.CHANNEL_CUSTOM
+                PNMembershipField.CHANNEL_CUSTOM,
+                PNMembershipField.CHANNEL_TYPE,
+                PNMembershipField.CHANNEL_STATUS
             }).ExecuteAsync();
 
             if (updateResponse.Status.Error)
@@ -130,7 +153,7 @@ namespace PubNubChatAPI.Entities
 
         public async Task SetLastReadMessage(Message message)
         {
-            throw new NotImplementedException();
+            await SetLastReadMessageTimeToken(message.TimeToken);
         }
         
         public async Task SetLastReadMessageTimeToken(string timeToken)
@@ -142,14 +165,27 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public async Task<int> GetUnreadMessagesCount()
+        public async Task<long> GetUnreadMessagesCount()
         {
-            throw new NotImplementedException();
+            if (!long.TryParse(LastReadMessageTimeToken, out var lastRead))
+            {
+                chat.Logger.Error("LastReadMessageTimeToken is not a valid time token!");
+                return -1;
+            }
+            lastRead = lastRead == 0 ? EMPTY_TIMETOKEN : lastRead;
+            var countsResponse = await chat.PubnubInstance.MessageCounts().Channels(new[] { ChannelId })
+                .ChannelsTimetoken(new[] { lastRead }).ExecuteAsync();
+            if (countsResponse.Status.Error)
+            {
+                chat.Logger.Error($"Error when trying to get message counts on channel \"{ChannelId}\": {countsResponse.Status.ErrorData}");
+                return -1;
+            }
+            return countsResponse.Result.Channels[ChannelId];
         }
 
-        public override Task Resync()
+        public override async Task Resync()
         {
-            throw new NotImplementedException();
+            await chat.GetChannelMemberships(ChannelId, filter:$"uuid.id == \"{UserId}\"");
         }
     }
 }
