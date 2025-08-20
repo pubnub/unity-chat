@@ -57,7 +57,7 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public override async Task Forward(string channelId)
+        public override async Task<ChatOperationResult> Forward(string channelId)
         {
             throw new NotImplementedException();
         }

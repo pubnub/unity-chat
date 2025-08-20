@@ -37,12 +37,12 @@ namespace PubNubChatAPI.Entities
             return $"PUBNUB_INTERNAL_THREAD_{message.ChannelId}_{message.Id}";
         }
         
-        public override async Task PinMessage(Message message)
+        public override async Task<ChatOperationResult> PinMessage(Message message)
         {
             throw new NotImplementedException();
         }
 
-        public override async Task UnpinMessage()
+        public override async Task<ChatOperationResult> UnpinMessage()
         {
             throw new NotImplementedException();
         }

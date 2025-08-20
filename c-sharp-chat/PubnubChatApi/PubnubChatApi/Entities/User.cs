@@ -189,7 +189,7 @@ namespace PubNubChatAPI.Entities
             await UpdateUserData(chat, Id, updatedData);
         }
 
-        internal static async Task<bool> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
+        internal static async Task<PNResult<PNSetUuidMetadataResult>> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
         {
             //TODO: Create a better way to do this
             var operation = chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true).Uuid(userId);
@@ -221,32 +221,12 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Custom(chatUserData.CustomData);
             }
-            var result = await operation.ExecuteAsync();
-            if (result.Status.Error)
-            {
-                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to update user data for user \"{userId}\": {result.Status.ErrorData.Information}");
-                return false;
-            }
-            return true;
+            return await operation.ExecuteAsync();
         }
         
-        internal static async Task<ChatUserData?> GetUserData(Chat chat, string userId)
+        internal static async Task<PNResult<PNGetUuidMetadataResult>> GetUserData(Chat chat, string userId)
         {
-            var result = await chat.PubnubInstance.GetUuidMetadata().Uuid(userId).IncludeCustom(true).ExecuteAsync();
-            if (result.Status.Error)
-            {
-                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to Resync() User \"{userId}\": {result.Status.ErrorData.Information}");
-                return null;
-            }
-            try
-            {
-                return (ChatUserData)result.Result;
-            }
-            catch (Exception e)
-            {
-                chat.PubnubInstance.PNConfig.Logger.Error($"Error when trying to parse data for User \"{userId}\": {e.Message}");
-                return null;
-            }
+            return await chat.PubnubInstance.GetUuidMetadata().Uuid(userId).IncludeCustom(true).ExecuteAsync();
         }
 
         internal void UpdateLocalData(ChatUserData? newData)
@@ -261,7 +241,10 @@ namespace PubNubChatAPI.Entities
         public override async Task Resync()
         {
             var newData = await GetUserData(chat, Id);
-            UpdateLocalData(newData);
+            if (!newData.Status.Error)
+            {
+                UpdateLocalData(newData.Result);
+            }
         }
 
         /// <summary>
@@ -305,14 +288,14 @@ namespace PubNubChatAPI.Entities
         /// user.SetRestrictions("channel_id", true, false, "Banned from the channel");
         /// </code>
         /// </example>
-        public async Task SetRestriction(string channelId, bool banUser, bool muteUser, string reason)
+        public async Task<ChatOperationResult> SetRestriction(string channelId, bool banUser, bool muteUser, string reason)
         {
-            await chat.SetRestriction(Id, channelId, banUser, muteUser, reason);
+            return await chat.SetRestriction(Id, channelId, banUser, muteUser, reason);
         }
 
-        public async Task SetRestriction(string channelId, Restriction restriction)
+        public async Task<ChatOperationResult> SetRestriction(string channelId, Restriction restriction)
         {
-            await chat.SetRestriction(Id, channelId, restriction);
+            return await chat.SetRestriction(Id, channelId, restriction);
         }
 
         /// <summary>
@@ -329,18 +312,90 @@ namespace PubNubChatAPI.Entities
         /// <returns>
         /// The restrictions on the user for the channel.
         /// </returns>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while getting the restrictions on the user for the channel.
-        /// 
-        public async Task<Restriction> GetChannelRestrictions(Channel channel)
+        public async Task<ChatOperationResult<Restriction>> GetChannelRestrictions(Channel channel)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<Restriction>();
+            var membersResult = await chat.PubnubInstance.GetChannelMembers().Channel($"{Chat.INTERNAL_MODERATION_PREFIX}_{channel.Id}").Include(new[]
+            {
+                PNChannelMemberField.CUSTOM
+            }).Filter($"uuid.id == \"{Id}\"").IncludeCount(true).ExecuteAsync();
+            if (result.RegisterOperation(membersResult) || membersResult.Result.ChannelMembers == null || !membersResult.Result.ChannelMembers.Any())
+            {
+                result.Error = true;
+                return result;
+            }
+            var member = membersResult.Result.ChannelMembers[0];
+            try
+            {
+                result.Result = new Restriction()
+                {
+                    Ban = (bool)member.Custom["ban"],
+                    Mute = (bool)member.Custom["mute"],
+                    Reason = (string)member.Custom["reason"]
+                };
+            }
+            catch (Exception e)
+            {
+                result.Error = true;
+                result.Exception = e;
+            }
+            return result;
         }
 
-        public async Task<ChannelsRestrictionsWrapper> GetChannelsRestrictions(string sort = "", int limit = 0,
-            Page page = null)
+        public async Task<ChatOperationResult<ChannelsRestrictionsWrapper>> GetChannelsRestrictions(string sort = "", int limit = 0,
+            PNPageObject page = null)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<ChannelsRestrictionsWrapper>(){Result = new ChannelsRestrictionsWrapper()};
+            var operation = chat.PubnubInstance.GetMemberships().Uuid(Id)
+                .Include(new[]
+                {
+                    PNMembershipField.CUSTOM,
+                    PNMembershipField.CHANNEL
+                }).Filter($"channel.id LIKE \"{Chat.INTERNAL_MODERATION_PREFIX}_*\"").IncludeCount(true);
+            if (!string.IsNullOrEmpty(sort))
+            {
+                operation = operation.Sort(new List<string>() { sort });
+            }
+            if (limit > 0)
+            {
+                operation = operation.Limit(limit);
+            }
+            if (page != null)
+            {
+                operation = operation.Page(page);
+            }
+            var membershipsResult = await operation.ExecuteAsync();
+            if (result.RegisterOperation(membershipsResult))
+            {
+                return result;
+            }
+
+            result.Result.Page = membershipsResult.Result.Page;
+            result.Result.Total = membershipsResult.Result.TotalCount;
+            foreach (var membership in membershipsResult.Result.Memberships)
+            {
+                try
+                {
+                    var internalChannelId = membership.ChannelMetadata.Channel;
+                    var removeString = $"{Chat.INTERNAL_MODERATION_PREFIX}_";
+                    var index = internalChannelId.IndexOf(removeString, StringComparison.Ordinal);
+                    var channelId = (index < 0)
+                        ? internalChannelId
+                        : internalChannelId.Remove(index, removeString.Length);
+                    result.Result.Restrictions.Add(new ChannelRestriction()
+                    {
+                        Ban = (bool)membership.Custom["ban"],
+                        Mute = (bool)membership.Custom["mute"],
+                        Reason = (string)membership.Custom["reason"],
+                        ChannelId = channelId
+                    });
+                }
+                catch (Exception e)
+                {
+                    chat.Logger.Warn($"Incorrect data was encountered when parsing Channel Restriction for User \"{Id}\" in Channel \"{membership.ChannelMetadata.Channel}\". Exception was: {e.Message}");
+                }
+            }
+            return result;
         }
 
         /// <summary>
@@ -399,7 +454,7 @@ namespace PubNubChatAPI.Entities
         /// }
         /// </code>
         /// </example>
-        public async Task<List<string>> WherePresent()
+        public async Task<ChatOperationResult<List<string>>> WherePresent()
         {
             throw new NotImplementedException();
         }

@@ -290,13 +290,16 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public virtual async Task Forward(string channelId)
+        public virtual async Task<ChatOperationResult> Forward(string channelId)
         {
-            var channel = await chat.GetChannelAsync(channelId);
-            if (channel != null)
+            var result = new ChatOperationResult();
+            var channel = await chat.GetChannel(channelId);
+            if (result.RegisterOperation(channel))
             {
-                await chat.ForwardMessage(this, channel);
+                return result;
             }
+            result.RegisterOperation(await chat.ForwardMessage(this, channel.Result));
+            return result;
         }
 
         public virtual bool HasUserReaction(string reactionValue)

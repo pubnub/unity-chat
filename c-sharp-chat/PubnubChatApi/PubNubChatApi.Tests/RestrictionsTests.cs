@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
@@ -13,11 +12,16 @@ public class RestrictionsTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("restrictions_tests_user"))
+        var createChat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("restrictions_tests_user"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
         });
+        if (createChat.Error)
+        {
+            Assert.Fail($"Failed to create chat! Error: {createChat.Exception.Message}");
+        }
+        chat = createChat.Result;
     }
     
     [TearDown]
@@ -31,8 +35,13 @@ public class RestrictionsTests
     public async Task TestSetRestrictions()
     {
         var user = await chat.GetOrCreateUser("user123");
-        var channel = await chat.CreatePublicConversation("new_channel");
-
+        var createChannel = await chat.CreatePublicConversation("new_channel");
+        if (createChannel.Error)
+        {
+            Assert.Fail($"Failed to create channel, error: {createChannel.Exception.Message}");
+        }
+        var channel = createChannel.Result;
+        
         await Task.Delay(2000);
 
         var restriction = new Restriction()
@@ -41,16 +50,30 @@ public class RestrictionsTests
             Mute = true,
             Reason = "Some Reason"
         };
-        await channel.SetRestrictions(user.Id, restriction);
+        var setRestrictions = await channel.SetRestrictions(user.Id, restriction);
+        if (setRestrictions.Error)
+        {
+            Assert.Fail($"Failed to set restrictions, error: {setRestrictions.Exception.Message}");
+        }
 
         await Task.Delay(3000);
 
-        var fetchedRestriction = await channel.GetUserRestrictions(user);
+        var getUser = await channel.GetUserRestrictions(user);
+        if (getUser.Error)
+        {
+            Assert.Fail($"Failed to fetch User restrictions. Exception: {getUser.Exception}");
+        }
+        var fetchedRestriction = getUser.Result;
 
         Assert.True(restriction.Ban == fetchedRestriction.Ban && restriction.Mute == fetchedRestriction.Mute &&
                     restriction.Reason == fetchedRestriction.Reason);
 
-        var restrictionFromUser = await user.GetChannelRestrictions(channel);
+        var getChannel = await user.GetChannelRestrictions(channel);
+        if (getChannel.Error)
+        {
+            Assert.Fail($"Failed to fetch Channel restrictions. Exception: {getChannel.Exception}");
+        }
+        var restrictionFromUser = getChannel.Result;
         
         Assert.True(restriction.Ban == restrictionFromUser.Ban && restriction.Mute == restrictionFromUser.Mute &&
                     restriction.Reason == restrictionFromUser.Reason);
@@ -60,7 +83,12 @@ public class RestrictionsTests
     public async Task TestGetRestrictionsSets()
     {
         var user = await chat.GetOrCreateUser("user1234");
-        var channel = await chat.CreatePublicConversation("new_channel_2");
+        var createChannel = await chat.CreatePublicConversation("new_channel");
+        if (createChannel.Error)
+        {
+            Assert.Fail($"Failed to create channel, error: {createChannel.Exception.Message}");
+        }
+        var channel = createChannel.Result;
 
         await Task.Delay(4000);
 
@@ -70,14 +98,26 @@ public class RestrictionsTests
             Mute = true,
             Reason = "Some Reason"
         };
-        await channel.SetRestrictions(user.Id, restriction);
-
+        var setRestrictions = await channel.SetRestrictions(user.Id, restriction);
+        if (setRestrictions.Error)
+        {
+            Assert.Fail($"Failed to set restrictions, error: {setRestrictions.Exception.Message}");
+        }
+        
         await Task.Delay(4000);
 
         var a = await channel.GetUsersRestrictions();
+        if (a.Error)
+        {
+            Assert.Fail($"Failed to fetch Users restrictions. Exception: {a.Exception}");
+        }
         var b = await user.GetChannelsRestrictions();
+        if (b.Error)
+        {
+            Assert.Fail($"Failed to fetch Channels restrictions. Exception: {b.Exception}");
+        }
         
-        Assert.True(a.Restrictions.Any(x => x.UserId == user.Id));
-        Assert.True(b.Restrictions.Any(x => x.ChannelId == channel.Id));
+        Assert.True(a.Result.Restrictions.Any(x => x.UserId == user.Id));
+        Assert.True(b.Result.Restrictions.Any(x => x.ChannelId == channel.Id));
     }
 }

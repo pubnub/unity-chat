@@ -88,7 +88,7 @@ public class ChannelTests
     [Test]
     public async Task TestLeaveChannel()
     {
-        var currentChatUser = await chat.GetCurrentUserAsync();
+        var currentChatUser = await chat.GetCurrentUser();
         
         Assert.IsNotNull(currentChatUser, "currentChatUser was null");
         
