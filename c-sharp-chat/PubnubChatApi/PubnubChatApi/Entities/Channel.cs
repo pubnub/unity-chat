@@ -73,8 +73,6 @@ namespace PubNubChatAPI.Entities
 
         private ChatChannelData channelData;
 
-        protected Chat chat;
-
         protected Subscription? subscription;
         
         private Dictionary<string, Timer> typingIndicators = new();
@@ -119,6 +117,7 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public event Action<Channel> OnChannelUpdate;
 
+        private Subscription presenceEventsSubscription;
         /// <summary>
         /// Event that is triggered when any presence update occurs.
         ///
@@ -139,16 +138,32 @@ namespace PubNubChatAPI.Entities
         ///
         public event Action<List<string>> OnPresenceUpdate;
 
+        private Subscription typingEventsSubscription;
         public event Action<List<string>> OnUsersTyping;
-
-        public event Action<Dictionary<string, List<string>?>> OnReadReceiptEvent;
+        private Subscription readReceiptsSubscription;
+        public event Action<Dictionary<string, List<string>>> OnReadReceiptEvent;
+        private Subscription reportEventsSubscription;
         public event Action<ChatEvent> OnReportEvent;
+        private Subscription customEventsSubscription;
         public event Action<ChatEvent> OnCustomEvent;
 
-        internal Channel(Chat chat, string channelId, ChatChannelData data) : base(channelId)
+        protected override string UpdateChannelId => Id;
+
+        internal Channel(Chat chat, string channelId, ChatChannelData data) : base(chat, channelId)
         {
-            this.chat = chat;
             UpdateLocalData(data);
+        }
+        
+        protected override SubscribeCallback CreateUpdateListener()
+        {
+            return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
+            {
+                if (ChatParsers.TryParseChannelUpdate(chat, this, e, out var updatedData))
+                {
+                    UpdateLocalData(updatedData);
+                    OnChannelUpdate?.Invoke(this);
+                }
+            });
         }
 
         internal void UpdateLocalData(ChatChannelData? newData)
@@ -187,106 +202,129 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public async void SetListeningForCustomEvents(bool listen)
+        public void SetListeningForCustomEvents(bool listen)
         {
-            throw new NotImplementedException();
+            SetListening(customEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Custom, out var customEvent))
+                    {
+                        OnCustomEvent?.Invoke(customEvent);
+                        chat.BroadcastAnyEvent(customEvent);
+                    }
+                }));
         }
 
-        internal void BroadcastCustomEvent(ChatEvent chatEvent)
+        public void SetListeningForReportEvents(bool listen)
         {
-            OnCustomEvent?.Invoke(chatEvent);
-        }
-
-        public async void SetListeningForReportEvents(bool listen)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal void BroadcastReportEvent(ChatEvent chatEvent)
-        {
-            OnReportEvent?.Invoke(chatEvent);
-        }
-
-        public async void SetListeningForReadReceiptsEvents(bool listen)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async void SetListeningForTyping(bool listen)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async void SetListeningForPresence(bool listen)
-        {
-            throw new NotImplementedException();
+            SetListening(reportEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Report, out var reportEvent))
+                    {
+                        OnReportEvent?.Invoke(reportEvent);
+                        chat.BroadcastAnyEvent(reportEvent);
+                    }
+                }));
         }
         
-        internal void BroadcastMessageReceived(Message message)
+        public void SetListeningForReadReceiptsEvents(bool listen)
         {
-            OnMessageReceived?.Invoke(message);
-        }
-
-        internal void BroadcastReadReceipt(Dictionary<string, List<string>?> readReceiptEventData)
-        {
-            OnReadReceiptEvent?.Invoke(readReceiptEventData);
-        }
-
-        internal void BroadcastChannelUpdate()
-        {
-            OnChannelUpdate?.Invoke(this);
-        }
-
-        internal async void BroadcastPresenceUpdate()
-        {
-            var whoIs = await WhoIsPresent();
-            if (whoIs.Error)
-            {
-                chat.Logger.Error($"Error when trying to broadcast presence update after WhoIs(): {whoIs.Exception.Message}");
-            }
-            else
-            {
-                OnPresenceUpdate?.Invoke(whoIs.Result);
-            }
-        }
-
-        internal void TryParseAndBroadcastTypingEvent(List<string> userIds)
-        {
-            //stop typing
-            var keys = typingIndicators.Keys.ToArray();
-            for (int i = 0; i < keys.Length; i++)
-            {
-                var key = keys[i];
-                var indicator = typingIndicators[key];
-                if (!userIds.Contains(key))
+            SetListening(readReceiptsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                async delegate(Pubnub pn, PNMessageResult<object> m)
                 {
-                    indicator.Stop();
-                    typingIndicators.Remove(key);
-                    indicator.Dispose();
-                    ;
-                }
-            }
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
+                    {
+                        var getMembers = await chat.GetChannelMemberships(Id);
+                        if (getMembers.Error)
+                        {
+                            return;
+                        }
+                        var members = getMembers.Result;
+                        var outputDict = members.Memberships  
+                            .GroupBy(membership => membership.LastReadMessageTimeToken)
+                            .ToDictionary(  
+                                g => g.Key,
+                                g => g.Select(membership => membership.UserId).ToList() ?? new List<string>()
+                            ) ?? new Dictionary<string, List<string>>();  
+                        OnReadReceiptEvent?.Invoke(outputDict);
+                        chat.BroadcastAnyEvent(readEvent);
+                    }
+                }));
+        }
 
-            foreach (var typingUserId in userIds)
-            {
-                //Stop the old timer
-                if (typingIndicators.TryGetValue(typingUserId, out var typingTimer))
+        public void SetListeningForTyping(bool listen)
+        {
+            SetListening(typingEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
                 {
-                    typingTimer.Stop();
-                }
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Typing, out var rawTypingEvent))
+                    {
+                        try
+                        {
+                            var typingEvent =
+                                chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(rawTypingEvent
+                                    .Payload);
+                            var isTyping = (bool)typingEvent["value"];
+                            var userId = rawTypingEvent.UserId;
+                            
+                            chat.BroadcastAnyEvent(rawTypingEvent);
+                            
+                            //stop typing
+                            if (!isTyping)
+                            {
+                                if (typingIndicators.TryGetValue(userId, out var timer))
+                                {
+                                    timer.Stop();
+                                    typingIndicators.Remove(userId);
+                                    timer.Dispose();
+                                    return;
+                                }
+                            }
+                            //start or restart typing
+                            else
+                            {
+                                //Stop the old timer
+                                if (typingIndicators.TryGetValue(userId, out var typingTimer))
+                                {
+                                    typingTimer.Stop();
+                                }
 
-                //Create and start new timer
-                var newTimer = new Timer(chat.Config.TypingTimeout);
-                newTimer.Elapsed += (_, _) =>
+                                //Create and start new timer
+                                var newTimer = new Timer(chat.Config.TypingTimeout);
+                                newTimer.Elapsed += (_, _) =>
+                                {
+                                    typingIndicators.Remove(userId);
+                                    OnUsersTyping?.Invoke(typingIndicators.Keys.ToList());
+                                };
+                                typingIndicators[userId] = newTimer;
+                                newTimer.Start();
+                            }
+                            OnUsersTyping?.Invoke(typingIndicators.Keys.ToList());
+                        }
+                        catch (Exception e)
+                        {
+                            chat.Logger.Error($"Error when trying to broadcast typing event on channel \"{Id}\": {e.Message}");
+                        }
+                    }
+                }));
+        }
+
+        public void SetListeningForPresence(bool listen)
+        {
+            SetListening(presenceEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
+                async delegate(Pubnub pn, PNPresenceEventResult p)
                 {
-                    typingIndicators.Remove(typingUserId);
-                    OnUsersTyping?.Invoke(typingIndicators.Keys.ToList());
-                };
-                typingIndicators[typingUserId] = newTimer;
-                newTimer.Start();
-            }
-
-            OnUsersTyping?.Invoke(userIds);
+                    var whoIs = await WhoIsPresent();
+                    if (whoIs.Error)
+                    {
+                        chat.Logger.Error($"Error when trying to broadcast presence update after WhoIs(): {whoIs.Exception.Message}");
+                    }
+                    else
+                    {
+                        OnPresenceUpdate?.Invoke(whoIs.Result);
+                    }
+                }));
         }
 
         public async Task ForwardMessage(Message message)
@@ -299,14 +337,14 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public async Task StartTyping()
+        public async Task<ChatOperationResult> StartTyping()
         {
-            await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":true}}");
+            return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":true}}");
         }
 
-        public async Task StopTyping()
+        public async Task<ChatOperationResult> StopTyping()
         {
-            await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":false}}");
+            return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":false}}");
         }
 
         public virtual async Task<ChatOperationResult> PinMessage(Message message)
@@ -379,11 +417,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public void Disconnect()
         {
-            if (subscription == null)
-            {
-                return;
-            }
-            subscription.Unsubscribe<object>();
+            subscription?.Unsubscribe<object>();
         }
 
         /// <summary>

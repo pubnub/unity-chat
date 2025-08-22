@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using PubnubApi;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
@@ -23,8 +24,6 @@ namespace PubNubChatAPI.Entities
     /// <seealso cref="Channel"/>
     public class Message : UniqueChatEntity
     {
-        protected Chat chat;
-
         /// <summary>
         /// The text content of the message.
         /// <para>
@@ -204,9 +203,10 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Delete"/>
         public event Action<Message> OnMessageUpdated;
 
-        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(timeToken)
+        protected override string UpdateChannelId => ChannelId;
+
+        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(chat, timeToken)
         {
-            this.chat = chat;
             TimeToken = timeToken;
             OriginalMessageText = originalMessageText;
             ChannelId = channelId;
@@ -215,9 +215,15 @@ namespace PubNubChatAPI.Entities
             Meta = meta;
         }
 
-        internal virtual void BroadcastMessageUpdate()
+        protected override SubscribeCallback CreateUpdateListener()
         {
-            OnMessageUpdated?.Invoke(this);
+            return chat.ListenerFactory.ProduceListener(messageActionCallback: delegate(Pubnub pn, PNMessageActionEventResult e)
+            {
+                if (ChatParsers.TryParseMessageUpdate(chat, this, e))
+                {
+                    OnMessageUpdated?.Invoke(this);
+                }
+            });
         }
 
         /// <summary>

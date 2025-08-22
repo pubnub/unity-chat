@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
@@ -1387,6 +1386,11 @@ namespace PubNubChatAPI.Entities
 
         #region Events
 
+        internal void BroadcastAnyEvent(ChatEvent chatEvent)
+        {
+            OnAnyEvent?.Invoke(chatEvent);
+        }
+        
         public async Task<EventsHistoryWrapper> GetEventsHistory(string channelId, string startTimeToken,
             string endTimeToken,
             int count)

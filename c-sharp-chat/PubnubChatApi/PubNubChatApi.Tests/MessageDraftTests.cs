@@ -11,40 +11,26 @@ public class MessageDraftTests
     private Chat chat;
     private Channel channel;
     private User dummyUser;
-    private Channel dummyChannel;
 
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_draft_tests_user"))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_draft_tests_user"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
-        });
-        channel = await chat.CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
+        }));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
         {
             ChannelName = "MessageDraftTestingChannel"
-        });
-        if (!chat.TryGetCurrentUser(out var user))
-        {
-            Assert.Fail();
-        }
-
+        }));
         channel.Join();
         await Task.Delay(3000);
-        
-        if (!chat.TryGetUser("mock_user", out dummyUser))
-        {
-            dummyUser = await chat.CreateUser("mock_user", new ChatUserData()
-            {
-                Username = "Mock Usernamiski"
-            });
-        }
 
-        if (!chat.TryGetChannel("dummy_channel", out dummyChannel))
+        dummyUser = await chat.GetOrCreateUser("mock_user", new ChatUserData()
         {
-            dummyChannel = await chat.CreatePublicConversation("dummy_channel");
-        }
+            Username = "Mock Usernamiski"
+        });
     }
 
     [Test]

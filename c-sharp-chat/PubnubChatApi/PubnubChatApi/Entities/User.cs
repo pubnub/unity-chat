@@ -95,9 +95,7 @@ namespace PubNubChatAPI.Entities
                 throw new NotImplementedException();
             }
         }
-
-        private Chat chat;
-
+        
         /// <summary>
         /// Event that is triggered when the user is updated.
         /// <para>
@@ -117,50 +115,70 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Update"/>
         /// <seealso cref="User"/>
         public event Action<User> OnUserUpdated;
-        
+
+        private Subscription mentionsSubscription;
+        private Subscription invitesSubscription;
+        private Subscription moderationSubscription;
         public event Action<ChatEvent> OnMentionEvent;
         public event Action<ChatEvent> OnInviteEvent;
         public event Action<ChatEvent> OnModerationEvent;
-        
-        internal User(Chat chat, string userId, ChatUserData chatUserData) : base(userId)
+
+        protected override string UpdateChannelId => Id;
+
+        internal User(Chat chat, string userId, ChatUserData chatUserData) : base(chat, userId)
         {
             UpdateLocalData(chatUserData);
-            this.chat = chat;
         }
         
-        public async void SetListeningForMentionEvents(bool listen)
+        protected override SubscribeCallback CreateUpdateListener()
         {
-            throw new NotImplementedException();
-        }
-
-        internal void BroadcastMentionEvent(ChatEvent chatEvent)
-        {
-            OnMentionEvent?.Invoke(chatEvent);
-        }
-
-        public async void SetListeningForInviteEvents(bool listen)
-        {
-            throw new NotImplementedException();
+            return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
+            {
+                if (ChatParsers.TryParseUserUpdate(chat, this, e, out var updatedData))
+                {
+                    UpdateLocalData(updatedData);
+                    OnUserUpdated?.Invoke(this);
+                }
+            });
         }
         
-        internal void BroadcastInviteEvent(ChatEvent chatEvent)
+        public void SetListeningForMentionEvents(bool listen)
         {
-            OnInviteEvent?.Invoke(chatEvent);
+            SetListening(mentionsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Mention, out var mentionEvent))
+                    {
+                        OnMentionEvent?.Invoke(mentionEvent);
+                        chat.BroadcastAnyEvent(mentionEvent);
+                    }
+                }));
         }
 
-        public async void SetListeningForModerationEvents(bool listen)
+        public void SetListeningForInviteEvents(bool listen)
         {
-            throw new NotImplementedException();
-        }
-        
-        internal void BroadcastModerationEvent(ChatEvent chatEvent)
-        {
-            OnModerationEvent?.Invoke(chatEvent);
+            SetListening(invitesSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Invite, out var inviteEvent))
+                    {
+                        OnInviteEvent?.Invoke(inviteEvent);
+                        chat.BroadcastAnyEvent(inviteEvent);
+                    }
+                }));
         }
 
-        internal void BroadcastUserUpdate()
+        public void SetListeningForModerationEvents(bool listen)
         {
-            OnUserUpdated?.Invoke(this);
+            SetListening(moderationSubscription, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Moderation, out var moderationEvent))
+                    {
+                        OnModerationEvent?.Invoke(moderationEvent);
+                        chat.BroadcastAnyEvent(moderationEvent);
+                    }
+                }));
         }
         
         /// <summary>

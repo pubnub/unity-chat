@@ -1,13 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
-using PubnubChatApi.Utilities;
 
 namespace PubNubChatAPI.Entities
 {
@@ -80,12 +75,6 @@ namespace PubNubChatAPI.Entities
         public override async Task Delete(bool soft)
         {
             throw new NotImplementedException();
-        }
-
-        internal override void BroadcastMessageUpdate()
-        {
-            base.BroadcastMessageUpdate();
-            OnThreadMessageUpdated?.Invoke(this);
         }
 
         public async Task PinMessageToParentChannel()

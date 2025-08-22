@@ -61,14 +61,13 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Update"/>
         public event Action<Membership> OnMembershipUpdated;
 
-        private Chat chat;
+        protected override string UpdateChannelId => ChannelId;
 
-        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(userId+channelId)
+        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(chat, userId+channelId)
         {
             UserId = userId;
             ChannelId = channelId;
             UpdateLocalData(membershipData);
-            this.chat = chat;
         }
 
         internal void UpdateLocalData(ChatMembershipData newData)
@@ -76,30 +75,16 @@ namespace PubNubChatAPI.Entities
             MembershipData = newData;
         }
 
-        public override void SetListeningForUpdates(bool listen)
+        protected override SubscribeCallback CreateUpdateListener()
         {
-            if (listen)
+            return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
             {
-                if (updateSubscription != null)
+                if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData))
                 {
-                    return;
+                    UpdateLocalData(updatedData);
+                    OnMembershipUpdated?.Invoke(this);
                 }
-                updateSubscription = chat.PubnubInstance.Channel(ChannelId).Subscription(SubscriptionOptions.ReceivePresenceEvents);
-                updateSubscription.AddListener(chat.ListenerFactory.ProduceListener(objectEventCallback:
-                    delegate(Pubnub pn, PNObjectEventResult e)
-                    {
-                        if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData))
-                        {
-                            UpdateLocalData(updatedData);
-                            OnMembershipUpdated?.Invoke(this);
-                        }
-                    }));
-                updateSubscription.Subscribe<object>();
-            }
-            else
-            {
-                updateSubscription?.Unsubscribe<object>();
-            }
+            });
         }
 
         /// <summary>

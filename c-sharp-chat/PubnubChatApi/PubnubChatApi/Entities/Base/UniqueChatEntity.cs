@@ -6,7 +6,7 @@ namespace PubNubChatAPI.Entities
     {
         public string Id { get; protected set; }
 
-        internal UniqueChatEntity(string uniqueId)
+        internal UniqueChatEntity(Chat chat, string uniqueId) : base(chat)
         {
             Id = uniqueId;
         }
