@@ -16,16 +16,13 @@ public class ChatEventTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("event_tests_user"))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("event_tests_user"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
-        });
-        channel = await chat.CreatePublicConversation("event_tests_channel");
-        if (!chat.TryGetCurrentUser(out user))
-        {
-            Assert.Fail();
-        }
+        }));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("event_tests_channel"));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }

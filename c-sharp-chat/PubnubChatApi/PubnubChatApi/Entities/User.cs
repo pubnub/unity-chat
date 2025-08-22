@@ -201,10 +201,12 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="ChatUserData"/>
-        public async Task Update(ChatUserData updatedData)
+        public async Task<ChatOperationResult> Update(ChatUserData updatedData)
         {
             UpdateLocalData(updatedData);
-            await UpdateUserData(chat, Id, updatedData);
+            var result = new ChatOperationResult();
+            result.RegisterOperation(await UpdateUserData(chat, Id, updatedData));
+            return result;
         }
 
         internal static async Task<PNResult<PNSetUuidMetadataResult>> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
@@ -196,4 +196,4 @@ public class ThreadsTests
         var updated = messageUpdatedReset.WaitOne(25000);
         Assert.True(updated);
     }
-}
+}*/

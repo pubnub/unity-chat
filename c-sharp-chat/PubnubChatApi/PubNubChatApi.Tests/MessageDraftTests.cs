@@ -22,7 +22,7 @@ public class MessageDraftTests
         }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("message_draft_tests_channel", new ChatChannelData()
         {
-            ChannelName = "MessageDraftTestingChannel"
+            Name = "MessageDraftTestingChannel"
         }));
         channel.Join();
         await Task.Delay(3000);

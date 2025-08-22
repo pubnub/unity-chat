@@ -291,9 +291,18 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public virtual async Task Report(string reason)
+        public virtual async Task<ChatOperationResult> Report(string reason)
         {
-            throw new NotImplementedException();
+            var jsonDict = new Dictionary<string, string>()
+            {
+                {"text",MessageText},
+                {"reason",reason},
+                {"reportedMessageChannelId",ChannelId},
+                {"reportedMessageTimetoken",TimeToken},
+                {"reportedUserId",UserId}
+            };
+            return await chat.EmitEvent(PubnubChatEventType.Report, $"{Chat.INTERNAL_MODERATION_PREFIX}_{ChannelId}",
+                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
         }
 
         public virtual async Task<ChatOperationResult> Forward(string channelId)

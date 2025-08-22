@@ -28,7 +28,7 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <value>The name of the channel.</value>
-        public string Name => channelData.ChannelName;
+        public string Name => channelData.Name;
 
         /// <summary>
         /// The description of the channel.
@@ -36,7 +36,7 @@ namespace PubNubChatAPI.Entities
         /// <para>
         /// The description that allows users to understand the purpose of the channel.
         /// </para>
-        public string Description => channelData.ChannelDescription;
+        public string Description => channelData.Description;
 
         /// <summary>
         /// The custom data of the channel.
@@ -45,7 +45,7 @@ namespace PubNubChatAPI.Entities
         /// The custom data that can be used to store additional information about the channel.
         /// </para>
         /// </summary>
-        public Dictionary<string, object> CustomData => channelData.ChannelCustomData;
+        public Dictionary<string, object> CustomData => channelData.CustomData;
 
         /// <summary>
         /// The information about the last update of the channel.
@@ -53,7 +53,7 @@ namespace PubNubChatAPI.Entities
         /// The time when the channel was last updated.
         /// </para>
         /// </summary>
-        public string Updated => channelData.ChannelUpdated;
+        public string Updated => channelData.Updated;
 
         /// <summary>
         /// The status of the channel.
@@ -61,7 +61,7 @@ namespace PubNubChatAPI.Entities
         /// The last status response received from the server.
         /// </para>
         /// </summary>
-        public string Status => channelData.ChannelStatus;
+        public string Status => channelData.Status;
 
         /// <summary>
         /// The type of the channel.
@@ -69,7 +69,7 @@ namespace PubNubChatAPI.Entities
         /// The type of the response received from the server when the channel was created.
         /// </para>
         /// </summary>
-        public string Type => channelData.ChannelType;
+        public string Type => channelData.Type;
 
         private ChatChannelData channelData;
 
@@ -177,13 +177,25 @@ namespace PubNubChatAPI.Entities
 
         internal static async Task<PNResult<PNSetChannelMetadataResult>> UpdateChannelData(Chat chat, string channelId, ChatChannelData data)
         {
-            return await chat.PubnubInstance.SetChannelMetadata().IncludeCustom(true)
-                .Channel(channelId)
-                .Name(data.ChannelName)
-                .Description(data.ChannelDescription)
-                .Status(data.ChannelStatus)
-                .Custom(data.ChannelCustomData)
-                .ExecuteAsync();
+            var operation = chat.PubnubInstance.SetChannelMetadata().IncludeCustom(true)
+                .Channel(channelId);
+            if (!string.IsNullOrEmpty(data.Name))
+            {
+                operation = operation.Name(data.Name);
+            }
+            if (!string.IsNullOrEmpty(data.Description))
+            {
+                operation = operation.Description(data.Description);
+            }
+            if (!string.IsNullOrEmpty(data.Status))
+            {
+                operation = operation.Status(data.Status);
+            }
+            if (data.CustomData != null && data.CustomData.Any())
+            {
+                operation = operation.Custom(data.CustomData);
+            }
+            return await operation.ExecuteAsync();
         }
         
         internal static async Task<PNResult<PNGetChannelMetadataResult>> GetChannelData(Chat chat, string channelId)
@@ -217,7 +229,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForReportEvents(bool listen)
         {
-            SetListening(reportEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(reportEventsSubscription, listen, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Report, out var reportEvent))
@@ -278,7 +290,6 @@ namespace PubNubChatAPI.Entities
                                     timer.Stop();
                                     typingIndicators.Remove(userId);
                                     timer.Dispose();
-                                    return;
                                 }
                             }
                             //start or restart typing
@@ -332,9 +343,16 @@ namespace PubNubChatAPI.Entities
             await chat.ForwardMessage(message, this);
         }
 
-        public async Task EmitUserMention(string userId, string timeToken, string text)
+        public virtual async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
         {
-            throw new NotImplementedException();
+            var jsonDict = new Dictionary<string, string>()
+            {
+                {"text",text},
+                {"messageTimetoken",timeToken},
+                {"channel",Id}
+            };
+            return await chat.EmitEvent(PubnubChatEventType.Mention, userId,
+                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
         }
 
         public async Task<ChatOperationResult> StartTyping()
@@ -609,8 +627,10 @@ namespace PubNubChatAPI.Entities
             await SendText(message, new SendTextParams());
         }
 
-        public virtual async Task SendText(string message, SendTextParams sendTextParams)
+        public virtual async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
         {
+            var result = new ChatOperationResult();
+            
             //TODO: maybe move this to a method in config?
             var baseInterval = Type switch
             {
@@ -645,18 +665,29 @@ namespace PubNubChatAPI.Entities
                 {
                     meta.Add("mentionedUsers", sendTextParams.MentionedUsers);
                 }
-                return await chat.PubnubInstance.Publish()
+
+                var publishResult = await chat.PubnubInstance.Publish()
                     .Channel(Id)
                     .ShouldStore(sendTextParams.StoreInHistory)
                     .UsePOST(sendTextParams.SendByPost)
                     .Message(chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(messageDict))
                     .Meta(meta)
                     .ExecuteAsync();
+                if (result.RegisterOperation(publishResult))
+                {
+                    return result;
+                }
+                foreach (var mention in sendTextParams.MentionedUsers)
+                {
+                    result.RegisterOperation(await EmitUserMention(mention.Value.Id,
+                        publishResult.Result.Timetoken.ToString(), message));
+                }
+                return result;
             }, response =>
             {
-                if (response is PNResult<PNPublishResult> result && result.Status.Error)
+                if (result.Error)
                 {
-                    chat.Logger.Error($"Error occured when trying to SendText(): {result.Status.ErrorData.Information}");
+                    chat.Logger.Error($"Error occured when trying to SendText(): {result.Exception.Message}");
                 }
                 completionSource.SetResult(true);
             }, exception =>
@@ -666,6 +697,8 @@ namespace PubNubChatAPI.Entities
             });
 
             await completionSource.Task;
+
+            return result;
         }
 
         /// <summary>
@@ -690,9 +723,9 @@ namespace PubNubChatAPI.Entities
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while updating the channel.</exception>
         /// <seealso cref="OnChannelUpdate"/>
         /// <seealso cref="ChatChannelData"/>
-        public async Task Update(ChatChannelData updatedData)
+        public async Task<ChatOperationResult> Update(ChatChannelData updatedData)
         {
-            await chat.UpdateChannel(Id, updatedData);
+            return await chat.UpdateChannel(Id, updatedData);
         }
 
         /// <summary>
@@ -903,38 +936,13 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Gets the <c>Message</c> object for the given timetoken.
-        /// <para>
-        /// Gets the <c>Message</c> object for the given timetoken.
-        /// The timetoken is used to identify the message.
-        /// </para>
-        /// </summary>
-        /// <param name="timeToken">The timetoken of the message.</param>
-        /// <param name="message">The out parameter that contains the <c>Message</c> object.</param>
-        /// <returns><c>true</c> if the message is found; otherwise, <c>false</c>.</returns>
-        /// <example>
-        /// <code>
-        /// var channel = //...
-        /// if (channel.TryGetMessage("16686902600029072", out var message)) {
-        ///  Console.WriteLine($"Message: {message.Text}");
-        /// }
-        /// </code>
-        /// </example>
-        /// <seealso cref="Message"/>
-        /// <seealso cref="GetMessageAsync"/>
-        public bool TryGetMessage(string timeToken, out Message message)
-        {
-            return chat.TryGetMessage(Id, timeToken, out message);
-        }
-
-        /// <summary>
         /// Asynchronously gets the <c>Message</c> object for the given timetoken sent from this <c>Channel</c>.
         /// </summary>
         /// <param name="timeToken">TimeToken of the searched-for message.</param>
         /// <returns>Message object if one was found, null otherwise.</returns>
-        public async Task<Message?> GetMessageAsync(string timeToken)
+        public async Task<ChatOperationResult<Message>> GetMessage(string timeToken)
         {
-            return await chat.GetMessageAsync(Id, timeToken);
+            return await chat.GetMessage(Id, timeToken);
         }
 
         public async Task<List<Message>> GetMessageHistory(string startTimeToken, string endTimeToken,

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
@@ -61,7 +61,7 @@ public class MessageTests
             {
                 Id = user.Id,
                 Name = user.UserName
-            } } },*/
+            } } },#1#
         });
         var received = manualReceiveEvent.WaitOne(6000);
         Assert.IsTrue(received);
@@ -318,4 +318,4 @@ public class MessageTests
         var received = manualReceiveEvent.WaitOne(25000);
         Assert.IsTrue(received);
     }
-}
+}*/

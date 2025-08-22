@@ -14,23 +14,23 @@ namespace PubnubChatApi.Entities.Data
     /// </remarks>
     public class ChatChannelData
     {
-        public string ChannelName { get; set; } = string.Empty;
-        public string ChannelDescription { get; set; } = string.Empty;
-        public Dictionary<string, object> ChannelCustomData { get; set; } = new ();
-        public string ChannelUpdated { get; set; } = string.Empty;
-        public string ChannelStatus { get; set; } = string.Empty;
-        public string ChannelType { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public Dictionary<string, object> CustomData { get; set; } = new ();
+        public string Updated { get; internal set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
         
         public static implicit operator ChatChannelData(PNChannelMetadataResult metadataResult)
         {
             return new ChatChannelData()
             {
-                ChannelName = metadataResult.Name,
-                ChannelDescription = metadataResult.Description,
-                ChannelCustomData = metadataResult.Custom,
-                ChannelStatus = metadataResult.Status,
-                ChannelUpdated = metadataResult.Updated,
-                ChannelType = metadataResult.Type
+                Name = metadataResult.Name,
+                Description = metadataResult.Description,
+                CustomData = metadataResult.Custom,
+                Status = metadataResult.Status,
+                Updated = metadataResult.Updated,
+                Type = metadataResult.Type
             };
         }
     }

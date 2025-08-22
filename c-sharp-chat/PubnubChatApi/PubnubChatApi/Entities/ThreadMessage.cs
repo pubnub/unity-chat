@@ -47,7 +47,7 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
         
-        public override async Task Report(string reason)
+        public override async Task<ChatOperationResult> Report(string reason)
         {
             throw new NotImplementedException();
         }

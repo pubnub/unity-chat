@@ -187,7 +187,7 @@ namespace PubNubChatAPI.Entities
                 return result;
             }
 
-            additionalData.ChannelType = "public";
+            additionalData.Type = "public";
             var updated = await Channel.UpdateChannelData(this, channelId, additionalData);
             if (result.RegisterOperation(updated))
             {
@@ -217,11 +217,12 @@ namespace PubNubChatAPI.Entities
             if (!result.RegisterOperation(existingChannel))
             {
                 Logger.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
+                result.Result.CreatedChannel = existingChannel.Result;
                 return result;
             }
             
             channelData ??= new ChatChannelData();
-            channelData.ChannelType = type;
+            channelData.Type = type;
             var updated = await Channel.UpdateChannelData(this, channelId, channelData);
             if (result.RegisterOperation(updated))
             {
@@ -269,6 +270,7 @@ namespace PubNubChatAPI.Entities
             
             var channel = new Channel(this, channelId, channelData);
             channelWrappers.Add(channelId, channel);
+            result.Result.CreatedChannel = channel;
 
             if (type == "direct")
             {
@@ -517,7 +519,7 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="ChatChannelData"/>
-        public async Task UpdateChannel(string channelId, ChatChannelData updatedData)
+        public async Task<ChatOperationResult> UpdateChannel(string channelId, ChatChannelData updatedData)
         {
             throw new NotImplementedException();
         }
@@ -1214,44 +1216,19 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Gets the <c>Message</c> object for the given timetoken.
-        /// <para>
-        /// Gets the <c>Message</c> object from the channel for the given timetoken.
-        /// The timetoken is used to identify the message.
-        /// </para>
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="messageTimeToken">The timetoken of the message.</param>
-        /// <param name="message">The out parameter that contains the <c>Message</c> object.</param>
-        /// <returns><c>true</c> if the message is found; otherwise, <c>false</c>.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// if (chat.TryGetMessage("channel_id", "timetoken", out var message)) {
-        ///  // Message found
-        /// };
-        /// </code>
-        /// </example>
-        /// <seealso cref="Message"/>
-        /// <seealso cref="GetMessageAsync"/>
-        public bool TryGetMessage(string channelId, string messageTimeToken, out Message message)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Asynchronously gets the <c>Message</c> object for the given timetoken.
         /// </summary>
         /// <param name="channelId">ID of the channel on which the message was sent.</param>
         /// <param name="messageTimeToken">TimeToken of the searched-for message.</param>
         /// <returns>Message object if one was found, null otherwise.</returns>
-        public async Task<Message?> GetMessageAsync(string channelId, string messageTimeToken)
+        public async Task<ChatOperationResult<Message>> GetMessage(string channelId, string messageTimeToken)
         {
-            return await Task.Run(() =>
+            throw new NotImplementedException();
+            /*return await Task.Run(() =>
             {
                 var result = TryGetMessage(channelId, messageTimeToken, out var message);
                 return result ? message : null;
-            });
+            });*/
         }
 
         public async Task<MarkMessagesAsReadWrapper> MarkAllMessagesAsRead(string filter = "", string sort = "",
@@ -1314,14 +1291,15 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public void AddListenerToMessagesUpdate(string channelId, List<string> messageTimeTokens,
+        public async void AddListenerToMessagesUpdate(string channelId, List<string> messageTimeTokens,
             Action<Message> listener)
         {
             foreach (var messageTimeToken in messageTimeTokens)
             {
-                if (TryGetMessage(channelId, messageTimeToken, out var message))
+                var getMessage = await GetMessage(channelId, messageTimeToken);
+                if (!getMessage.Error)
                 {
-                    message.OnMessageUpdated += listener;
+                    getMessage.Result.OnMessageUpdated += listener;
                 }
             }
         }
@@ -1403,13 +1381,9 @@ namespace PubNubChatAPI.Entities
             var result = new ChatOperationResult();
             jsonPayload = jsonPayload.Remove(0, 1);
             jsonPayload = jsonPayload.Remove(jsonPayload.Length - 1);
-            var fullPayload = $"{{{jsonPayload}, \"type\": {ChatEnumConverters.ChatEventTypeToString(type)}}}";
-            var publishResult = await PubnubInstance.Publish().Channel(channelId).Message(fullPayload).ExecuteAsync();
-            result.InternalStatuses.Add(publishResult.Status);
-            if (publishResult.Status.Error)
-            {
-                result.Error = true;
-            }
+            var fullPayload = $"{{{jsonPayload}, \"type\": \"{ChatEnumConverters.ChatEventTypeToString(type)}\"}}";
+            result.RegisterOperation(await PubnubInstance.Publish().Channel(channelId).Message(fullPayload)
+                .ExecuteAsync());
             return result;
         }
 
