@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using PubnubChatApi.Entities.Data;
+using PubnubApi;
 using PubnubChatApi.Enums;
+using PubnubChatApi.Utilities;
 
 namespace PubNubChatAPI.Entities
 {
@@ -10,71 +11,22 @@ namespace PubNubChatAPI.Entities
     {
         public event Action<ThreadMessage> OnThreadMessageUpdated;
         
-        public string ParentChannelId
+        public string ParentChannelId { get; }
+        
+        internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId, string parentChannelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(chat, timeToken, originalMessageText, channelId, userId, type, meta)
         {
-            get
+            ParentChannelId = parentChannelId;
+        }
+
+        protected override SubscribeCallback CreateUpdateListener()
+        {
+            return chat.ListenerFactory.ProduceListener(messageActionCallback: delegate(Pubnub pn, PNMessageActionEventResult e)
             {
-                throw new NotImplementedException();
-            }
-        }
-        
-        internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(chat, timeToken, originalMessageText, channelId, userId, type, meta)
-        {
-        }
-
-        /// <summary>
-        /// Edits the text of the message.
-        /// <para>
-        /// This method edits the text of the message.
-        /// It changes the text of the message to the new text provided.
-        /// </para>
-        /// </summary>
-        /// <param name="newText">The new text of the message.</param>
-        /// <example>
-        /// <code>
-        /// var message = // ...;
-        /// message.EditMessageText("New text");
-        /// </code>
-        /// </example>
-        /// <seealso cref="OnMessageUpdated"/>
-        public override async Task EditMessageText(string newText)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override bool TryGetQuotedMessage(out Message quotedMessage)
-        {
-            throw new NotImplementedException();
-        }
-        
-        public override async Task<ChatOperationResult> Report(string reason)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override async Task<ChatOperationResult> Forward(string channelId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override bool HasUserReaction(string reactionValue)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override async Task ToggleReaction(string reactionValue)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override async Task Restore()
-        {
-            throw new NotImplementedException();
-        }
-        
-        public override async Task Delete(bool soft)
-        {
-            throw new NotImplementedException();
+                if (ChatParsers.TryParseMessageUpdate(chat, this, e))
+                {
+                    OnThreadMessageUpdated?.Invoke(this);
+                }
+            });
         }
 
         public async Task PinMessageToParentChannel()

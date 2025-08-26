@@ -126,16 +126,17 @@ namespace PubnubChatApi.Utilities
                 {
                     if (actionEvent.Event != "removed")
                     {
-                        var valueJson =
-                            chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(actionEvent.Action
-                                .Value);
-                        var actionUserId = valueJson.TryGetValue("uuid", out var fromAction) ? (string)fromAction : actionEvent.Uuid;
+                        //already has it
+                        if (message.MessageActions.Any(x => x.TimeToken == actionEvent.ActionTimetoken.ToString()))
+                        {
+                            return true;
+                        }
                         message.MessageActions.Add(new MessageAction()
                         {
                             TimeToken = actionEvent.ActionTimetoken.ToString(),
                             Type = ChatEnumConverters.StringToActionType(actionEvent.Action.Type),
                             Value = actionEvent.Action.Value,
-                            UserId = actionUserId
+                            UserId = actionEvent.Uuid
                         });
                     }
                     else

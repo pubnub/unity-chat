@@ -29,9 +29,9 @@ namespace PubNubChatAPI.Entities
         internal const string MESSAGE_THREAD_ID_PREFIX = "PUBNUB_INTERNAL_THREAD";
         internal const string ERROR_LOGGER_KEY_PREFIX = "PUBNUB_INTERNAL_ERROR_LOGGER";
         
-        private Dictionary<string, Channel> channelWrappers = new();
-        private Dictionary<string, User> userWrappers = new();
         //TODO: wrappers rethink
+        internal Dictionary<string, Channel> channelWrappers = new();
+        private Dictionary<string, User> userWrappers = new();
         internal Dictionary<string, Membership> membershipWrappers = new();
         private Dictionary<string, Message> messageWrappers = new();
         private bool fetchUpdates = true;
@@ -538,9 +538,11 @@ namespace PubNubChatAPI.Entities
         /// chat.DeleteChannel("channel_id");
         /// </code>
         /// </example>
-        public async Task DeleteChannel(string channelId)
+        public async Task<ChatOperationResult> DeleteChannel(string channelId)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync());
+            return result;
         }
 
         #endregion
@@ -1255,21 +1257,9 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public async Task RemoveThreadChannel(Message message)
+        public async Task<ChatOperationResult> RemoveThreadChannel(Message message)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Tries to retrieve a ThreadChannel object from a Message object if there is one.
-        /// </summary>
-        /// <param name="message">Message on which the ThreadChannel is supposed to be.</param>
-        /// <param name="threadChannel">Retrieved ThreadChannel or null if it wasn't found/</param>
-        /// <returns>True if a ThreadChannel was found, false otherwise.</returns>
-        /// <seealso cref="GetThreadChannelAsync"/>
-        public bool TryGetThreadChannel(Message message, out ThreadChannel threadChannel)
-        {
-            throw new NotImplementedException();
+            return await message.RemoveThread();
         }
 
         /// <summary>
@@ -1277,13 +1267,22 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="message">Message on which the ThreadChannel is supposed to be.</param>
         /// <returns>The ThreadChannel object if one was found, null otherwise.</returns>
-        public async Task<ThreadChannel?> GetThreadChannelAsync(Message message)
+        public async Task<ChatOperationResult<ThreadChannel>> GetThreadChannel(Message message)
         {
-            return await Task.Run(() =>
+            var result = new ChatOperationResult<ThreadChannel>();
+            var getChannel = await GetChannel(message.GetThreadId());
+            if (result.RegisterOperation(getChannel))
             {
-                var result = TryGetThreadChannel(message, out var threadChannel);
-                return result ? threadChannel : null;
-            });
+                return result;
+            }
+            if (getChannel.Result is not ThreadChannel threadChannel)
+            {
+                result.Error = true;
+                result.Exception = new PNException("Retrieved channel wasn't a thread channel");
+                return result;
+            }
+            result.Result = threadChannel;
+            return result;
         }
 
         public async Task<ChatOperationResult> ForwardMessage(Message message, Channel channel)

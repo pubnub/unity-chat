@@ -1,4 +1,4 @@
-/*using System.Diagnostics;
+using System.Diagnostics;
 using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
@@ -16,20 +16,13 @@ public class MessageTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_tests_user_2"))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("message_tests_user_2"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
-        });
-        channel = await chat.CreatePublicConversation("message_tests_channel_2");
-        if (channel == null)
-        {
-            Assert.Fail();
-        }
-        if (!chat.TryGetCurrentUser(out user))
-        {
-            Assert.Fail();
-        }
+        }));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("message_tests_channel_2"));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }
@@ -61,7 +54,7 @@ public class MessageTests
             {
                 Id = user.Id,
                 Name = user.UserName
-            } } },#1#
+            } } },*/
         });
         var received = manualReceiveEvent.WaitOne(6000);
         Assert.IsTrue(received);
@@ -71,7 +64,7 @@ public class MessageTests
     public async Task TestReceivingMessageData()
     {
         var manualReceiveEvent = new ManualResetEvent(false);
-        var testChannel = await chat.CreatePublicConversation("message_data_test_channel");
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation("message_data_test_channel"));
         testChannel.Join();
         await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
@@ -103,14 +96,15 @@ public class MessageTests
     }
 
     [Test]
-    public async Task TestTryGetMessage()
+    public async Task TestGetMessage()
     {
         var manualReceiveEvent = new ManualResetEvent(false);
-        channel.OnMessageReceived += message =>
+        channel.OnMessageReceived += async message =>
         {
             if (message.ChannelId == channel.Id)
             {
-                Assert.True(chat.TryGetMessage(channel.Id, message.TimeToken, out _));
+                var getMessage = await chat.GetMessage(channel.Id, message.TimeToken);
+                Assert.True(!getMessage.Error, $"Error when trying to GetMessage(): {getMessage.Error}");
                 manualReceiveEvent.Set();
             }
         };
@@ -215,7 +209,7 @@ public class MessageTests
     [Test]
     public async Task TestPinMessage()
     {
-        var pinTestChannel = await chat.CreatePublicConversation();
+        var pinTestChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         pinTestChannel.Join();
         await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);
@@ -287,7 +281,7 @@ public class MessageTests
             try
             {
                 message.SetListeningForUpdates(true);
-                var thread = await message.CreateThread();
+                var thread = TestUtils.AssertOperation(await message.CreateThread());
                 thread.Join();
                 await Task.Delay(3500);
                 await thread.SendText("thread_init_text");
@@ -302,13 +296,12 @@ public class MessageTests
             }
 
             Assert.True(hasThread);
-            Assert.True(message.TryGetThread(out var threadChannel));
+            var getThread = await message.GetThread();
+            Assert.True(!getThread.Error);
             await message.RemoveThread();
 
             await Task.Delay(5000);
-
-            //TODO: temporary way to get latest message pointer since remove_thread doesn't return a new pointer
-            chat.TryGetMessage(channel.Id, message.Id, out message);
+            
             Assert.False(message.HasThread());
 
             manualReceiveEvent.Set();
@@ -318,4 +311,4 @@ public class MessageTests
         var received = manualReceiveEvent.WaitOne(25000);
         Assert.IsTrue(received);
     }
-}*/
+}

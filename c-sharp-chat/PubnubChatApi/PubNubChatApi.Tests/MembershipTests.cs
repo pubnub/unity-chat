@@ -16,21 +16,13 @@ public class MembershipTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("membership_tests_user_54"))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("membership_tests_user_54"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
-        });
-        channel = await chat.CreatePublicConversation("membership_tests_channel");
-        if (channel == null)
-        {
-            Assert.Fail();
-        }
-        if (!chat.TryGetCurrentUser(out user))
-        {
-            Assert.Fail();
-        }
-
+        }));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("membership_tests_channel"));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }
@@ -94,23 +86,23 @@ public class MembershipTests
     [Test]
     public async Task TestInvite()
     {
-        var testChannel = (await chat.CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
+        var testChannel = TestUtils.AssertOperation(await chat.CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
         var testUser = await chat.GetOrCreateUser("test_invite_user");
-        var returnedMembership = await testChannel.Invite(testUser);
+        var returnedMembership = TestUtils.AssertOperation(await testChannel.Invite(testUser));
         Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id);
     }
 
     [Test]
     public async Task TestInviteMultiple()
     {
-        var testChannel = (await chat.CreateGroupConversation([user], "invite_multiple_test_group_channel_3"))
+        var testChannel = TestUtils.AssertOperation(await chat.CreateGroupConversation([user], "invite_multiple_test_group_channel_3"))
             .CreatedChannel;
         var secondUser = await chat.GetOrCreateUser("second_invite_user");
         var thirdUser = await chat.GetOrCreateUser("third_invite_user");
-        var returnedMemberships = await testChannel.InviteMultiple([
+        var returnedMemberships = TestUtils.AssertOperation(await testChannel.InviteMultiple([
             secondUser,
             thirdUser
-        ]);
+        ]));
         Assert.True(
             returnedMemberships.Count == 2 &&
             returnedMemberships.Any(x => x.UserId == secondUser.Id && x.ChannelId == testChannel.Id) &&
@@ -120,7 +112,7 @@ public class MembershipTests
     [Test]
     public async Task TestLastRead()
     {
-        var testChannel = await chat.CreatePublicConversation("last_read_test_channel_57");
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation("last_read_test_channel_57"));
         testChannel.Join();
 
         await Task.Delay(4000);
@@ -159,7 +151,7 @@ public class MembershipTests
     [Test]
     public async Task TestUnreadMessagesCount()
     {
-        var unreadChannel = await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}");
+        var unreadChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}"));
         unreadChannel.Join();
         
         await Task.Delay(3500);
@@ -170,7 +162,7 @@ public class MembershipTests
 
         await Task.Delay(8000);
         
-        var membership = (await unreadChannel.GetMemberships())
+        var membership = TestUtils.AssertOperation(await unreadChannel.GetMemberships())
             .Memberships.FirstOrDefault(x => x.UserId == user.Id);
         var unreadCount = membership == null ? -1 : await membership.GetUnreadMessagesCount();
         Assert.True(unreadCount >= 3, $"Expected >=3 unread but got: {unreadCount}");

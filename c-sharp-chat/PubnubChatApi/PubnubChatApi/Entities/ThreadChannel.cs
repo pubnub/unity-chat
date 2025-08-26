@@ -1,45 +1,51 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using PubnubApi;
 using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatAPI.Entities
 {
     public class ThreadChannel : Channel
     {
-        public string ParentChannelId
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public string ParentChannelId { get; }
+        public string ParentMessageTimeToken { get; }
+
+        private bool initialised;
         
-        public Message ParentMessage
+        internal ThreadChannel(Chat chat, string channelId, string parentChannelId, string parentMessageTimeToken, ChatChannelData data) : base(chat, channelId, data)
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-        
-        internal ThreadChannel(Chat chat, string channelId, ChatChannelData data) : base(chat, channelId, data)
-        {
-        }
-        
-        internal static string MessageToThreadChannelId(Message message)
-        {
-            return $"PUBNUB_INTERNAL_THREAD_{message.ChannelId}_{message.Id}";
-        }
-        
-        public override async Task<ChatOperationResult> PinMessage(Message message)
-        {
-            throw new NotImplementedException();
+            ParentChannelId = parentChannelId;
+            ParentMessageTimeToken = parentMessageTimeToken;
         }
 
-        public override async Task<ChatOperationResult> UnpinMessage()
+        private async Task<ChatOperationResult> InitThreadChannel()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            var channelUpdate = await UpdateChannelData(chat, Id, channelData);
+            if (result.RegisterOperation(channelUpdate))
+            {
+                return result;
+            }
+            chat.channelWrappers.Add(Id, this);
+            result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
+                .Action(new PNMessageAction() { Type = "threadRootId", Value = Id }).Channel(ParentChannelId)
+                .MessageTimetoken(long.Parse(ParentMessageTimeToken)).ExecuteAsync());
+            return result;
+        }
+
+        public override async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
+        {
+            var result = new ChatOperationResult();
+            if (!initialised)
+            {
+                if (result.RegisterOperation(await InitThreadChannel()))
+                {
+                    return result;
+                }
+                initialised = true;
+            }
+            return await base.SendText(message, sendTextParams);
         }
 
         public async Task<List<ThreadMessage>> GetThreadHistory(string startTimeToken, string endTimeToken, int count)

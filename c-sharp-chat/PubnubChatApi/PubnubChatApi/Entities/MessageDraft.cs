@@ -500,16 +500,16 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// Send the MessageDraft, along with its quotedMessage if any, on the channel.
         /// </summary>
-        public async Task Send()
+        public async Task<ChatOperationResult> Send()
         {
-            await Send(new SendTextParams());
+            return await Send(new SendTextParams());
         }
 
         /// <summary>
         /// Send the rendered MessageDraft on the channel.
         /// </summary>
         /// <param name="sendTextParams">Additional parameters for sending the message.</param>
-        public async Task Send(SendTextParams sendTextParams)
+        public async Task<ChatOperationResult> Send(SendTextParams sendTextParams)
         {
             var mentions = new Dictionary<int, MentionedUser>();
             //TODO: revisit if this is the final data format and how to solve that we don't include name anywhere
@@ -556,7 +556,7 @@ namespace PubNubChatAPI.Entities
                 }
             }
             sendTextParams.MentionedUsers = mentions;
-            await channel.SendText(Render(), sendTextParams);
+            return await channel.SendText(Render(), sendTextParams);
         }
 
         /// <summary>

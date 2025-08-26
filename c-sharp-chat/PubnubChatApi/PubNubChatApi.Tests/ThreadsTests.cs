@@ -1,4 +1,3 @@
-/*using System.Diagnostics;
 using PubnubApi;
 using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
@@ -16,17 +15,14 @@ public class ThreadsTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("threads_tests_user_2"))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("threads_tests_user_2"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
-        });
+        }));
         var randomId = Guid.NewGuid().ToString()[..10];
-        channel = await chat.CreatePublicConversation(randomId);
-        if (!chat.TryGetCurrentUser(out user))
-        {
-            Assert.Fail();
-        }
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation(randomId));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }
@@ -48,7 +44,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(await message.CreateThread());
             thread.Join();
 
             await Task.Delay(5000);
@@ -75,7 +71,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(await message.CreateThread());
             thread.Join();
             await thread.SendText("thread init message");
 
@@ -108,7 +104,7 @@ public class ThreadsTests
         var mentionedReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(await message.CreateThread());
             thread.Join();
             await Task.Delay(2500);
             user.SetListeningForMentionEvents(true);
@@ -132,7 +128,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(await message.CreateThread());
             thread.Join();
 
             await Task.Delay(3500);
@@ -170,7 +166,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(await message.CreateThread());
             thread.Join();
             
             await Task.Delay(3000);
@@ -196,4 +192,4 @@ public class ThreadsTests
         var updated = messageUpdatedReset.WaitOne(25000);
         Assert.True(updated);
     }
-}*/
+}

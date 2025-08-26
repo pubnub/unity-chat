@@ -253,37 +253,78 @@ namespace PubNubChatAPI.Entities
 
         public bool HasThread()
         {
-            throw new NotImplementedException();
+            return MessageActions.Any(x => x.Type == PubnubMessageActionType.ThreadRootId);
         }
 
-        public async Task<ThreadChannel> CreateThread()
+        internal string GetThreadId()
         {
-            return await chat.CreateThreadChannel(this);
+            return $"{Chat.MESSAGE_THREAD_ID_PREFIX}_{ChannelId}_{TimeToken}";
         }
 
-        /// <summary>
-        /// Tries to get the ThreadChannel started on this Message.
-        /// </summary>
-        /// <param name="threadChannel">The retrieved ThreadChannel object, null if one wasn't found.</param>
-        /// <returns>True if a ThreadChannel object has been found, false otherwise.</returns>
-        /// <seealso cref="GetThreadAsync"/>
-        public bool TryGetThread(out ThreadChannel threadChannel)
+        public async Task<ChatOperationResult<ThreadChannel>> CreateThread()
         {
-            return chat.TryGetThreadChannel(this, out threadChannel);
+            var result = new ChatOperationResult<ThreadChannel>();
+            if (ChannelId.Contains(Chat.MESSAGE_THREAD_ID_PREFIX))
+            {
+                result.Error = true;
+                result.Exception = new PNException("Only one level of thread nesting is allowed.");
+                return result;
+            }
+            if (IsDeleted)
+            {
+                result.Error = true;
+                result.Exception = new PNException("You cannot create threads on deleted messages.");
+                return result;
+            }
+            if (HasThread())
+            {
+                result.Error = true;
+                result.Exception = new PNException("Thread for this message already exist.");
+                return result;
+            }
+            var threadId = GetThreadId();
+            var description = $"Thread on message with timetoken {TimeToken} on channel {ChannelId}";
+            var data = new ChatChannelData()
+            {
+                Description = description
+            };
+            result.Result = new ThreadChannel(chat, threadId, ChannelId, TimeToken, data);
+            return result;
         }
 
         /// <summary>
         /// Asynchronously tries to get the ThreadChannel started on this Message.
         /// </summary>
         /// <returns>The retrieved ThreadChannel object, null if one wasn't found.</returns>
-        public async Task<ThreadChannel?> GetThreadAsync()
+        public async Task<ChatOperationResult<ThreadChannel>> GetThread()
         {
-            return await chat.GetThreadChannelAsync(this);
+            return await chat.GetThreadChannel(this);
         }
 
-        public async Task RemoveThread()
+        public async Task<ChatOperationResult> RemoveThread()
         {
-            await chat.RemoveThreadChannel(this);
+            var result = new ChatOperationResult();
+            if (!HasThread())
+            {
+                result.Error = true;
+                result.Exception = new PNException("There is no thread to be deleted");
+                return result;
+            }
+            var threadMessageAction = MessageActions.First(x => x.Type == PubnubMessageActionType.ThreadRootId);
+            var getThread = await GetThread();
+            if (result.RegisterOperation(getThread))
+            {
+                return result;
+            }
+            if (result.RegisterOperation(await chat.PubnubInstance.RemoveMessageAction().Channel(ChannelId)
+                    .MessageTimetoken(long.Parse(TimeToken)).ActionTimetoken(long.Parse(threadMessageAction.TimeToken))
+                    .ExecuteAsync()))
+            {
+                return result;
+            }
+            MessageActions = MessageActions.Where(x => x.Type != PubnubMessageActionType.ThreadRootId).ToList();
+            result.RegisterOperation(await getThread.Result.Delete());
+            return result;
         }
 
         public async Task Pin()

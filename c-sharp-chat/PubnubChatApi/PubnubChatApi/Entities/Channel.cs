@@ -71,7 +71,7 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         public string Type => channelData.Type;
 
-        private ChatChannelData channelData;
+        protected ChatChannelData channelData;
 
         protected Subscription? subscription;
         
@@ -622,9 +622,9 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while sending the message.</exception>
         /// <seealso cref="OnMessageReceived"/>
-        public virtual async Task SendText(string message)
+        public virtual async Task<ChatOperationResult> SendText(string message)
         {
-            await SendText(message, new SendTextParams());
+            return await SendText(message, new SendTextParams());
         }
 
         public virtual async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
@@ -741,9 +741,9 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <exception cref="PubnubCCoreException">Thrown when an error occurs while deleting the channel.</exception>
-        public async Task Delete()
+        public async Task<ChatOperationResult> Delete()
         {
-            await chat.DeleteChannel(Id);
+            return await chat.DeleteChannel(Id);
         }
 
         /// <summary>
