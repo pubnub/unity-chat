@@ -30,7 +30,7 @@ namespace PubNubChatAPI.Entities
         /// This is the main content of the message. It can be any text that the user wants to send.
         /// </para>
         /// </summary>
-        public virtual string MessageText {
+        public string MessageText {
             get
             {
                 var edits = MessageActions.Where(x => x.Type == PubnubMessageActionType.Edited).ToList();
@@ -41,7 +41,7 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// The original, un-edited text of the message.
         /// </summary>
-        public virtual string OriginalMessageText { get; internal set; }
+        public string OriginalMessageText { get; internal set; }
 
         /// <summary>
         /// The time token of the message.
@@ -50,7 +50,7 @@ namespace PubNubChatAPI.Entities
         /// It is used to identify the message in the chat.
         /// </para>
         /// </summary>
-        public virtual string TimeToken { get; internal set; }
+        public string TimeToken { get; internal set; }
 
         /// <summary>
         /// The channel ID of the channel that the message belongs to.
@@ -58,7 +58,7 @@ namespace PubNubChatAPI.Entities
         /// This is the ID of the channel that the message was sent to.
         /// </para>
         /// </summary>
-        public virtual string ChannelId { get; internal set; }
+        public string ChannelId { get; internal set; }
 
         /// <summary>
         /// The user ID of the user that sent the message.
@@ -67,7 +67,7 @@ namespace PubNubChatAPI.Entities
         /// Do not confuse this with the username of the user.
         /// </para>
         /// </summary>
-        public virtual string UserId { get; internal set; }
+        public string UserId { get; internal set; }
 
         /// <summary>
         /// The metadata of the message.
@@ -86,9 +86,9 @@ namespace PubNubChatAPI.Entities
         /// It means that all the deletions are soft deletions.
         /// </para>
         /// </summary>
-        public virtual bool IsDeleted => MessageActions.Any(x => x.Type == PubnubMessageActionType.Deleted);
+        public bool IsDeleted => MessageActions.Any(x => x.Type == PubnubMessageActionType.Deleted);
         
-        public virtual List<MentionedUser> MentionedUsers {
+        public List<MentionedUser> MentionedUsers {
             get
             {
                 var mentioned = new List<MentionedUser>();
@@ -114,7 +114,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public virtual List<ReferencedChannel> ReferencedChannels {
+        public List<ReferencedChannel> ReferencedChannels {
             get
             {
                 var referenced = new List<ReferencedChannel>();
@@ -140,7 +140,7 @@ namespace PubNubChatAPI.Entities
             }
         }
         
-        public virtual List<TextLink> TextLinks {
+        public List<TextLink> TextLinks {
             get
             {
                 var links = new List<TextLink>();
@@ -167,9 +167,9 @@ namespace PubNubChatAPI.Entities
             }
         }
 
-        public virtual List<MessageAction> MessageActions { get; internal set; } = new();
+        public List<MessageAction> MessageActions { get; internal set; } = new();
 
-        public virtual List<MessageAction> Reactions =>
+        public List<MessageAction> Reactions =>
             MessageActions.Where(x => x.Type == PubnubMessageActionType.Reaction).ToList();
 
         /// <summary>
@@ -180,7 +180,7 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <seealso cref="pubnub_chat_message_type"/>
-        public virtual PubnubChatMessageType Type { get; internal set; }
+        public PubnubChatMessageType Type { get; internal set; }
 
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace PubNubChatAPI.Entities
 
         protected override string UpdateChannelId => ChannelId;
 
-        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(chat, timeToken)
+        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta, List<MessageAction> messageActions) : base(chat, timeToken)
         {
             TimeToken = timeToken;
             OriginalMessageText = originalMessageText;
@@ -213,6 +213,7 @@ namespace PubNubChatAPI.Entities
             UserId = userId;
             Type = type;
             Meta = meta;
+            MessageActions = messageActions;
         }
 
         protected override SubscribeCallback CreateUpdateListener()
@@ -241,12 +242,22 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="OnMessageUpdated"/>
-        public virtual async Task EditMessageText(string newText)
+        public async Task<ChatOperationResult> EditMessageText(string newText)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            if (string.IsNullOrEmpty(newText))
+            {
+                result.Error = true;
+                result.Exception = new PNException("Failed to edit text, new text is empty or null");
+                return result;
+            }
+            result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
+                .Action(new PNMessageAction() { Type = "edited", Value = newText })
+                .MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync());
+            return result;
         }
 
-        public virtual bool TryGetQuotedMessage(out Message quotedMessage)
+        public bool TryGetQuotedMessage(out Message quotedMessage)
         {
             throw new NotImplementedException();
         }
@@ -261,7 +272,7 @@ namespace PubNubChatAPI.Entities
             return $"{Chat.MESSAGE_THREAD_ID_PREFIX}_{ChannelId}_{TimeToken}";
         }
 
-        public async Task<ChatOperationResult<ThreadChannel>> CreateThread()
+        public ChatOperationResult<ThreadChannel> CreateThread()
         {
             var result = new ChatOperationResult<ThreadChannel>();
             if (ChannelId.Contains(Chat.MESSAGE_THREAD_ID_PREFIX))
@@ -332,7 +343,7 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public virtual async Task<ChatOperationResult> Report(string reason)
+        public async Task<ChatOperationResult> Report(string reason)
         {
             var jsonDict = new Dictionary<string, string>()
             {
@@ -346,7 +357,7 @@ namespace PubNubChatAPI.Entities
                 chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
         }
 
-        public virtual async Task<ChatOperationResult> Forward(string channelId)
+        public async Task<ChatOperationResult> Forward(string channelId)
         {
             var result = new ChatOperationResult();
             var channel = await chat.GetChannel(channelId);
@@ -358,17 +369,17 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
-        public virtual bool HasUserReaction(string reactionValue)
+        public bool HasUserReaction(string reactionValue)
         {
             throw new NotImplementedException();
         }
 
-        public virtual async Task ToggleReaction(string reactionValue)
+        public async Task ToggleReaction(string reactionValue)
         {
             throw new NotImplementedException();
         }
 
-        public virtual async Task Restore()
+        public async Task Restore()
         {
             throw new NotImplementedException();
         }
@@ -390,12 +401,12 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
-        public virtual async Task Delete(bool soft)
+        public async Task Delete(bool soft)
         {
             throw new NotImplementedException();
         }
 
-        public override Task Resync()
+        public override Task Refresh()
         {
             throw new NotImplementedException();
         }

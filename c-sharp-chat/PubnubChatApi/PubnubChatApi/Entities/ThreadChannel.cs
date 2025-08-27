@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi.Entities.Data;
+using PubnubChatApi.Enums;
 
 namespace PubNubChatAPI.Entities
 {
@@ -12,8 +13,9 @@ namespace PubNubChatAPI.Entities
         public string ParentMessageTimeToken { get; }
 
         private bool initialised;
-        
-        internal ThreadChannel(Chat chat, string channelId, string parentChannelId, string parentMessageTimeToken, ChatChannelData data) : base(chat, channelId, data)
+
+        internal ThreadChannel(Chat chat, string channelId, string parentChannelId, string parentMessageTimeToken,
+            ChatChannelData data) : base(chat, channelId, data)
         {
             ParentChannelId = parentChannelId;
             ParentMessageTimeToken = parentMessageTimeToken;
@@ -27,6 +29,7 @@ namespace PubNubChatAPI.Entities
             {
                 return result;
             }
+
             chat.channelWrappers.Add(Id, this);
             result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
                 .Action(new PNMessageAction() { Type = "threadRootId", Value = Id }).Channel(ParentChannelId)
@@ -43,14 +46,34 @@ namespace PubNubChatAPI.Entities
                 {
                     return result;
                 }
+
                 initialised = true;
             }
+
             return await base.SendText(message, sendTextParams);
         }
 
-        public async Task<List<ThreadMessage>> GetThreadHistory(string startTimeToken, string endTimeToken, int count)
+        public async Task<ChatOperationResult<List<ThreadMessage>>> GetThreadHistory(string startTimeToken,
+            string endTimeToken, int count)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<List<ThreadMessage>>()
+            {
+                Result = new List<ThreadMessage>()
+            };
+            var getHistory = await GetMessageHistory(startTimeToken, endTimeToken, count);
+            if (result.RegisterOperation(getHistory))
+            {
+                return result;
+            }
+
+            foreach (var message in getHistory.Result)
+            {
+                result.Result.Add(new ThreadMessage(chat, message.TimeToken, message.OriginalMessageText,
+                    message.ChannelId, ParentChannelId, message.UserId, PubnubChatMessageType.Text, message.Meta,
+                    message.MessageActions));
+            }
+
+            return result;
         }
 
         public async Task PinMessageToParentChannel(ThreadMessage message)

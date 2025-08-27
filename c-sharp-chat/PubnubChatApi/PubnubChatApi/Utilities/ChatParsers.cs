@@ -20,18 +20,81 @@ namespace PubnubChatApi.Utilities
                     chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(messageResult.Message
                         .ToString());
 
+                if (!messageDict.TryGetValue("type", out var typeValue) || typeValue.ToString() != "text")
+                {
+                    message = null;
+                    return false;
+                }
+
                 //TODO: later more types I guess?
-                var type = PubnubChatMessageType.Text; //messageDict["type"].ToString();
+                var type = PubnubChatMessageType.Text;
                 var text = messageDict["text"].ToString();
-                
                 var meta = messageResult.UserMetadata ?? new Dictionary<string, object>();
                 
-                message = new Message(chat, messageResult.Timetoken.ToString(), text, messageResult.Channel, messageResult.Publisher, type, meta);
+                message = new Message(chat, messageResult.Timetoken.ToString(), text, messageResult.Channel, messageResult.Publisher, type, meta, new List<MessageAction>());
                 return true;
             }
             catch (Exception e)
             {
                 chat.Logger.Debug($"Failed to parse PNMessageResult with payload: {messageResult.Message} into chat Message entity. Exception was: {e.Message}");
+                message = null;
+                return false;
+            }
+        }
+        
+        internal static bool TryParseMessageFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem, out Message message)
+        {
+            try
+            {
+                var messageDict =
+                    chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(historyItem.Entry.ToString());
+
+                if (!messageDict.TryGetValue("type", out var typeValue) || typeValue.ToString() != "text")
+                {
+                    message = null;
+                    return false;
+                }
+
+                //TODO: later more types I guess?
+                var type = PubnubChatMessageType.Text;
+                var text = messageDict["text"].ToString();
+                
+                //TODO: C# FIX, Meta shouldn't be an object but a deserialized type
+                var meta = chat.PubnubInstance.JsonPluggableLibrary.ConvertToDictionaryObject(historyItem.Meta) ?? new Dictionary<string, object>();
+                
+                //TODO: C# FIX, Actions shouldn't be an object but a deserialized type
+                var actions = new List<MessageAction>();
+                if (historyItem.Actions is Dictionary<string, object> actionsDict)
+                {
+                    foreach (var kvp in actionsDict)
+                    {
+                        var actionType = kvp.Key;
+                        var entries = kvp.Value as Dictionary<string, object>;
+                        foreach (var entryPair in entries)
+                        {
+                            var actionValue = entryPair.Key;
+                            var actionEntries = entryPair.Value as List<object>;
+                            foreach (var entry in actionEntries)
+                            {
+                                var entryDict = entry as Dictionary<string, object>;
+                                actions.Add(new MessageAction()
+                                {
+                                    TimeToken = entryDict["actionTimetoken"].ToString(),
+                                    UserId = entryDict["uuid"].ToString(),
+                                    Type = ChatEnumConverters.StringToActionType(actionType),
+                                    Value = actionValue
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                message = new Message(chat, historyItem.Timetoken.ToString(), text, channelId, historyItem.Uuid, type, meta, actions);
+                return true;
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Debug($"Failed to parse PNHistoryItemResult with payload: {historyItem.Entry} into chat Message entity. Exception was: {e.Message}");
                 message = null;
                 return false;
             }
@@ -189,7 +252,37 @@ namespace PubnubChatApi.Utilities
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNMessageResult into Event of type \"{eventType}\". Exception was: {e.Message}");
+                chat.Logger.Debug($"Failed to parse PNMessageResult into ChatEvent of type \"{eventType}\". Exception was: {e.Message}");
+                chatEvent = default;
+                return false;
+            }
+        }
+        
+        internal static bool TryParseEventFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem, out ChatEvent chatEvent)
+        {
+            try
+            {
+                var jsonDict =
+                    chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(historyItem.Entry.ToString());
+                if (!jsonDict.TryGetValue("type", out var typeString))
+                {
+                    chatEvent = default;
+                    return false;
+                }
+                var receivedEventType = ChatEnumConverters.StringToEventType(typeString.ToString());
+                chatEvent = new ChatEvent()
+                {
+                    TimeToken = historyItem.Timetoken.ToString(),
+                    Type = receivedEventType,
+                    ChannelId = channelId,
+                    UserId = historyItem.Uuid,
+                    Payload = historyItem.Entry.ToString()
+                };
+                return true;
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Debug($"Failed to parse PNHistoryItemResult into ChatEvent. Exception was: {e.Message}");
                 chatEvent = default;
                 return false;
             }

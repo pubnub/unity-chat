@@ -25,23 +25,20 @@ namespace PubnubChatApi.Utilities
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public void RunWithinLimits(string id, int baseIntervalMs, Func<Task<object>> task, Action<object> callback, Action<Exception> errorCallback)
+        public async void RunWithinLimits(string id, int baseIntervalMs, Func<Task<object>> task, Action<object> callback, Action<Exception> errorCallback)
         {
             if (baseIntervalMs == 0)
             {
                 // Execute immediately for zero interval
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        var result = await task();
-                        callback(result);
-                    }
-                    catch (Exception e)
-                    {
-                        errorCallback(e);
-                    }
-                });
+                    var result = await task();
+                    callback(result);
+                }
+                catch (Exception e)
+                {
+                    errorCallback(e);
+                }
                 return;
             }
 

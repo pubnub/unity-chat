@@ -281,7 +281,7 @@ public class MessageTests
             try
             {
                 message.SetListeningForUpdates(true);
-                var thread = TestUtils.AssertOperation(await message.CreateThread());
+                var thread = TestUtils.AssertOperation(message.CreateThread());
                 thread.Join();
                 await Task.Delay(3500);
                 await thread.SendText("thread_init_text");

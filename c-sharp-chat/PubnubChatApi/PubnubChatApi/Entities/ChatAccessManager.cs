@@ -4,6 +4,7 @@ using PubnubChatApi.Enums;
 
 namespace PubNubChatAPI.Entities
 {
+    //TODO: now that core SDK is exposed do we still need SetAuthToken, ParseToken, and SetPubnubOrigin?
     public class ChatAccessManager
     {
 

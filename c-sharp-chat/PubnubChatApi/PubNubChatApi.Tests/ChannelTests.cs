@@ -110,6 +110,29 @@ public class ChannelTests
     }
     
     [Test]
+    public async Task TestGetMessagesHistory()
+    {
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        channel.OnMessageReceived += async message =>
+        {
+            TestUtils.AssertOperation(await message.EditMessageText("some_new_text"));
+        };
+        channel.Join();
+        await Task.Delay(3500);
+        TestUtils.AssertOperation(await channel.SendText("wololo"));
+        
+        await Task.Delay(10000);
+
+        var history =
+            TestUtils.AssertOperation(await channel.GetMessageHistory("99999999999999999", "00000000000000000", 1));
+        
+        Assert.True(history != null, "history was null null");
+        Assert.True(history.Count == 1, "history count was wrong");
+        Assert.True(history[0].OriginalMessageText == "wololo", "message from history had wrong original text");
+        Assert.True(history[0].MessageText == "some_new_text", "message from history had wrong text");
+    }
+    
+    [Test]
     public async Task TestGetMemberships()
     {
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("get_members_test_channel"));

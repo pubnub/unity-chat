@@ -144,7 +144,7 @@ namespace PubNubChatAPI.Entities
         
         public void SetListeningForMentionEvents(bool listen)
         {
-            SetListening(mentionsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(mentionsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Mention, out var mentionEvent))
@@ -157,7 +157,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForInviteEvents(bool listen)
         {
-            SetListening(invitesSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(invitesSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Invite, out var inviteEvent))
@@ -170,7 +170,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForModerationEvents(bool listen)
         {
-            SetListening(moderationSubscription, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(moderationSubscription, SubscriptionOptions.None, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Moderation, out var moderationEvent))
@@ -188,9 +188,6 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="updatedData">The updated data for the user.</param>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while updating the user.
-        /// </exception>
         /// <example>
         /// <code>
         /// var user = // ...;
@@ -211,7 +208,6 @@ namespace PubNubChatAPI.Entities
 
         internal static async Task<PNResult<PNSetUuidMetadataResult>> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
         {
-            //TODO: Create a better way to do this
             var operation = chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true).Uuid(userId);
             if (!string.IsNullOrEmpty(chatUserData.Username))
             {
@@ -258,7 +254,7 @@ namespace PubNubChatAPI.Entities
             userData = newData;
         }
         
-        public override async Task Resync()
+        public override async Task Refresh()
         {
             var newData = await GetUserData(chat, Id);
             if (!newData.Status.Error)
@@ -274,9 +270,6 @@ namespace PubNubChatAPI.Entities
         /// It will remove the user from all the channels and delete the user's data.
         /// </para>
         /// </summary>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while deleting the user.
-        /// </exception>
         /// <example>
         /// <code>
         /// var user = // ...;
@@ -299,9 +292,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="banUser">If set to <c>true</c>, the user is banned from the channel.</param>
         /// <param name="muteUser">If set to <c>true</c>, the user is muted on the channel.</param>
         /// <param name="reason">The reason for setting the restrictions on the user.</param>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while setting the restrictions on the user.
-        /// </exception>
         /// <example>
         /// <code>
         /// var user = // ...;
@@ -428,9 +418,6 @@ namespace PubNubChatAPI.Entities
         /// <returns>
         /// <c>true</c> if the user is present on the channel; otherwise, <c>false</c>.
         /// </returns>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while checking if the user is present on the channel.
-        /// </exception>
         /// <example>
         /// <code>
         /// var user = // ...;
@@ -462,9 +449,6 @@ namespace PubNubChatAPI.Entities
         /// <remarks>
         /// The list is kept as a list of channel ids.
         /// </remarks>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while getting the list of channels where the user is present.
-        /// </exception>
         /// <example>
         /// <code>
         /// var user = // ...;
@@ -492,9 +476,6 @@ namespace PubNubChatAPI.Entities
         /// <returns>
         /// The list of memberships of the user.
         /// </returns>
-        /// <exception cref="PubNubCCoreException">
-        /// This exception might be thrown when any error occurs while getting the list of memberships of the user.
-        /// </exception>
         /// <example>
         /// <code>
         /// var user = // ...;

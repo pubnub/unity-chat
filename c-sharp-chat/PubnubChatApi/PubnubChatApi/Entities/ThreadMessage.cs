@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
+using PubnubChatApi.Entities.Data;
 using PubnubChatApi.Enums;
 using PubnubChatApi.Utilities;
 
@@ -13,7 +14,7 @@ namespace PubNubChatAPI.Entities
         
         public string ParentChannelId { get; }
         
-        internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId, string parentChannelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta) : base(chat, timeToken, originalMessageText, channelId, userId, type, meta)
+        internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId, string parentChannelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta, List<MessageAction> messageActions) : base(chat, timeToken, originalMessageText, channelId, userId, type, meta, messageActions)
         {
             ParentChannelId = parentChannelId;
         }

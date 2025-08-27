@@ -11,7 +11,6 @@ using PubnubChatApi.Utilities;
 namespace PubNubChatAPI.Entities
 {
     //TODO: make IDisposable?
-    //TODO: global remove CCoreException from inline docs
     /// <summary>
     /// Main class for the chat.
     /// <para>
@@ -27,7 +26,6 @@ namespace PubNubChatAPI.Entities
         internal const string INTERNAL_MODERATION_PREFIX = "PUBNUB_INTERNAL_MODERATION";
         internal const string INTERNAL_ADMIN_CHANNEL = "PUBNUB_INTERNAL_ADMIN_CHANNEL";
         internal const string MESSAGE_THREAD_ID_PREFIX = "PUBNUB_INTERNAL_THREAD";
-        internal const string ERROR_LOGGER_KEY_PREFIX = "PUBNUB_INTERNAL_ERROR_LOGGER";
         
         //TODO: wrappers rethink
         internal Dictionary<string, Channel> channelWrappers = new();
@@ -418,7 +416,7 @@ namespace PubNubChatAPI.Entities
                 await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload);
             }
 
-            await channel.Result.Resync();
+            await channel.Result.Refresh();
 
             return result;
         }
@@ -433,7 +431,7 @@ namespace PubNubChatAPI.Entities
             var result = new ChatOperationResult<Channel>();
             if (channelWrappers.TryGetValue(channelId, out var existingChannel))
             {
-                await existingChannel.Resync();
+                await existingChannel.Refresh();
                 result.Result = existingChannel;
             }
             else
@@ -508,7 +506,6 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
         /// <param name="updatedData">The updated data for the channel.</param>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -531,7 +528,6 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -682,7 +678,6 @@ namespace PubNubChatAPI.Entities
         /// <remarks>
         /// The data for user is empty.
         /// </remarks>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -704,7 +699,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="userId">The user ID.</param>
         /// <param name="additionalData">The additional data for the user.</param>
         /// <returns>The created user.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -742,7 +736,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="userId">The user ID.</param>
         /// <param name="channelId">The channel ID.</param>
         /// <returns>True if the user is present, false otherwise.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -778,7 +771,6 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
         /// <returns>The list of the users present in the channel.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -815,7 +807,6 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="userId">The user ID.</param>
         /// <returns>The list of the channels where the user is present.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -854,7 +845,7 @@ namespace PubNubChatAPI.Entities
             var result = new ChatOperationResult<User>();
             if (userWrappers.TryGetValue(userId, out var existingUser))
             {
-                await existingUser.Resync();
+                await existingUser.Refresh();
                 result.Result = existingUser;
                 return result;
             }
@@ -880,7 +871,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="startTimeToken">The start time token of the users.</param>
         /// <param name="endTimeToken">The end time token of the users.</param>
         /// <returns>The list of the users that matches the provided parameters.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -955,7 +945,6 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="userId">The user ID.</param>
         /// <param name="updatedData">The updated data for the user.</param>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -985,7 +974,6 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="userId">The user ID.</param>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -1013,7 +1001,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="startTimeToken">The start time token of the memberships.</param>
         /// <param name="endTimeToken">The end time token of the memberships.</param>
         /// <returns>The list of the memberships of the user.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the user with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -1118,7 +1105,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="startTimeToken">The start time token of the memberships.</param>
         /// <param name="endTimeToken">The end time token of the memberships.</param>
         /// <returns>The list of the memberships of the channel.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -1203,14 +1189,8 @@ namespace PubNubChatAPI.Entities
         #endregion
 
         #region Messages
-
-        //TODO: wrappers rethink
-        internal void RegisterMessage(Message message)
-        {
-            messageWrappers.TryAdd(message.Id, message);
-        }
         
-        public async Task<EventsHistoryWrapper> GetMessageReportsHistory(string channelId, string startTimeToken,
+        public async Task<ChatOperationResult<EventsHistoryWrapper>> GetMessageReportsHistory(string channelId, string startTimeToken,
             string endTimeToken, int count)
         {
             return await GetEventsHistory($"PUBNUB_INTERNAL_MODERATION_{channelId}", startTimeToken, endTimeToken,
@@ -1235,31 +1215,45 @@ namespace PubNubChatAPI.Entities
 
         public async Task<MarkMessagesAsReadWrapper> MarkAllMessagesAsRead(string filter = "", string sort = "",
             int limit = 0,
-            Page page = null)
+            PNPageObject page = null)
         {
             throw new NotImplementedException();
-        }
-
-        internal bool TryGetAnyMessage(string timeToken, out Message message)
-        {
-            return messageWrappers.TryGetValue(timeToken, out message);
         }
 
         public async Task<List<UnreadMessageWrapper>> GetUnreadMessagesCounts(string filter = "", string sort = "",
             int limit = 0,
-            Page page = null)
+            PNPageObject page = null)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<ThreadChannel> CreateThreadChannel(Message message)
+        public async Task<ChatOperationResult<ThreadChannel>> CreateThreadChannel(string messageTimeToken, string messageChannelId)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<ThreadChannel>();
+            var getMessage = await GetMessage(messageChannelId, messageTimeToken);
+            if (result.RegisterOperation(getMessage))
+            {
+                return result;
+            }
+            var createThread = getMessage.Result.CreateThread();
+            if (result.RegisterOperation(createThread))
+            {
+                return result;
+            }
+            result.Result = createThread.Result;
+            return result;
         }
 
-        public async Task<ChatOperationResult> RemoveThreadChannel(Message message)
+        public async Task<ChatOperationResult> RemoveThreadChannel(string messageTimeToken, string messageChannelId)
         {
-            return await message.RemoveThread();
+            var result = new ChatOperationResult();
+            var getMessage = await GetMessage(messageChannelId, messageTimeToken);
+            if (result.RegisterOperation(getMessage))
+            {
+                return result;
+            }
+            result.RegisterOperation(await getMessage.Result.RemoveThread());
+            return result;
         }
 
         /// <summary>
@@ -1341,7 +1335,6 @@ namespace PubNubChatAPI.Entities
         /// <param name="endTimeToken">The end time token of the messages.</param>
         /// <param name="count">The maximum amount of the messages.</param>
         /// <returns>The list of the messages that were sent in the channel.</returns>
-        /// <exception cref="PubNubCCoreException"> Throws an exception if the channel with the provided ID does not exist or any connection problem persists.</exception>
         /// <example>
         /// <code>
         /// var chat = // ...
@@ -1352,11 +1345,31 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Message"/>
-        public async Task<List<Message>> GetChannelMessageHistory(string channelId, string startTimeToken,
+        public async Task<ChatOperationResult<List<Message>>> GetChannelMessageHistory(string channelId, string startTimeToken,
             string endTimeToken,
             int count)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<List<Message>>()
+            {
+                Result = new List<Message>()
+            };
+            var getHistory = await PubnubInstance.FetchHistory().Channels(new[] { channelId })
+                .Start(long.Parse(startTimeToken)).End(long.Parse(endTimeToken)).MaximumPerChannel(count).IncludeMessageActions(true)
+                .IncludeMeta(true).ExecuteAsync();
+            if (result.RegisterOperation(getHistory) || !getHistory.Result.Messages.ContainsKey(channelId))
+            {
+                return result;
+            }
+
+            var isMore = getHistory.Result.More != null;
+            foreach (var historyItem in getHistory.Result.Messages[channelId])
+            {
+                if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message))
+                {
+                    result.Result.Add(message);
+                }
+            }
+            return result;
         }
 
         #endregion
@@ -1368,11 +1381,40 @@ namespace PubNubChatAPI.Entities
             OnAnyEvent?.Invoke(chatEvent);
         }
         
-        public async Task<EventsHistoryWrapper> GetEventsHistory(string channelId, string startTimeToken,
+        public async Task<ChatOperationResult<EventsHistoryWrapper>> GetEventsHistory(string channelId, string startTimeToken,
             string endTimeToken,
             int count)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<EventsHistoryWrapper>()
+            {
+                Result = new EventsHistoryWrapper()
+                {
+                    Events = new List<ChatEvent>()
+                }
+            };
+            var getHistory = await PubnubInstance.FetchHistory().Channels(new[] { channelId })
+                .Start(long.Parse(startTimeToken)).End(long.Parse(endTimeToken)).MaximumPerChannel(count)
+                .ExecuteAsync();
+            if (result.RegisterOperation(getHistory) || !getHistory.Result.Messages.ContainsKey(channelId))
+            {
+                return result;
+            }
+
+            var isMore = getHistory.Result.More != null;
+            var events = new List<ChatEvent>();
+            foreach (var message in getHistory.Result.Messages[channelId])
+            {
+                if (ChatParsers.TryParseEventFromHistory(this, channelId, message, out var chatEvent))
+                {
+                    events.Add(chatEvent);
+                }
+            }
+            result.Result = new EventsHistoryWrapper()
+            {
+                Events = events,
+                IsMore = isMore
+            };
+            return result;
         }
         
         public async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload)

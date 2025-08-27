@@ -205,7 +205,7 @@ namespace PubNubChatAPI.Entities
                 .ExecuteAsync();
         }
 
-        public override async Task Resync()
+        public override async Task Refresh()
         {
             var getResult = await GetChannelData(chat, Id);
             if (!getResult.Status.Error)
@@ -216,7 +216,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForCustomEvents(bool listen)
         {
-            SetListening(customEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(customEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Custom, out var customEvent))
@@ -229,7 +229,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForReportEvents(bool listen)
         {
-            SetListening(reportEventsSubscription, listen, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(reportEventsSubscription, SubscriptionOptions.None, listen, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Report, out var reportEvent))
@@ -242,7 +242,7 @@ namespace PubNubChatAPI.Entities
         
         public void SetListeningForReadReceiptsEvents(bool listen)
         {
-            SetListening(readReceiptsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(readReceiptsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 async delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
@@ -267,7 +267,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForTyping(bool listen)
         {
-            SetListening(typingEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(typingEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Typing, out var rawTypingEvent))
@@ -323,7 +323,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForPresence(bool listen)
         {
-            SetListening(presenceEventsSubscription, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
+            SetListening(presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
                 async delegate(Pubnub pn, PNPresenceEventResult p)
                 {
                     var whoIs = await WhoIsPresent();
@@ -343,7 +343,7 @@ namespace PubNubChatAPI.Entities
             await chat.ForwardMessage(message, this);
         }
 
-        public virtual async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
+        public async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
         {
             var jsonDict = new Dictionary<string, string>()
             {
@@ -365,17 +365,16 @@ namespace PubNubChatAPI.Entities
             return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":false}}");
         }
 
-        public virtual async Task<ChatOperationResult> PinMessage(Message message)
+        public async Task<ChatOperationResult> PinMessage(Message message)
         {
             throw new NotImplementedException();
         }
 
-        public virtual async Task<ChatOperationResult> UnpinMessage()
+        public async Task<ChatOperationResult> UnpinMessage()
         {
             throw new NotImplementedException();
         }
-
-        //TODO: currently same result whether error or no pinned message present
+        
         /// <summary>
         /// Tries to get the <c>Message</c> pinned to this <c>Channel</c>.
         /// </summary>
@@ -391,13 +390,9 @@ namespace PubNubChatAPI.Entities
         /// Asynchronously tries to get the <c>Message</c> pinned to this <c>Channel</c>.
         /// </summary>
         /// <returns>The pinned Message object if there was one, null otherwise.</returns>
-        public async Task<Message?> GetPinnedMessageAsync()
+        public async Task<ChatOperationResult<Message>> GetPinnedMessage()
         {
-            return await Task.Run(() =>
-            {
-                var result = TryGetPinnedMessage(out var pinnedMessage);
-                return result ? pinnedMessage : null;
-            });
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -430,12 +425,11 @@ namespace PubNubChatAPI.Entities
         /// channel.Disconnect();
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while disconnecting from the channel.</exception>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Join"/>
         public void Disconnect()
         {
-            subscription?.Unsubscribe<object>();
+            SetListening(subscription, SubscriptionOptions.None, false, Id, null);
         }
 
         /// <summary>
@@ -454,7 +448,6 @@ namespace PubNubChatAPI.Entities
         /// channel.Leave();
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while leaving the channel.</exception>
         /// <seealso cref="Join"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
@@ -490,27 +483,37 @@ namespace PubNubChatAPI.Entities
         /// channel.Connect();
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while connecting to the channel.</exception>
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Disconnect"/>
         /// <seealso cref="Join"/>
         public void Connect()
         {
-            if (subscription != null)
+            SetListening(subscription, SubscriptionOptions.None, true, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+                delegate(Pubnub pn, PNMessageResult<object> m)
+                {
+                    if (ChatParsers.TryParseMessageResult(chat, m, out var message))
+                    {
+                        //TODO: wrappers rethink
+                        //chat.RegisterMessage(message);
+                        OnMessageReceived?.Invoke(message);
+                    }
+                }));
+            /*if (subscription != null)
             {
                 return;
             }
-            subscription = chat.PubnubInstance.Channel(Id).Subscription(SubscriptionOptions.ReceivePresenceEvents);
+            subscription = chat.PubnubInstance.Channel(Id).Subscription(SubscriptionOptions.None);
             subscription.AddListener(chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseMessageResult(chat, m, out var message))
                     {
-                        chat.RegisterMessage(message);
+                        //TODO: wrappers rethink
+                        //chat.RegisterMessage(message);
                         OnMessageReceived?.Invoke(message);
                     }
                 }));
-            subscription.Subscribe<object>();
+            subscription.Subscribe<object>();*/
         }
         
         /// <summary>
@@ -531,7 +534,6 @@ namespace PubNubChatAPI.Entities
         /// channel.Join();
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while joining the channel.</exception>
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
@@ -620,9 +622,8 @@ namespace PubNubChatAPI.Entities
         /// channel.SendText("Hello, World!");
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while sending the message.</exception>
         /// <seealso cref="OnMessageReceived"/>
-        public virtual async Task<ChatOperationResult> SendText(string message)
+        public async Task<ChatOperationResult> SendText(string message)
         {
             return await SendText(message, new SendTextParams());
         }
@@ -631,7 +632,6 @@ namespace PubNubChatAPI.Entities
         {
             var result = new ChatOperationResult();
             
-            //TODO: maybe move this to a method in config?
             var baseInterval = Type switch
             {
                 "public" => chat.Config.RateLimitsPerChannel.PublicConversation,
@@ -720,7 +720,6 @@ namespace PubNubChatAPI.Entities
         /// });
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while updating the channel.</exception>
         /// <seealso cref="OnChannelUpdate"/>
         /// <seealso cref="ChatChannelData"/>
         public async Task<ChatOperationResult> Update(ChatChannelData updatedData)
@@ -740,7 +739,6 @@ namespace PubNubChatAPI.Entities
         /// channel.DeleteChannel();
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while deleting the channel.</exception>
         public async Task<ChatOperationResult> Delete()
         {
             return await chat.DeleteChannel(Id);
@@ -768,7 +766,6 @@ namespace PubNubChatAPI.Entities
         /// );
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the user restrictions.</exception>
         /// <seealso cref="SetRestrictions"/>
         public async Task<ChatOperationResult<Restriction>> GetUserRestrictions(User user)
         {
@@ -865,7 +862,6 @@ namespace PubNubChatAPI.Entities
         /// Console.WriteLine($"User present: {isUserPresent}");
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while checking the presence of the user.</exception>
         /// <seealso cref="WhoIsPresent"/>
         public async Task<ChatOperationResult<bool>> IsUserPresent(string userId)
         {
@@ -888,7 +884,6 @@ namespace PubNubChatAPI.Entities
         /// }
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the list of users present in the channel.</exception>
         /// <seealso cref="IsUserPresent"/>
         public async Task<ChatOperationResult<List<string>>> WhoIsPresent()
         {
@@ -927,7 +922,6 @@ namespace PubNubChatAPI.Entities
         /// }
         /// </code>
         /// </example>
-        /// <exception cref="PubnubCCoreException">Thrown when an error occurs while getting the list of memberships.</exception>
         /// <seealso cref="Membership"/>
         public async Task<ChatOperationResult<MembersResponseWrapper>> GetMemberships(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
@@ -945,7 +939,7 @@ namespace PubNubChatAPI.Entities
             return await chat.GetMessage(Id, timeToken);
         }
 
-        public async Task<List<Message>> GetMessageHistory(string startTimeToken, string endTimeToken,
+        public async Task<ChatOperationResult<List<Message>>> GetMessageHistory(string startTimeToken, string endTimeToken,
             int count)
         {
             return await chat.GetChannelMessageHistory(Id, startTimeToken, endTimeToken, count);

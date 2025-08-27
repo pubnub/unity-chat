@@ -14,7 +14,7 @@ namespace PubNubChatAPI.Entities
             this.chat = chat;
         }
 
-        protected void SetListening(Subscription subscription, bool listen, string channelId, SubscribeCallback listener)
+        protected void SetListening(Subscription subscription, SubscriptionOptions subscriptionOptions, bool listen, string channelId, SubscribeCallback listener)
         {
             if (listen)
             {
@@ -22,7 +22,7 @@ namespace PubNubChatAPI.Entities
                 {
                     return;
                 }
-                subscription = chat.PubnubInstance.Channel(channelId).Subscription(SubscriptionOptions.ReceivePresenceEvents);
+                subscription = chat.PubnubInstance.Channel(channelId).Subscription(subscriptionOptions);
                 subscription.AddListener(listener);
                 subscription.Subscribe<object>();
             }
@@ -34,11 +34,11 @@ namespace PubNubChatAPI.Entities
         
         public virtual void SetListeningForUpdates(bool listen)
         {
-            SetListening(updateSubscription, listen, UpdateChannelId, CreateUpdateListener());
+            SetListening(updateSubscription, SubscriptionOptions.None, listen, UpdateChannelId, CreateUpdateListener());
         }
         
         protected abstract SubscribeCallback CreateUpdateListener();
         
-        public abstract Task Resync();
+        public abstract Task Refresh();
     }
 }

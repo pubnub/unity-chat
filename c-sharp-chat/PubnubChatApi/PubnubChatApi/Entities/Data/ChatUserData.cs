@@ -32,8 +32,7 @@ namespace PubnubChatApi.Entities.Data
                 Username = metadataResult.Name,
                 Status = metadataResult.Status,
                 Type = metadataResult.Type,
-                //TODO: I think this is correct?
-                CustomData = metadataResult.Custom//.TryGetValue("custom", out var custom) ? (Dictionary<string, object>)custom : new ()
+                CustomData = metadataResult.Custom
             };
         }
         

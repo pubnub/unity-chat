@@ -168,8 +168,9 @@ namespace PubNubChatAPI.Entities
             return countsResponse.Result.Channels[ChannelId];
         }
 
-        public override async Task Resync()
+        public override async Task Refresh()
         {
+            //TODO: wrappers rethink
             await chat.GetChannelMemberships(ChannelId, filter:$"uuid.id == \"{UserId}\"");
         }
     }

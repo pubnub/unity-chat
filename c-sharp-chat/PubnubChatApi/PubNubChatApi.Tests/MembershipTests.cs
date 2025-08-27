@@ -170,7 +170,7 @@ public class MembershipTests
     
     [Test]
     //Test added after a specific user issue where calling membership.GetUnreadMessagesCount()
-    //after a history fetch would throw a C-Core PNR_RX_BUFF_NOT_EMPTY error 
+    //after a history fetch would throw an exception
     public async Task TestUnreadCountAfterFetchHistory()
     {
         await channel.SendText("some_text");
