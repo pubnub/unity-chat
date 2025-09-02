@@ -54,7 +54,7 @@ public class ChatTests
 
         await Task.Delay(3000);
 
-        var mentions = await chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10);
+        var mentions = TestUtils.AssertOperation(await chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10));
         
         Assert.True(mentions != null);
         Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText == messageContent));
@@ -137,7 +137,7 @@ public class ChatTests
         forwardingChannel.Join();
         await Task.Delay(2500);
         
-        channel.OnMessageReceived += async message => { await chat.ForwardMessage(message, forwardingChannel); };
+        channel.OnMessageReceived += async message => { await message.Forward(forwardingChannel.Id); };
 
         await channel.SendText("message_to_forward");
 
@@ -169,7 +169,7 @@ public class ChatTests
 
         await Task.Delay(3000);
 
-        Assert.True((await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.Channel.Id == channel.Id && x.Count > 0));
+        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.Channel.Id == channel.Id && x.Count > 0));
     }
 
     [Test]
@@ -179,13 +179,13 @@ public class ChatTests
 
         await Task.Delay(10000);
 
-        Assert.True((await chat.GetUnreadMessagesCounts()).Any(x => x.Channel.Id == channel.Id && x.Count > 0));
+        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts()).Any(x => x.Channel.Id == channel.Id && x.Count > 0));
 
         var res = chat.MarkAllMessagesAsRead();
 
         await Task.Delay(2000);
 
-        var counts = await chat.GetUnreadMessagesCounts();
+        var counts = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
 
         Assert.False(counts.Any(x => x.Channel.Id == channel.Id && x.Count > 0));
     }

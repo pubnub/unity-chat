@@ -360,12 +360,12 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult> Forward(string channelId)
         {
             var result = new ChatOperationResult();
-            var channel = await chat.GetChannel(channelId);
-            if (result.RegisterOperation(channel))
+            var getChannel = await chat.GetChannel(channelId);
+            if (result.RegisterOperation(getChannel))
             {
                 return result;
             }
-            result.RegisterOperation(await chat.ForwardMessage(this, channel.Result));
+            result.RegisterOperation(await getChannel.Result.ForwardMessage(this));
             return result;
         }
 

@@ -76,6 +76,19 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        public override async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
+        {
+            var jsonDict = new Dictionary<string, string>()
+            {
+                {"text",text},
+                {"messageTimetoken",timeToken},
+                {"channel",Id},
+                {"parentChannel", ParentChannelId}
+            };
+            return await chat.EmitEvent(PubnubChatEventType.Mention, userId,
+                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
+        }
+
         public async Task PinMessageToParentChannel(ThreadMessage message)
         {
             throw new NotImplementedException();

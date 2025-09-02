@@ -338,12 +338,15 @@ namespace PubNubChatAPI.Entities
                 }));
         }
 
-        public async Task ForwardMessage(Message message)
+        public async Task<ChatOperationResult> ForwardMessage(Message message)
         {
-            await chat.ForwardMessage(message, this);
+            return await SendText(message.MessageText, new SendTextParams()
+            {
+                Meta = message.Meta
+            });
         }
 
-        public async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
+        public virtual async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
         {
             var jsonDict = new Dictionary<string, string>()
             {

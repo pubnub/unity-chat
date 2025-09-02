@@ -78,29 +78,6 @@ namespace PubNubChatAPI.Entities
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
         
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Chat"/> class.
-        /// <para>
-        /// Creates a new chat instance.
-        /// </para>
-        /// </summary>
-        /// <param name="chatConfig">Config with Chat specific parameters</param>
-        /// <param name="pubnub">An already initialised instance of Pubnub</param>
-        /// /// <param name="listenerFactory">Optional injectable listener factory, used in Unity to allow for dispatching Chat callbacks on main thread.</param>
-        /// <remarks>
-        /// The constructor initializes the Chat object with the provided existing Pubnub instance.
-        /// </remarks>
-        public static async Task<Chat> CreateInstance(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
-        {
-            var chat = new Chat(chatConfig, pubnub, listenerFactory);
-            var user = await chat.GetCurrentUser();
-            if (user == null)
-            {
-                await chat.CreateUser(chat.PubnubInstance.GetCurrentUserId());
-            }
-            return chat;
-        }
-        
         internal Chat(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
         {
             Config = chatConfig;
@@ -518,7 +495,9 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatChannelData"/>
         public async Task<ChatOperationResult> UpdateChannel(string channelId, ChatChannelData updatedData)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            result.RegisterOperation(await Channel.UpdateChannelData(this, channelId, updatedData));
+            return result;
         }
 
         /// <summary>
@@ -545,10 +524,54 @@ namespace PubNubChatAPI.Entities
 
         #region Users
 
-        public async Task<UserMentionsWrapper> GetCurrentUserMentions(string startTimeToken, string endTimeToken,
+        public async Task<ChatOperationResult<UserMentionsWrapper>> GetCurrentUserMentions(string startTimeToken, string endTimeToken,
             int count)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<UserMentionsWrapper>();
+            var id = PubnubInstance.GetCurrentUserId();
+            var getEventHistory = await GetEventsHistory(id, startTimeToken, endTimeToken, count);
+            if (result.RegisterOperation(getEventHistory))
+            {
+                return result;
+            }
+            var wrapper = new UserMentionsWrapper()
+            {
+                IsMore = getEventHistory.Result.IsMore,
+                Mentions = new List<UserMentionData>()
+            };
+            var mentionEvents = getEventHistory.Result.Events.Where(x => x.Type == PubnubChatEventType.Mention);
+            foreach (var mentionEvent in mentionEvents)
+            {
+                var payloadDict =
+                    PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(mentionEvent.Payload);
+                if (!payloadDict.TryGetValue("text", out var mentionText) 
+                    || !payloadDict.TryGetValue("messageTimetoken", out var messageTimeToken) 
+                    || !payloadDict.TryGetValue("channel", out var mentionChannel))
+                {
+                    continue;
+                }
+                var getMessage = await GetMessage(mentionChannel.ToString(), messageTimeToken.ToString());
+                if (getMessage.Error)
+                {
+                    Logger.Warn($"Could not find message with ID/Timetoken from mention event. Event payload: {mentionEvent.Payload}");
+                    continue;
+                }
+
+                var mention = new UserMentionData()
+                {
+                    ChannelId = mentionChannel.ToString(),
+                    Event = mentionEvent,
+                    Message = getMessage.Result,
+                    UserId = mentionEvent.UserId
+                };
+                if (payloadDict.TryGetValue("parentChannel", out var parentChannelId))
+                {
+                    mention.ParentChannelId = parentChannelId.ToString();
+                }
+                wrapper.Mentions.Add(mention);
+            }
+            result.Result = wrapper;
+            return result;
         }
 
         /// <summary>
@@ -980,9 +1003,11 @@ namespace PubNubChatAPI.Entities
         /// chat.DeleteUser("user_id");
         /// </code>
         /// </example>
-        public async Task DeleteUser(string userId)
+        public async Task<ChatOperationResult> DeleteUser(string userId)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync());
+            return result;
         }
 
         #endregion
@@ -1205,22 +1230,32 @@ namespace PubNubChatAPI.Entities
         /// <returns>Message object if one was found, null otherwise.</returns>
         public async Task<ChatOperationResult<Message>> GetMessage(string channelId, string messageTimeToken)
         {
-            throw new NotImplementedException();
-            /*return await Task.Run(() =>
+            var result = new ChatOperationResult<Message>();
+            var startTimeToken = (long.Parse(messageTimeToken) + 1).ToString();
+            var getHistory = await GetChannelMessageHistory(channelId, startTimeToken, messageTimeToken, 1);
+            if (result.RegisterOperation(getHistory))
             {
-                var result = TryGetMessage(channelId, messageTimeToken, out var message);
-                return result ? message : null;
-            });*/
+                return result;
+            }
+            if (!getHistory.Result.Any())
+            {
+                result.Error = true;
+                result.Exception = new PNException($"Didn't find any message with timetoken {messageTimeToken} on channel {channelId}");
+                return result;
+            }
+            //TODO: wrappers rethink
+            result.Result = getHistory.Result[0];
+            return result;
         }
 
-        public async Task<MarkMessagesAsReadWrapper> MarkAllMessagesAsRead(string filter = "", string sort = "",
+        public async Task<ChatOperationResult<MarkMessagesAsReadWrapper>> MarkAllMessagesAsRead(string filter = "", string sort = "",
             int limit = 0,
             PNPageObject page = null)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<List<UnreadMessageWrapper>> GetUnreadMessagesCounts(string filter = "", string sort = "",
+        public async Task<ChatOperationResult<List<UnreadMessageWrapper>>> GetUnreadMessagesCounts(string filter = "", string sort = "",
             int limit = 0,
             PNPageObject page = null)
         {
@@ -1279,9 +1314,16 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
-        public async Task<ChatOperationResult> ForwardMessage(Message message, Channel channel)
+        public async Task<ChatOperationResult> ForwardMessage(string messageTimeToken, string channelId)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            var getMessage = await GetMessage(channelId, messageTimeToken);
+            if (result.RegisterOperation(getMessage))
+            {
+                return result;
+            }
+            result.RegisterOperation(await getMessage.Result.Forward(channelId));
+            return result;
         }
 
         public async void AddListenerToMessagesUpdate(string channelId, List<string> messageTimeTokens,
@@ -1356,16 +1398,18 @@ namespace PubNubChatAPI.Entities
             var getHistory = await PubnubInstance.FetchHistory().Channels(new[] { channelId })
                 .Start(long.Parse(startTimeToken)).End(long.Parse(endTimeToken)).MaximumPerChannel(count).IncludeMessageActions(true)
                 .IncludeMeta(true).ExecuteAsync();
-            if (result.RegisterOperation(getHistory) || !getHistory.Result.Messages.ContainsKey(channelId))
+            if (result.RegisterOperation(getHistory) || getHistory.Result.Messages == null || !getHistory.Result.Messages.ContainsKey(channelId))
             {
                 return result;
             }
 
+            //TODO: should be in "MessageHistoryWrapper" object?
             var isMore = getHistory.Result.More != null;
             foreach (var historyItem in getHistory.Result.Messages[channelId])
             {
                 if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message))
                 {
+                    //TODO: wrappers rethink
                     result.Result.Add(message);
                 }
             }
