@@ -82,15 +82,15 @@ public class ThreadsTests
             await thread.PinMessageToParentChannel(threadMessage);
             
             await Task.Delay(7000);
-            
-            var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
-            var correctText = hasPinned && pinnedMessage.MessageText == "thread init message";
-            Assert.True(hasPinned && correctText);
+
+            var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
+            Assert.True(pinned.MessageText == "thread init message");
             await thread.UnPinMessageFromParentChannel();
             
             await Task.Delay(7000);
 
-            Assert.False(channel.TryGetPinnedMessage(out _));
+            var getPinned = await channel.GetPinnedMessage();
+            Assert.True(getPinned.Error);
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");
@@ -145,13 +145,15 @@ public class ThreadsTests
             
             await Task.Delay(5000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == threadMessage.MessageText);
+            var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
+            Assert.True(pinned.MessageText == threadMessage.MessageText);
             
             await threadMessage.UnPinMessageFromParentChannel();
             
             await Task.Delay(5000);
 
-            Assert.False(channel.TryGetPinnedMessage(out _));
+            var getPinned = await channel.GetPinnedMessage();
+            Assert.True(getPinned.Error);
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");

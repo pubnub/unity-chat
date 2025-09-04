@@ -34,14 +34,14 @@ namespace PubNubChatAPI.Entities
                 });
         }
 
-        public async Task PinMessageToParentChannel()
+        public async Task<ChatOperationResult> PinMessageToParentChannel()
         {
-            throw new NotImplementedException();
+            return await chat.PinMessageToChannel(ParentChannelId, this);
         }
 
-        public async Task UnPinMessageFromParentChannel()
+        public async Task<ChatOperationResult> UnPinMessageFromParentChannel()
         {
-            throw new NotImplementedException();
+            return await chat.UnpinMessageFromChannel(ParentChannelId);
         }
     }
 }

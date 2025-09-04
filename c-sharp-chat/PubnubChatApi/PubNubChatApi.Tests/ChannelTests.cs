@@ -232,7 +232,8 @@ public class ChannelTests
             
             await Task.Delay(2000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "message to pin");
+            var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
+            Assert.True(pinned.MessageText == "message to pin");
             receivedManualEvent.Set();
         };
         await channel.SendText("message to pin");
@@ -253,18 +254,20 @@ public class ChannelTests
             TestUtils.AssertOperation(await channel.PinMessage(message));
 
             await Task.Delay(2000);
-            
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == "message to pin");
+
+            var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
+            Assert.True(pinned.MessageText == "message to pin");
             TestUtils.AssertOperation(await channel.UnpinMessage());
             
-            await Task.Delay(2000);
-            
-            Assert.False(channel.TryGetPinnedMessage(out _));
+            await Task.Delay(15000);
+
+            var getPinned = await channel.GetPinnedMessage();
+            Assert.True(getPinned.Error);
             receivedManualEvent.Set();
         };
         await channel.SendText("message to pin");
 
-        var received = receivedManualEvent.WaitOne(12000);
+        var received = receivedManualEvent.WaitOne(35000);
         Assert.IsTrue(received);
     }
     

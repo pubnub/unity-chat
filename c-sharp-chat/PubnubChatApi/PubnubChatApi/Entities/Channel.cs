@@ -45,7 +45,7 @@ namespace PubNubChatAPI.Entities
         /// The custom data that can be used to store additional information about the channel.
         /// </para>
         /// </summary>
-        public Dictionary<string, object> CustomData => channelData.CustomData;
+        public Dictionary<string, object> CustomData => channelData.CustomData ?? new ();
 
         /// <summary>
         /// The information about the last update of the channel.
@@ -191,7 +191,7 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Status(data.Status);
             }
-            if (data.CustomData != null && data.CustomData.Any())
+            if (data.CustomData != null)
             {
                 operation = operation.Custom(data.CustomData);
             }
@@ -373,24 +373,20 @@ namespace PubNubChatAPI.Entities
 
         public async Task<ChatOperationResult> PinMessage(Message message)
         {
-            throw new NotImplementedException();
+            channelData.CustomData ??= new ();
+            channelData.CustomData["pinnedMessageChannelID"] = message.ChannelId;
+            channelData.CustomData["pinnedMessageTimetoken"] = message.TimeToken;
+            return (await UpdateChannelData(chat, Id, channelData)).ToChatOperationResult();
         }
 
         public async Task<ChatOperationResult> UnpinMessage()
         {
-            throw new NotImplementedException();
+            channelData.CustomData ??= new ();
+            channelData.CustomData.Remove("pinnedMessageChannelID");
+            channelData.CustomData.Remove("pinnedMessageTimetoken");
+            return (await UpdateChannelData(chat, Id, channelData)).ToChatOperationResult();
         }
         
-        /// <summary>
-        /// Tries to get the <c>Message</c> pinned to this <c>Channel</c>.
-        /// </summary>
-        /// <param name="pinnedMessage">The pinned Message object, null if there wasn't one.</param>
-        /// <returns>True of a pinned Message was found, false otherwise.</returns>
-        /// <seealso cref="GetPinnedMessageAsync"/>
-        public bool TryGetPinnedMessage(out Message pinnedMessage)
-        {
-            throw new NotImplementedException();
-        }
 
         /// <summary>
         /// Asynchronously tries to get the <c>Message</c> pinned to this <c>Channel</c>.
@@ -398,7 +394,27 @@ namespace PubNubChatAPI.Entities
         /// <returns>The pinned Message object if there was one, null otherwise.</returns>
         public async Task<ChatOperationResult<Message>> GetPinnedMessage()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<Message>();
+            if (result.RegisterOperation(await Refresh()))
+            {
+                return result;
+            }
+            if(!CustomData.TryGetValue("pinnedMessageChannelID", out var pinnedChannelId) 
+               || !CustomData.TryGetValue("pinnedMessageTimetoken", out var pinnedMessageTimeToken))
+            {
+                result.Error = true;
+                result.Exception = new PNException($"Channel \"{Id}\" doesn't have a pinned message.");
+                return result;
+            }
+
+            var getMessage = await chat.GetMessage(pinnedChannelId.ToString(), pinnedMessageTimeToken.ToString());
+            if (result.RegisterOperation(getMessage))
+            {
+                return result;
+            }
+
+            result.Result = getMessage.Result;
+            return result;
         }
 
         /// <summary>

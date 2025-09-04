@@ -222,8 +222,8 @@ public class MessageTests
 
             await Task.Delay(3000);
 
-            var got = pinTestChannel.TryGetPinnedMessage(out var pinnedMessage);
-            Assert.True(got && pinnedMessage.MessageText == "message to pin");
+            var pinnedMessage = TestUtils.AssertOperation(await pinTestChannel.GetPinnedMessage());
+            Assert.True(pinnedMessage.MessageText == "message to pin");
             manualReceivedEvent.Set();
         };
         await pinTestChannel.SendText("message to pin");

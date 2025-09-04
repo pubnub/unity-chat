@@ -338,9 +338,16 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
-        public async Task Pin()
+        public async Task<ChatOperationResult> Pin()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            var getChannel = await chat.GetChannel(ChannelId);
+            if (result.RegisterOperation(getChannel))
+            {
+                return result;
+            }
+            result.RegisterOperation(await getChannel.Result.PinMessage(this));
+            return result;
         }
 
         public async Task<ChatOperationResult> Report(string reason)

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
@@ -87,14 +86,14 @@ namespace PubNubChatAPI.Entities
                 chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
         }
 
-        public async Task PinMessageToParentChannel(ThreadMessage message)
+        public async Task<ChatOperationResult> PinMessageToParentChannel(ThreadMessage message)
         {
-            throw new NotImplementedException();
+            return await chat.PinMessageToChannel(ParentChannelId, message);
         }
 
-        public async Task UnPinMessageFromParentChannel()
+        public async Task<ChatOperationResult> UnPinMessageFromParentChannel()
         {
-            throw new NotImplementedException();
+            return await chat.UnpinMessageFromChannel(ParentChannelId);
         }
     }
 }
