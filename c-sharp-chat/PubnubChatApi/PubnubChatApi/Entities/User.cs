@@ -254,13 +254,16 @@ namespace PubNubChatAPI.Entities
             userData = newData;
         }
         
-        public override async Task Refresh()
+        public override async Task<ChatOperationResult> Refresh()
         {
-            var newData = await GetUserData(chat, Id);
-            if (!newData.Status.Error)
+            var result = new ChatOperationResult();
+            var getUserData = await GetUserData(chat, Id);
+            if (result.RegisterOperation(getUserData))
             {
-                UpdateLocalData(newData.Result);
+                return result;
             }
+            UpdateLocalData(getUserData.Result);
+            return result;
         }
 
         /// <summary>
@@ -486,7 +489,7 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Membership"/>
-        public async Task<MembersResponseWrapper> GetMemberships(string filter = "", string sort = "", int limit = 0,
+        public async Task<ChatOperationResult<MembersResponseWrapper>> GetMemberships(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
             return await chat.GetUserMemberships(Id, filter, sort, limit, page);

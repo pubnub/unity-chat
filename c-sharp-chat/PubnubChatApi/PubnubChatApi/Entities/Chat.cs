@@ -27,13 +27,6 @@ namespace PubNubChatAPI.Entities
         internal const string INTERNAL_ADMIN_CHANNEL = "PUBNUB_INTERNAL_ADMIN_CHANNEL";
         internal const string MESSAGE_THREAD_ID_PREFIX = "PUBNUB_INTERNAL_THREAD";
         
-        //TODO: wrappers rethink
-        internal Dictionary<string, Channel> channelWrappers = new();
-        private Dictionary<string, User> userWrappers = new();
-        internal Dictionary<string, Membership> membershipWrappers = new();
-        private Dictionary<string, Message> messageWrappers = new();
-        private bool fetchUpdates = true;
-
         public Pubnub PubnubInstance { get; }
         public PubnubLogModule Logger => PubnubInstance.PNConfig.Logger;
         
@@ -62,7 +55,7 @@ namespace PubNubChatAPI.Entities
             var chat = new Chat(chatConfig, pubnubConfig, listenerFactory);
             var result = new ChatOperationResult<Chat>(){Result = chat};
             var getUser = await chat.GetCurrentUser();
-            if (result.RegisterOperation(getUser))
+            if (getUser.Error)
             {
                 result.RegisterOperation(await chat.CreateUser(chat.PubnubInstance.GetCurrentUserId()));
             }
@@ -170,7 +163,6 @@ namespace PubNubChatAPI.Entities
             }
             var channel = new Channel(this, channelId, additionalData);
             result.Result = channel;
-            channelWrappers.Add(channelId, channel);
             return result;
         }
 
@@ -231,20 +223,10 @@ namespace PubNubChatAPI.Entities
                 return result;
             }
             
-            if (membershipWrappers.TryGetValue(currentUserId + channelId, out var existingHostMembership))
-            {
-                existingHostMembership.UpdateLocalData(membershipData);
-                result.Result.HostMembership = existingHostMembership;
-            }
-            else
-            {
-                var hostMembership = new Membership(this, currentUserId, channelId, membershipData);
-                membershipWrappers.Add(hostMembership.Id, hostMembership);
-                result.Result.HostMembership = hostMembership;
-            }
+            var hostMembership = new Membership(this, currentUserId, channelId, membershipData);
+            result.Result.HostMembership = hostMembership;
             
             var channel = new Channel(this, channelId, channelData);
-            channelWrappers.Add(channelId, channel);
             result.Result.CreatedChannel = channel;
 
             if (type == "direct")
@@ -336,7 +318,6 @@ namespace PubNubChatAPI.Entities
             
             var newMembership = new Membership(this, userId, channelId, new ChatMembershipData());
             await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
-            membershipWrappers.Add(newMembership.Id, newMembership);
 
             result.Result = newMembership;
             return result;
@@ -370,24 +351,12 @@ namespace PubNubChatAPI.Entities
                 return result;
             }
             
-            var usersDict = users.ToDictionary(x => x.Id, y => y);
             foreach (var channelMember in inviteResponse.Result.ChannelMembers)
             {
                 var userId = channelMember.UuidMetadata.Uuid;
-                if (membershipWrappers.TryGetValue(userId + channelId,
-                        out var existingMembership))
-                {
-                    usersDict[userId].UpdateLocalData(channelMember.UuidMetadata);
-                    existingMembership.UpdateLocalData(channelMember);
-                    result.Result.Add(existingMembership);
-                }
-                else
-                {
-                    var newMembership = new Membership(this, userId, channelId, channelMember);
-                    await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
-                    membershipWrappers.Add(newMembership.Id, newMembership);
-                    result.Result.Add(newMembership);
-                }
+                var newMembership = new Membership(this, userId, channelId, channelMember);
+                await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
+                result.Result.Add(newMembership);
                 
                 var inviteEventPayload = $"{{\"channelType\": \"{channel.Result.Type}\", \"channelId\": {channelId}}}";
                 await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload);
@@ -406,22 +375,13 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult<Channel>> GetChannel(string channelId)
         {
             var result = new ChatOperationResult<Channel>();
-            if (channelWrappers.TryGetValue(channelId, out var existingChannel))
+            var getResult = await Channel.GetChannelData(this, channelId);
+            if (result.RegisterOperation(getResult))
             {
-                await existingChannel.Refresh();
-                result.Result = existingChannel;
+                return result;
             }
-            else
-            {
-                var getResult = await Channel.GetChannelData(this, channelId);
-                if (result.RegisterOperation(getResult))
-                {
-                    return result;
-                }
-                var channel = new Channel(this, channelId, getResult.Result);
-                channelWrappers.Add(channelId, channel);
-                result.Result = channel;
-            }
+            var channel = new Channel(this, channelId, getResult.Result);
+            result.Result = channel;
             return result;
         }
 
@@ -460,17 +420,8 @@ namespace PubNubChatAPI.Entities
             };
             foreach (var resultMetadata in response.Result.Channels)
             {
-                if (channelWrappers.TryGetValue(resultMetadata.Channel, out var existingChannelWrapper))
-                {
-                    existingChannelWrapper.UpdateLocalData(resultMetadata);
-                    wrapper.Channels.Add(existingChannelWrapper);
-                }
-                else
-                {
-                    var channel = new Channel(this, resultMetadata.Channel, resultMetadata);
-                    channelWrappers.Add(channel.Id, channel);
-                    wrapper.Channels.Add(channel);
-                }
+                var channel = new Channel(this, resultMetadata.Channel, resultMetadata);
+                wrapper.Channels.Add(channel);
             }
             return wrapper;
         }
@@ -733,7 +684,7 @@ namespace PubNubChatAPI.Entities
         {
             var result = new ChatOperationResult<User>();
             var existingUser = await GetUser(userId);
-            if (!result.RegisterOperation(result))
+            if (!result.RegisterOperation(existingUser))
             {
                 result.Result = existingUser.Result;
                 return result;
@@ -745,7 +696,6 @@ namespace PubNubChatAPI.Entities
                 return result;
             }
             var user = new User(this, userId, additionalData);
-            userWrappers.Add(userId, user);
             result.Result = user;
             return result;
         }
@@ -866,19 +816,12 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult<User>> GetUser(string userId)
         {
             var result = new ChatOperationResult<User>();
-            if (userWrappers.TryGetValue(userId, out var existingUser))
-            {
-                await existingUser.Refresh();
-                result.Result = existingUser;
-                return result;
-            }
             var getData = await User.GetUserData(this, userId);
             if (result.RegisterOperation(getData))
             {
                 return result;
             }
             var user = new User(this, userId, getData.Result);
-            userWrappers.Add(userId, user);
             result.Result = user;
             return result;
         }
@@ -945,17 +888,8 @@ namespace PubNubChatAPI.Entities
             };
             foreach (var resultMetadata in result.Result.Uuids)
             {
-                if (userWrappers.TryGetValue(resultMetadata.Uuid, out var existingUserWrapper))
-                {
-                    existingUserWrapper.UpdateLocalData(resultMetadata);
-                    response.Users.Add(existingUserWrapper);
-                }
-                else
-                {
-                    var user = new User(this, resultMetadata.Uuid, resultMetadata);
-                    userWrappers.Add(user.Id, user);
-                    response.Users.Add(user);
-                }
+                var user = new User(this, resultMetadata.Uuid, resultMetadata);
+                response.Users.Add(user);
             }
             return response;
         }
@@ -980,14 +914,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatUserData"/>
         public async Task UpdateUser(string userId, ChatUserData updatedData)
         {
-            if (userWrappers.TryGetValue(userId, out var existingUserWrapper))
-            {
-                await existingUserWrapper.Update(updatedData);
-            }
-            else
-            {
-                await User.UpdateUserData(this, userId, updatedData);
-            }
+            await User.UpdateUserData(this, userId, updatedData);
         }
 
         /// <summary>
@@ -1041,12 +968,11 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="Membership"/>
-        public async Task<MembersResponseWrapper> GetUserMemberships(string userId, string filter = "",
+        public async Task<ChatOperationResult<MembersResponseWrapper>> GetUserMemberships(string userId, string filter = "",
             string sort = "",
             int limit = 0, PNPageObject page = null)
         {
-            
-            //TODO: here also, has to be a better way to structure this arguments -> builder pattern
+            var result = new ChatOperationResult<MembersResponseWrapper>();
             var operation = PubnubInstance.GetMemberships().Include(
                 new[]
                 {
@@ -1073,49 +999,29 @@ namespace PubNubChatAPI.Entities
             {
                 operation.Page(page);
             }
-            var result = await operation.ExecuteAsync();
-            if (result.Status.Error)
+            var getMemberships = await operation.ExecuteAsync();
+            if (result.RegisterOperation(getMemberships))
             {
-                Logger.Error($"Error when trying to get \"{userId}\" user memberships: {result.Status.ErrorData.Information}");
-                return null;
+                return result;
             }
 
             var memberships = new List<Membership>();
-            foreach (var membershipResult in result.Result.Memberships)
+            foreach (var membershipResult in getMemberships.Result.Memberships)
             {
-                var membershipId = userId + membershipResult.ChannelMetadata.Channel;
-                if (membershipWrappers.TryGetValue(membershipId, out var existingMembershipWrapper))
+                memberships.Add(new Membership(this, userId, membershipResult.ChannelMetadata.Channel, new ChatMembershipData()
                 {
-                    existingMembershipWrapper.MembershipData.CustomData = membershipResult.Custom;
-                    memberships.Add(existingMembershipWrapper);
-                }
-                else
-                {
-                    memberships.Add(new Membership(this, userId, membershipResult.ChannelMetadata.Channel, new ChatMembershipData()
-                    {
-                        CustomData = membershipResult.Custom,
-                        Status = membershipResult.Status,
-                        Type = membershipResult.Type
-                    }));
-                }
+                    CustomData = membershipResult.Custom,
+                    Status = membershipResult.Status,
+                    Type = membershipResult.Type
+                }));
             }
-            return new MembersResponseWrapper()
+            result.Result = new MembersResponseWrapper()
             {
                 Memberships = memberships,
-                Page = result.Result.Page,
-                Total = result.Result.TotalCount
+                Page = getMemberships.Result.Page,
+                Total = getMemberships.Result.TotalCount
             };
-        }
-
-        public void AddListenerToMembershipsUpdate(List<string> membershipIds, Action<Membership> listener)
-        {
-            foreach (var membershipId in membershipIds)
-            {
-                if (membershipWrappers.TryGetValue(membershipId, out var membership))
-                {
-                    membership.OnMembershipUpdated += listener;
-                }
-            }
+            return result;
         }
 
         /// <summary>
@@ -1186,21 +1092,12 @@ namespace PubNubChatAPI.Entities
             var memberships = new List<Membership>();
             foreach (var channelMemberResult in getResult.Result.ChannelMembers)
             {
-                var membershipId = channelMemberResult.UuidMetadata.Uuid + channelId;
-                if (membershipWrappers.TryGetValue(membershipId, out var existingMembershipWrapper))
+                memberships.Add(new Membership(this, channelMemberResult.UuidMetadata.Uuid, channelId, new ChatMembershipData()
                 {
-                    existingMembershipWrapper.MembershipData.CustomData = channelMemberResult.Custom;
-                    memberships.Add(existingMembershipWrapper);
-                }
-                else
-                {
-                    memberships.Add(new Membership(this, channelMemberResult.UuidMetadata.Uuid, channelId, new ChatMembershipData()
-                    {
-                        CustomData = channelMemberResult.Custom,
-                        Status = channelMemberResult.Status,
-                        Type = channelMemberResult.Type
-                    }));
-                }
+                    CustomData = channelMemberResult.Custom,
+                    Status = channelMemberResult.Status,
+                    Type = channelMemberResult.Type
+                }));
             }
             result.Result = new MembersResponseWrapper()
             {
@@ -1243,7 +1140,6 @@ namespace PubNubChatAPI.Entities
                 result.Exception = new PNException($"Didn't find any message with timetoken {messageTimeToken} on channel {channelId}");
                 return result;
             }
-            //TODO: wrappers rethink
             result.Result = getHistory.Result[0];
             return result;
         }
@@ -1252,14 +1148,111 @@ namespace PubNubChatAPI.Entities
             int limit = 0,
             PNPageObject page = null)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<MarkMessagesAsReadWrapper>();
+            if (limit < 0 || limit > 100)
+            {
+                result.Error = true;
+                result.Exception = new PNException("For marking messages as read limit has to be between 0 and 100");
+                return result;
+            }
+            var currentUserId = PubnubInstance.GetCurrentUserId();
+            var getCurrentUser = await GetCurrentUser();
+            if (result.RegisterOperation(getCurrentUser))
+            {
+                return result;
+            }
+            var getCurrentMemberships = await getCurrentUser.Result.GetMemberships(filter, sort, limit, page);
+            if (result.RegisterOperation(getCurrentMemberships))
+            {
+                return result;
+            }
+            if (getCurrentMemberships.Result.Memberships == null || !getCurrentMemberships.Result.Memberships.Any())
+            {
+                result.Result = new MarkMessagesAsReadWrapper()
+                {
+                    Memberships = new List<Membership>()
+                };
+                return result;
+            }
+            var timeToken = ChatUtils.TimeTokenNow();
+            var memberships = getCurrentMemberships.Result.Memberships;
+            foreach (var membership in memberships)
+            {
+                membership.MembershipData.CustomData["lastReadMessageTimetoken"] = timeToken;
+            }
+            if (result.RegisterOperation(await Membership.UpdateMembershipsData(this, currentUserId, memberships)))
+            {
+                return result;
+            }
+            foreach (var membership in memberships)
+            {
+                await EmitEvent(PubnubChatEventType.Receipt, membership.ChannelId,
+                    $"{{\"messageTimetoken\": \"{timeToken}\"}}");
+            }
+            result.Result = new MarkMessagesAsReadWrapper()
+            {
+                Memberships = memberships,
+                Page = getCurrentMemberships.Result.Page,
+                Status = getCurrentMemberships.Result.Status,
+                Total = getCurrentMemberships.Result.Total
+            };
+            return result;
         }
-
+        
         public async Task<ChatOperationResult<List<UnreadMessageWrapper>>> GetUnreadMessagesCounts(string filter = "", string sort = "",
             int limit = 0,
             PNPageObject page = null)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<List<UnreadMessageWrapper>>();
+            if (limit < 0 || limit > 100)
+            {
+                result.Error = true;
+                result.Exception = new PNException("For getting message counts limit has to be between 0 and 100");
+                return result;
+            }
+            var getCurrentUser = await GetCurrentUser();
+            if (result.RegisterOperation(getCurrentUser))
+            {
+                return result;
+            }
+            var getCurrentMemberships = await getCurrentUser.Result.GetMemberships(filter, sort, limit, page);
+            if (result.RegisterOperation(getCurrentMemberships))
+            {
+                return result;
+            }
+            if (getCurrentMemberships.Result.Memberships == null || !getCurrentMemberships.Result.Memberships.Any())
+            {
+                result.Result = new List<UnreadMessageWrapper>();
+                return result;
+            }
+            var memberships = getCurrentMemberships.Result.Memberships;
+            var channelIds = new List<string>();
+            var timeTokens = new List<long>();
+            foreach (var membership in memberships)
+            {
+                channelIds.Add(membership.ChannelId);
+                var lastRead = string.IsNullOrEmpty(membership.LastReadMessageTimeToken) ? Membership.EMPTY_TIMETOKEN : long.Parse(membership.LastReadMessageTimeToken);
+                timeTokens.Add(lastRead);
+            }
+            //TODO: ISSUE: count also includes events
+            var getCounts = await PubnubInstance.MessageCounts().Channels(channelIds.ToArray()).ChannelsTimetoken(timeTokens.ToArray())
+                .ExecuteAsync();
+            if (result.RegisterOperation(getCounts))
+            {
+                return result;
+            }
+            var wrapperList = new List<UnreadMessageWrapper>();
+            foreach (var channelMessagesCount in getCounts.Result.Channels)
+            {
+                wrapperList.Add(new UnreadMessageWrapper()
+                {
+                    ChannelId = channelMessagesCount.Key,
+                    Count = Convert.ToInt32(channelMessagesCount.Value),
+                    Membership = memberships.First(x => x.ChannelId == channelMessagesCount.Key)
+                });
+            }
+            result.Result = wrapperList;
+            return result;
         }
 
         public async Task<ChatOperationResult<ThreadChannel>> CreateThreadChannel(string messageTimeToken, string messageChannelId)
@@ -1409,7 +1402,6 @@ namespace PubNubChatAPI.Entities
             {
                 if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message))
                 {
-                    //TODO: wrappers rethink
                     result.Result.Add(message);
                 }
             }

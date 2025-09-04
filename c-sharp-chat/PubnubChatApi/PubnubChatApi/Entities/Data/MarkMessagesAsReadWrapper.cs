@@ -10,7 +10,7 @@ namespace PubnubChatApi.Entities.Data
     {
         public PNPageObject Page;
         public int Total;
-        public int Status;
+        public string Status;
         public List<Membership> Memberships;
     }
 }

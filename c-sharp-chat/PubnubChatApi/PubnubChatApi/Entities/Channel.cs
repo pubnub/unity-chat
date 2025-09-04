@@ -205,13 +205,16 @@ namespace PubNubChatAPI.Entities
                 .ExecuteAsync();
         }
 
-        public override async Task Refresh()
+        public override async Task<ChatOperationResult> Refresh()
         {
-            var getResult = await GetChannelData(chat, Id);
-            if (!getResult.Status.Error)
+            var result = new ChatOperationResult();
+            var getData = await GetChannelData(chat, Id);
+            if (result.RegisterOperation(getData))
             {
-                UpdateLocalData(getResult.Result);
+                return result;
             }
+            UpdateLocalData(getData.Result);
+            return result;
         }
 
         public void SetListeningForCustomEvents(bool listen)
@@ -458,16 +461,22 @@ namespace PubNubChatAPI.Entities
         {
             Disconnect();
             var currentUserId = chat.PubnubInstance.GetCurrentUserId();
-            var remove = await chat.PubnubInstance.RemoveMemberships().Uuid(currentUserId).Channels(new List<string>() { Id })
+            var remove = await chat.PubnubInstance.RemoveMemberships().Uuid(currentUserId).Include(new []
+                {
+                    PNMembershipField.TYPE,
+                    PNMembershipField.CUSTOM,
+                    PNMembershipField.STATUS,
+                    PNMembershipField.CHANNEL,
+                    PNMembershipField.CHANNEL_CUSTOM,
+                    PNMembershipField.CHANNEL_TYPE,
+                    PNMembershipField.CHANNEL_STATUS
+                }).Channels(new List<string>() { Id })
                 .ExecuteAsync();
             if (remove.Status.Error)
             {
                 chat.Logger.Error($"Error when trying to leave channel \"{Id}\": {remove.Status.ErrorData.Information}");
                 return;
             }
-            
-            //TODO: wrappers rethink
-            chat.membershipWrappers.Remove(currentUserId + Id);
         }
 
         /// <summary>
@@ -496,27 +505,9 @@ namespace PubNubChatAPI.Entities
                 {
                     if (ChatParsers.TryParseMessageResult(chat, m, out var message))
                     {
-                        //TODO: wrappers rethink
-                        //chat.RegisterMessage(message);
                         OnMessageReceived?.Invoke(message);
                     }
                 }));
-            /*if (subscription != null)
-            {
-                return;
-            }
-            subscription = chat.PubnubInstance.Channel(Id).Subscription(SubscriptionOptions.None);
-            subscription.AddListener(chat.ListenerFactory.ProduceListener(messageCallback:
-                delegate(Pubnub pn, PNMessageResult<object> m)
-                {
-                    if (ChatParsers.TryParseMessageResult(chat, m, out var message))
-                    {
-                        //TODO: wrappers rethink
-                        //chat.RegisterMessage(message);
-                        OnMessageReceived?.Invoke(message);
-                    }
-                }));
-            subscription.Subscribe<object>();*/
         }
         
         /// <summary>
@@ -568,17 +559,8 @@ namespace PubNubChatAPI.Entities
                 chat.Logger.Error($"Error when trying to Join() to channel \"{Id}\": {response.Status.ErrorData.Information}");
                 return;
             }
-            //TODO: wrappers rethink
-            if (chat.membershipWrappers.TryGetValue(currentUserId + Id, out var existingHostMembership))
-            {
-                existingHostMembership.UpdateLocalData(membershipData);
-            }
-            else
-            {
-                var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
-                await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
-                chat.membershipWrappers.Add(joinMembership.Id, joinMembership);
-            }
+            var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
+            await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
             
             Connect();
         }

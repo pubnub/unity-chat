@@ -406,7 +406,7 @@ namespace PubNubChatAPI.Entities
             throw new NotImplementedException();
         }
 
-        public override Task Refresh()
+        public override Task<ChatOperationResult> Refresh()
         {
             throw new NotImplementedException();
         }

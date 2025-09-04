@@ -16,7 +16,8 @@ public class ChatTests
     [SetUp]
     public async Task Setup()
     {
-        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("chats_tests_user_10_no_calkiem_nowy_2"))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), 
+            new PNConfiguration(new UserId("chats_tests_user_fresh_3"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
@@ -169,25 +170,33 @@ public class ChatTests
 
         await Task.Delay(3000);
 
-        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.Channel.Id == channel.Id && x.Count > 0));
+        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == channel.Id && x.Count > 0));
     }
 
     [Test]
     public async Task TestMarkAllMessagesAsRead()
     {
-        await channel.SendText("wololo");
+        var markTestChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        markTestChannel.Join();
+        
+        await Task.Delay(3000);
+        
+        await markTestChannel.SendText("wololo", new SendTextParams(){StoreInHistory = true});
 
-        await Task.Delay(10000);
+        await Task.Delay(3000);
 
-        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts()).Any(x => x.Channel.Id == channel.Id && x.Count > 0));
+        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts()).Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
 
-        var res = chat.MarkAllMessagesAsRead();
+        TestUtils.AssertOperation(await chat.MarkAllMessagesAsRead());
 
-        await Task.Delay(2000);
-
+        await Task.Delay(5000);
+        
         var counts = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
 
-        Assert.False(counts.Any(x => x.Channel.Id == channel.Id && x.Count > 0));
+        markTestChannel.Leave();
+        await markTestChannel.Delete();
+        
+        Assert.False(counts.Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
     }
 
     [Test]

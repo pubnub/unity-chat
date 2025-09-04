@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using PubnubApi;
+using PubnubChatApi.Entities.Data;
 
 namespace PubNubChatAPI.Entities
 {
@@ -39,6 +40,6 @@ namespace PubNubChatAPI.Entities
         
         protected abstract SubscribeCallback CreateUpdateListener();
         
-        public abstract Task Refresh();
+        public abstract Task<ChatOperationResult> Refresh();
     }
 }

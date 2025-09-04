@@ -29,8 +29,6 @@ namespace PubNubChatAPI.Entities
             {
                 return result;
             }
-
-            chat.channelWrappers.Add(Id, this);
             result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
                 .Action(new PNMessageAction() { Type = "threadRootId", Value = Id }).Channel(ParentChannelId)
                 .MessageTimetoken(long.Parse(ParentMessageTimeToken)).ExecuteAsync());

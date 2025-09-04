@@ -41,14 +41,14 @@ public class MembershipTests
     [Test]
     public async Task TestGetMemberships()
     {
-        var memberships = await user.GetMemberships();
+        var memberships = TestUtils.AssertOperation(await user.GetMemberships());
         Assert.True(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
 
     [Test]
     public async Task TestUpdateMemberships()
     {
-        var memberships = await user.GetMemberships();
+        var memberships = TestUtils.AssertOperation(await user.GetMemberships());
         var testMembership = memberships.Memberships.Last();
         if (testMembership == null)
         {
@@ -117,7 +117,7 @@ public class MembershipTests
 
         await Task.Delay(4000);
 
-        var membership = (await user.GetMemberships(limit: 20)).Memberships
+        var membership = TestUtils.AssertOperation(await user.GetMemberships(limit: 20)).Memberships
             .FirstOrDefault(x => x.ChannelId == testChannel.Id);
         if (membership == null)
         {
@@ -174,7 +174,7 @@ public class MembershipTests
     public async Task TestUnreadCountAfterFetchHistory()
     {
         await channel.SendText("some_text");
-        var membership = (await user.GetMemberships())
+        var membership = TestUtils.AssertOperation(await user.GetMemberships())
             .Memberships.FirstOrDefault(x => x.ChannelId == channel.Id);
         if (membership == null)
         {
