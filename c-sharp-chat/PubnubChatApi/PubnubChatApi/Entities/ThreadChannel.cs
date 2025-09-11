@@ -24,24 +24,24 @@ namespace PubNubChatAPI.Entities
 
         private async Task<ChatOperationResult> InitThreadChannel()
         {
-            var result = new ChatOperationResult();
-            var channelUpdate = await UpdateChannelData(chat, Id, channelData);
+            var result = new ChatOperationResult("ThreadChannel.InitThreadChannel()", chat);
+            var channelUpdate = await UpdateChannelData(chat, Id, channelData).ConfigureAwait(false);
             if (result.RegisterOperation(channelUpdate))
             {
                 return result;
             }
             result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
                 .Action(new PNMessageAction() { Type = "threadRootId", Value = Id }).Channel(ParentChannelId)
-                .MessageTimetoken(long.Parse(ParentMessageTimeToken)).ExecuteAsync());
+                .MessageTimetoken(long.Parse(ParentMessageTimeToken)).ExecuteAsync().ConfigureAwait(false));
             return result;
         }
 
         public override async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("ThreadChannel.SendText()", chat);
             if (!initialised)
             {
-                if (result.RegisterOperation(await InitThreadChannel()))
+                if (result.RegisterOperation(await InitThreadChannel().ConfigureAwait(false)))
                 {
                     return result;
                 }
@@ -49,17 +49,17 @@ namespace PubNubChatAPI.Entities
                 initialised = true;
             }
 
-            return await base.SendText(message, sendTextParams);
+            return await base.SendText(message, sendTextParams).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult<List<ThreadMessage>>> GetThreadHistory(string startTimeToken,
             string endTimeToken, int count)
         {
-            var result = new ChatOperationResult<List<ThreadMessage>>()
+            var result = new ChatOperationResult<List<ThreadMessage>>("ThreadChannel.GetThreadHistory()", chat)
             {
                 Result = new List<ThreadMessage>()
             };
-            var getHistory = await GetMessageHistory(startTimeToken, endTimeToken, count);
+            var getHistory = await GetMessageHistory(startTimeToken, endTimeToken, count).ConfigureAwait(false);
             if (result.RegisterOperation(getHistory))
             {
                 return result;
@@ -85,17 +85,17 @@ namespace PubNubChatAPI.Entities
                 {"parentChannel", ParentChannelId}
             };
             return await chat.EmitEvent(PubnubChatEventType.Mention, userId,
-                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
+                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict)).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> PinMessageToParentChannel(ThreadMessage message)
         {
-            return await chat.PinMessageToChannel(ParentChannelId, message);
+            return await chat.PinMessageToChannel(ParentChannelId, message).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> UnPinMessageFromParentChannel()
         {
-            return await chat.UnpinMessageFromChannel(ParentChannelId);
+            return await chat.UnpinMessageFromChannel(ParentChannelId).ConfigureAwait(false);
         }
     }
 }

@@ -244,7 +244,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageUpdated"/>
         public async Task<ChatOperationResult> EditMessageText(string newText)
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Message.EditMessageText()", chat);
             if (string.IsNullOrEmpty(newText))
             {
                 result.Error = true;
@@ -254,13 +254,13 @@ namespace PubNubChatAPI.Entities
             result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
                 .Action(new PNMessageAction() { Type = "edited", Value = newText })
                 .Channel(ChannelId)
-                .MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync());
+                .MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync().ConfigureAwait(false));
             return result;
         }
 
         public async Task<ChatOperationResult<Message>> GetQuotedMessage()
         {
-            var result = new ChatOperationResult<Message>();
+            var result = new ChatOperationResult<Message>("Message.GetQuotedMessage()", chat);
             if (!Meta.TryGetValue("quotedMessage", out var quotedMessage))
             {
                 result.Error = true;
@@ -275,7 +275,7 @@ namespace PubNubChatAPI.Entities
                 result.Exception = new PNException("Quoted message data has incorrect format.");
                 return result;
             }
-            var getMessage = await chat.GetMessage(channelId.ToString(), timetoken.ToString());
+            var getMessage = await chat.GetMessage(channelId.ToString(), timetoken.ToString()).ConfigureAwait(false);
             if (result.RegisterOperation(getMessage))
             {
                 return result;
@@ -296,7 +296,7 @@ namespace PubNubChatAPI.Entities
 
         public ChatOperationResult<ThreadChannel> CreateThread()
         {
-            var result = new ChatOperationResult<ThreadChannel>();
+            var result = new ChatOperationResult<ThreadChannel>("Message.CreateThread()", chat);
             if (ChannelId.Contains(Chat.MESSAGE_THREAD_ID_PREFIX))
             {
                 result.Error = true;
@@ -331,12 +331,12 @@ namespace PubNubChatAPI.Entities
         /// <returns>The retrieved ThreadChannel object, null if one wasn't found.</returns>
         public async Task<ChatOperationResult<ThreadChannel>> GetThread()
         {
-            return await chat.GetThreadChannel(this);
+            return await chat.GetThreadChannel(this).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> RemoveThread()
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Message.RemoveThread()", chat);
             if (!HasThread())
             {
                 result.Error = true;
@@ -351,24 +351,24 @@ namespace PubNubChatAPI.Entities
             }
             if (result.RegisterOperation(await chat.PubnubInstance.RemoveMessageAction().Channel(ChannelId)
                     .MessageTimetoken(long.Parse(TimeToken)).ActionTimetoken(long.Parse(threadMessageAction.TimeToken))
-                    .ExecuteAsync()))
+                    .ExecuteAsync().ConfigureAwait(false)))
             {
                 return result;
             }
             MessageActions = MessageActions.Where(x => x.Type != PubnubMessageActionType.ThreadRootId).ToList();
-            result.RegisterOperation(await getThread.Result.Delete());
+            result.RegisterOperation(await getThread.Result.Delete().ConfigureAwait(false));
             return result;
         }
 
         public async Task<ChatOperationResult> Pin()
         {
-            var result = new ChatOperationResult();
-            var getChannel = await chat.GetChannel(ChannelId);
+            var result = new ChatOperationResult("Message.Pin()", chat);
+            var getChannel = await chat.GetChannel(ChannelId).ConfigureAwait(false);
             if (result.RegisterOperation(getChannel))
             {
                 return result;
             }
-            result.RegisterOperation(await getChannel.Result.PinMessage(this));
+            result.RegisterOperation(await getChannel.Result.PinMessage(this).ConfigureAwait(false));
             return result;
         }
 
@@ -383,18 +383,18 @@ namespace PubNubChatAPI.Entities
                 {"reportedUserId",UserId}
             };
             return await chat.EmitEvent(PubnubChatEventType.Report, $"{Chat.INTERNAL_MODERATION_PREFIX}_{ChannelId}",
-                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
+                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict)).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> Forward(string channelId)
         {
-            var result = new ChatOperationResult();
-            var getChannel = await chat.GetChannel(channelId);
+            var result = new ChatOperationResult("Message.Forward()", chat);
+            var getChannel = await chat.GetChannel(channelId).ConfigureAwait(false);
             if (result.RegisterOperation(getChannel))
             {
                 return result;
             }
-            result.RegisterOperation(await getChannel.Result.ForwardMessage(this));
+            result.RegisterOperation(await getChannel.Result.ForwardMessage(this).ConfigureAwait(false));
             return result;
         }
 
@@ -405,7 +405,7 @@ namespace PubNubChatAPI.Entities
 
         public async Task<ChatOperationResult> ToggleReaction(string reactionValue)
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Message.ToggleReaction()", chat);
             var currentUserId = chat.PubnubInstance.GetCurrentUserId();
             for (var i = 0; i < MessageActions.Count; i++)
             {
@@ -414,7 +414,7 @@ namespace PubNubChatAPI.Entities
                 {
                     //Removing old one
                     var remove = await chat.PubnubInstance.RemoveMessageAction().MessageTimetoken(long.Parse(TimeToken))
-                        .ActionTimetoken(long.Parse(reaction.TimeToken)).ExecuteAsync();
+                        .ActionTimetoken(long.Parse(reaction.TimeToken)).ExecuteAsync().ConfigureAwait(false);
                     if (result.RegisterOperation(remove))
                     {
                         return result;
@@ -426,7 +426,7 @@ namespace PubNubChatAPI.Entities
             var add = await chat.PubnubInstance.AddMessageAction().Action(new PNMessageAction()
             {
                 Type = "reaction", Value = reactionValue
-            }).MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync();
+            }).MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(add))
             {
                 return result;
@@ -443,7 +443,7 @@ namespace PubNubChatAPI.Entities
 
         public async Task<ChatOperationResult> Restore()
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Message.Restore()", chat);
             if (!IsDeleted)
             {
                 result.Error = true;
@@ -452,7 +452,7 @@ namespace PubNubChatAPI.Entities
             }
             var deleteAction = MessageActions.First(x => x.Type == PubnubMessageActionType.Deleted);
             var restore = await chat.PubnubInstance.RemoveMessageAction().MessageTimetoken(long.Parse(TimeToken))
-                .ActionTimetoken(long.Parse(deleteAction.TimeToken)).Channel(ChannelId).ExecuteAsync();
+                .ActionTimetoken(long.Parse(deleteAction.TimeToken)).Channel(ChannelId).ExecuteAsync().ConfigureAwait(false);
             result.RegisterOperation(restore);
             MessageActions.RemoveAt(MessageActions.IndexOf(deleteAction));
             return result;
@@ -477,7 +477,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageUpdated"/>
         public async Task<ChatOperationResult> Delete(bool soft)
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Message.Delete()", chat);
             if (soft)
             {
                 var add = await chat.PubnubInstance.AddMessageAction()
@@ -485,7 +485,7 @@ namespace PubNubChatAPI.Entities
                     {
                         Type = "deleted",
                         Value = "deleted"
-                    }).Channel(ChannelId).ExecuteAsync();
+                    }).Channel(ChannelId).ExecuteAsync().ConfigureAwait(false);
                 if (result.RegisterOperation(add))
                 {
                     return result;
@@ -502,12 +502,12 @@ namespace PubNubChatAPI.Entities
             {
                 if (HasThread())
                 {
-                    var getThread = await GetThread();
+                    var getThread = await GetThread().ConfigureAwait(false);
                     if (result.RegisterOperation(getThread))
                     {
                         return result;
                     }
-                    var deleteThread = await getThread.Result.Delete();
+                    var deleteThread = await getThread.Result.Delete().ConfigureAwait(false);
                     if (result.RegisterOperation(deleteThread))
                     {
                         return result;
@@ -515,7 +515,7 @@ namespace PubNubChatAPI.Entities
                 }
                 var startTimeToken = long.Parse(TimeToken) + 1;
                 var deleteMessage = await chat.PubnubInstance.DeleteMessages().Start(startTimeToken)
-                    .End(long.Parse(TimeToken)).ExecuteAsync();
+                    .End(long.Parse(TimeToken)).ExecuteAsync().ConfigureAwait(false);
                 result.RegisterOperation(deleteMessage);
             }
             return result;
@@ -523,8 +523,8 @@ namespace PubNubChatAPI.Entities
 
         public override async Task<ChatOperationResult> Refresh()
         {
-            var result = new ChatOperationResult();
-            var get = await chat.GetMessage(ChannelId, TimeToken);
+            var result = new ChatOperationResult("Message.Refresh()", chat);
+            var get = await chat.GetMessage(ChannelId, TimeToken).ConfigureAwait(false);
             if (result.RegisterOperation(get))
             {
                 return result;

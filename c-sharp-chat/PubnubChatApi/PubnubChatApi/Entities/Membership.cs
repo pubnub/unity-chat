@@ -99,7 +99,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMembershipUpdated"/>
         public async Task<ChatOperationResult> Update(ChatMembershipData membershipData)
         {
-            var result = (await UpdateMembershipData(membershipData)).ToChatOperationResult();
+            var result = (await UpdateMembershipData(membershipData).ConfigureAwait(false)).ToChatOperationResult("Membership.Update()", chat);
             if (!result.Error)
             {
                 UpdateLocalData(membershipData);
@@ -127,7 +127,7 @@ namespace PubNubChatAPI.Entities
                 PNMembershipField.CHANNEL_CUSTOM,
                 PNMembershipField.CHANNEL_TYPE,
                 PNMembershipField.CHANNEL_STATUS,
-            }).ExecuteAsync();
+            }).ExecuteAsync().ConfigureAwait(false);
         }
         
         internal static async Task<PNResult<PNMembershipsResult>> UpdateMembershipsData(Chat chat, string userId, List<Membership> memberships)
@@ -148,26 +148,26 @@ namespace PubNubChatAPI.Entities
                 PNMembershipField.CHANNEL_CUSTOM,
                 PNMembershipField.CHANNEL_TYPE,
                 PNMembershipField.CHANNEL_STATUS
-            }).ExecuteAsync();
+            }).ExecuteAsync().ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> SetLastReadMessage(Message message)
         {
-            return await SetLastReadMessageTimeToken(message.TimeToken);
+            return await SetLastReadMessageTimeToken(message.TimeToken).ConfigureAwait(false);
         }
         
         public async Task<ChatOperationResult> SetLastReadMessageTimeToken(string timeToken)
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Membership.SetLastReadMessageTimeToken()", chat);
             MembershipData.CustomData ??= new Dictionary<string, object>();
             MembershipData.CustomData["lastReadMessageTimetoken"] = timeToken;
-            var update = await UpdateMembershipData(MembershipData);
+            var update = await UpdateMembershipData(MembershipData).ConfigureAwait(false);
             if (result.RegisterOperation(update))
             {
                 return result;
             }
             result.RegisterOperation(await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId,
-                $"{{\"messageTimetoken\": \"{timeToken}\"}}"));
+                $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false));
             return result;
         }
         
@@ -180,7 +180,7 @@ namespace PubNubChatAPI.Entities
             }
             lastRead = lastRead == 0 ? EMPTY_TIMETOKEN : lastRead;
             var countsResponse = await chat.PubnubInstance.MessageCounts().Channels(new[] { ChannelId })
-                .ChannelsTimetoken(new[] { lastRead }).ExecuteAsync();
+                .ChannelsTimetoken(new[] { lastRead }).ExecuteAsync().ConfigureAwait(false);
             if (countsResponse.Status.Error)
             {
                 chat.Logger.Error($"Error when trying to get message counts on channel \"{ChannelId}\": {countsResponse.Status.ErrorData}");
@@ -191,7 +191,7 @@ namespace PubNubChatAPI.Entities
 
         public override async Task<ChatOperationResult> Refresh()
         {
-            return await chat.GetChannelMemberships(ChannelId, filter:$"uuid.id == \"{UserId}\"");
+            return await chat.GetChannelMemberships(ChannelId, filter:$"uuid.id == \"{UserId}\"").ConfigureAwait(false);
         }
     }
 }

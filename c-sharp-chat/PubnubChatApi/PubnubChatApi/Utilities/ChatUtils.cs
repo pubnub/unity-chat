@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using PubnubApi;
+using PubNubChatAPI.Entities;
 using PubnubChatApi.Entities.Data;
 
 namespace PubnubChatApi.Utilities
@@ -21,9 +22,9 @@ namespace PubnubChatApi.Utilities
             return timeStamp;
         }
 
-        internal static ChatOperationResult ToChatOperationResult<T>(this PNResult<T> result)
+        internal static ChatOperationResult ToChatOperationResult<T>(this PNResult<T> result, string operationName, Chat chat)
         {
-            var operationResult = new ChatOperationResult();
+            var operationResult = new ChatOperationResult(operationName, chat);
             operationResult.RegisterOperation(result);
             return operationResult;
         }

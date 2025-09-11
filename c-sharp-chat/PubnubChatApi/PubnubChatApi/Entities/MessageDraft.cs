@@ -132,7 +132,7 @@ namespace PubNubChatAPI.Entities
             try
             {
                 var messageElements = GetMessageElements();
-                var suggestedMentions = ShouldSearchForSuggestions ? await GenerateSuggestedMentions() : new List<SuggestedMention>();
+                var suggestedMentions = ShouldSearchForSuggestions ? await GenerateSuggestedMentions().ConfigureAwait(false) : new List<SuggestedMention>();
                 OnDraftUpdated?.Invoke(messageElements, suggestedMentions);
             }
             catch (Exception e)
@@ -160,14 +160,14 @@ namespace PubNubChatAPI.Entities
                 {
                     case MentionType.User:
                         var usersWrapper =
-                            await chat.GetUsers(filter: $"name LIKE \"{rawMention.Target.Target}*\"", limit:userLimit);   
+                            await chat.GetUsers(filter: $"name LIKE \"{rawMention.Target.Target}*\"", limit:userLimit).ConfigureAwait(false);   
                         if (usersWrapper.Users != null && usersWrapper.Users.Any())
                         {
                             var user = usersWrapper.Users[0];
                             suggestion.Target = new MentionTarget() { Target = user.Id, Type = rawMention.Target.Type };
                             suggestion.ReplaceTo = user.UserName;
                             if (userSuggestionSource == UserSuggestionSource.CHANNEL &&
-                                !await user.IsPresentOn(channel.Id))
+                                !await user.IsPresentOn(channel.Id).ConfigureAwait(false))
                             {
                                 continue;
                             }
@@ -179,7 +179,7 @@ namespace PubNubChatAPI.Entities
                         break;
                     case MentionType.Channel:
                         var channelsWrapper = await chat.GetChannels(filter: $"name LIKE \"{rawMention.Target.Target}*\"",
-                            limit: channelLimit);
+                            limit: channelLimit).ConfigureAwait(false);
                         if (channelsWrapper.Channels != null && channelsWrapper.Channels.Any())
                         {
                             var mentionedChannel = channelsWrapper.Channels[0];
@@ -502,7 +502,7 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         public async Task<ChatOperationResult> Send()
         {
-            return await Send(new SendTextParams());
+            return await Send(new SendTextParams()).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -556,7 +556,7 @@ namespace PubNubChatAPI.Entities
                 }
             }
             sendTextParams.MentionedUsers = mentions;
-            return await channel.SendText(Render(), sendTextParams);
+            return await channel.SendText(Render(), sendTextParams).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -668,7 +668,7 @@ namespace PubNubChatAPI.Entities
         {
             if (isTypingIndicatorTriggered && channel.Type == "public")
             {
-                await channel.StartTyping();
+                await channel.StartTyping().ConfigureAwait(false);
             }
         }
 

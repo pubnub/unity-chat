@@ -36,12 +36,12 @@ namespace PubNubChatAPI.Entities
 
         public async Task<ChatOperationResult> PinMessageToParentChannel()
         {
-            return await chat.PinMessageToChannel(ParentChannelId, this);
+            return await chat.PinMessageToChannel(ParentChannelId, this).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> UnPinMessageFromParentChannel()
         {
-            return await chat.UnpinMessageFromChannel(ParentChannelId);
+            return await chat.UnpinMessageFromChannel(ParentChannelId).ConfigureAwait(false);
         }
     }
 }

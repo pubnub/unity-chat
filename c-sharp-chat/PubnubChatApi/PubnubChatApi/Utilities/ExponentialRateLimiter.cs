@@ -32,7 +32,7 @@ namespace PubnubChatApi.Utilities
                 // Execute immediately for zero interval
                 try
                 {
-                    var result = await task();
+                    var result = await task().ConfigureAwait(false);
                     callback(result);
                 }
                 catch (Exception e)
@@ -92,7 +92,7 @@ namespace PubnubChatApi.Utilities
 
                 if (slept >= toSleep)
                 {
-                    toSleep = await ProcessQueue(slept);
+                    toSleep = await ProcessQueue(slept).ConfigureAwait(false);
                 }
                 else
                 {
@@ -103,7 +103,7 @@ namespace PubnubChatApi.Utilities
                 
                 if (slept > 0)
                 {
-                    await Task.Delay(slept, _cancellationTokenSource.Token);
+                    await Task.Delay(slept, _cancellationTokenSource.Token).ConfigureAwait(false);
                 }
             }
         }
@@ -151,7 +151,7 @@ namespace PubnubChatApi.Utilities
             // This ensures we don't overwhelm the system with concurrent tasks
             if (processingTasks.Count > 0)
             {
-                await Task.WhenAll(processingTasks);
+                await Task.WhenAll(processingTasks).ConfigureAwait(false);
             }
 
             // Remove finished limiters
@@ -186,7 +186,7 @@ namespace PubnubChatApi.Utilities
 
             try
             {
-                var result = await element.Task();
+                var result = await element.Task().ConfigureAwait(false);
                 element.Callback(result);
             }
             catch (Exception e)

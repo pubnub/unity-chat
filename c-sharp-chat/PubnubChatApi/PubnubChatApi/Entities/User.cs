@@ -212,8 +212,8 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult> Update(ChatUserData updatedData)
         {
             UpdateLocalData(updatedData);
-            var result = new ChatOperationResult();
-            result.RegisterOperation(await UpdateUserData(chat, Id, updatedData));
+            var result = new ChatOperationResult("User.Update()", chat);
+            result.RegisterOperation(await UpdateUserData(chat, Id, updatedData).ConfigureAwait(false));
             return result;
         }
 
@@ -248,12 +248,12 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Custom(chatUserData.CustomData);
             }
-            return await operation.ExecuteAsync();
+            return await operation.ExecuteAsync().ConfigureAwait(false);
         }
         
         internal static async Task<PNResult<PNGetUuidMetadataResult>> GetUserData(Chat chat, string userId)
         {
-            return await chat.PubnubInstance.GetUuidMetadata().Uuid(userId).IncludeCustom(true).ExecuteAsync();
+            return await chat.PubnubInstance.GetUuidMetadata().Uuid(userId).IncludeCustom(true).ExecuteAsync().ConfigureAwait(false);
         }
 
         internal void UpdateLocalData(ChatUserData? newData)
@@ -267,8 +267,8 @@ namespace PubNubChatAPI.Entities
         
         public override async Task<ChatOperationResult> Refresh()
         {
-            var result = new ChatOperationResult();
-            var getUserData = await GetUserData(chat, Id);
+            var result = new ChatOperationResult("User.Refresh()", chat);
+            var getUserData = await GetUserData(chat, Id).ConfigureAwait(false);
             if (result.RegisterOperation(getUserData))
             {
                 return result;
@@ -292,7 +292,7 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public async Task DeleteUser()
         {
-            await chat.DeleteUser(Id);
+            await chat.DeleteUser(Id).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -314,12 +314,12 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public async Task<ChatOperationResult> SetRestriction(string channelId, bool banUser, bool muteUser, string reason)
         {
-            return await chat.SetRestriction(Id, channelId, banUser, muteUser, reason);
+            return await chat.SetRestriction(Id, channelId, banUser, muteUser, reason).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> SetRestriction(string channelId, Restriction restriction)
         {
-            return await chat.SetRestriction(Id, channelId, restriction);
+            return await chat.SetRestriction(Id, channelId, restriction).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -338,11 +338,11 @@ namespace PubNubChatAPI.Entities
         /// </returns>
         public async Task<ChatOperationResult<Restriction>> GetChannelRestrictions(Channel channel)
         {
-            var result = new ChatOperationResult<Restriction>();
+            var result = new ChatOperationResult<Restriction>("User.GetChannelRestrictions()", chat);
             var membersResult = await chat.PubnubInstance.GetChannelMembers().Channel($"{Chat.INTERNAL_MODERATION_PREFIX}_{channel.Id}").Include(new[]
             {
                 PNChannelMemberField.CUSTOM
-            }).Filter($"uuid.id == \"{Id}\"").IncludeCount(true).ExecuteAsync();
+            }).Filter($"uuid.id == \"{Id}\"").IncludeCount(true).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(membersResult) || membersResult.Result.ChannelMembers == null || !membersResult.Result.ChannelMembers.Any())
             {
                 result.Error = true;
@@ -369,7 +369,7 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult<ChannelsRestrictionsWrapper>> GetChannelsRestrictions(string sort = "", int limit = 0,
             PNPageObject page = null)
         {
-            var result = new ChatOperationResult<ChannelsRestrictionsWrapper>(){Result = new ChannelsRestrictionsWrapper()};
+            var result = new ChatOperationResult<ChannelsRestrictionsWrapper>("User.GetChannelsRestrictions()", chat){Result = new ChannelsRestrictionsWrapper()};
             var operation = chat.PubnubInstance.GetMemberships().Uuid(Id)
                 .Include(new[]
                 {
@@ -388,7 +388,7 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Page(page);
             }
-            var membershipsResult = await operation.ExecuteAsync();
+            var membershipsResult = await operation.ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(membershipsResult))
             {
                 return result;
@@ -442,7 +442,7 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public async Task<bool> IsPresentOn(string channelId)
         {
-            var response = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync();
+            var response = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync().ConfigureAwait(false);
             if (response.Status.Error)
             {
                 chat.Logger.Error($"Error when trying to perform IsPresentOn(): {response.Status.ErrorData.Information}");
@@ -474,8 +474,8 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public async Task<ChatOperationResult<List<string>>> WherePresent()
         {
-            var result = new ChatOperationResult<List<string>>();
-            var where = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync();
+            var result = new ChatOperationResult<List<string>>("User.WherePresent()", chat);
+            var where = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(where))
             {
                 return result;
@@ -514,7 +514,7 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult<MembersResponseWrapper>> GetMemberships(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
-            return await chat.GetUserMemberships(Id, filter, sort, limit, page);
+            return await chat.GetUserMemberships(Id, filter, sort, limit, page).ConfigureAwait(false);
         }
     }
 }

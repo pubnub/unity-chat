@@ -199,20 +199,20 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Type(data.Type);
             }
-            return await operation.ExecuteAsync();
+            return await operation.ExecuteAsync().ConfigureAwait(false);
         }
         
         internal static async Task<PNResult<PNGetChannelMetadataResult>> GetChannelData(Chat chat, string channelId)
         {
             return await chat.PubnubInstance.GetChannelMetadata().IncludeCustom(true)
                 .Channel(channelId)
-                .ExecuteAsync();
+                .ExecuteAsync().ConfigureAwait(false);
         }
 
         public override async Task<ChatOperationResult> Refresh()
         {
-            var result = new ChatOperationResult();
-            var getData = await GetChannelData(chat, Id);
+            var result = new ChatOperationResult("Channel.Refresh()", chat);
+            var getData = await GetChannelData(chat, Id).ConfigureAwait(false);
             if (result.RegisterOperation(getData))
             {
                 return result;
@@ -254,7 +254,7 @@ namespace PubNubChatAPI.Entities
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
                     {
-                        var getMembers = await chat.GetChannelMemberships(Id);
+                        var getMembers = await chat.GetChannelMemberships(Id).ConfigureAwait(false);
                         if (getMembers.Error)
                         {
                             return;
@@ -333,7 +333,7 @@ namespace PubNubChatAPI.Entities
             SetListening(ref presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
                 async delegate(Pubnub pn, PNPresenceEventResult p)
                 {
-                    var whoIs = await WhoIsPresent();
+                    var whoIs = await WhoIsPresent().ConfigureAwait(false);
                     if (whoIs.Error)
                     {
                         chat.Logger.Error($"Error when trying to broadcast presence update after WhoIs(): {whoIs.Exception.Message}");
@@ -350,7 +350,7 @@ namespace PubNubChatAPI.Entities
             return await SendText(message.MessageText, new SendTextParams()
             {
                 Meta = message.Meta
-            });
+            }).ConfigureAwait(false);
         }
 
         public virtual async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
@@ -362,17 +362,17 @@ namespace PubNubChatAPI.Entities
                 {"channel",Id}
             };
             return await chat.EmitEvent(PubnubChatEventType.Mention, userId,
-                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict));
+                chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict)).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> StartTyping()
         {
-            return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":true}}");
+            return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":true}}").ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> StopTyping()
         {
-            return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":false}}");
+            return await chat.EmitEvent(PubnubChatEventType.Typing, Id, $"{{\"value\":false}}").ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> PinMessage(Message message)
@@ -380,7 +380,7 @@ namespace PubNubChatAPI.Entities
             channelData.CustomData ??= new ();
             channelData.CustomData["pinnedMessageChannelID"] = message.ChannelId;
             channelData.CustomData["pinnedMessageTimetoken"] = message.TimeToken;
-            return (await UpdateChannelData(chat, Id, channelData)).ToChatOperationResult();
+            return (await UpdateChannelData(chat, Id, channelData).ConfigureAwait(false)).ToChatOperationResult("Channel.PinMessage()", chat);
         }
 
         public async Task<ChatOperationResult> UnpinMessage()
@@ -388,7 +388,7 @@ namespace PubNubChatAPI.Entities
             channelData.CustomData ??= new ();
             channelData.CustomData.Remove("pinnedMessageChannelID");
             channelData.CustomData.Remove("pinnedMessageTimetoken");
-            return (await UpdateChannelData(chat, Id, channelData)).ToChatOperationResult();
+            return (await UpdateChannelData(chat, Id, channelData).ConfigureAwait(false)).ToChatOperationResult("Channel.UnPinMessage()", chat);
         }
         
 
@@ -398,8 +398,8 @@ namespace PubNubChatAPI.Entities
         /// <returns>The pinned Message object if there was one, null otherwise.</returns>
         public async Task<ChatOperationResult<Message>> GetPinnedMessage()
         {
-            var result = new ChatOperationResult<Message>();
-            if (result.RegisterOperation(await Refresh()))
+            var result = new ChatOperationResult<Message>("Channel.GetPinnedMessage()", chat);
+            if (result.RegisterOperation(await Refresh().ConfigureAwait(false)))
             {
                 return result;
             }
@@ -411,7 +411,7 @@ namespace PubNubChatAPI.Entities
                 return result;
             }
 
-            var getMessage = await chat.GetMessage(pinnedChannelId.ToString(), pinnedMessageTimeToken.ToString());
+            var getMessage = await chat.GetMessage(pinnedChannelId.ToString(), pinnedMessageTimeToken.ToString()).ConfigureAwait(false);
             if (result.RegisterOperation(getMessage))
             {
                 return result;
@@ -491,7 +491,7 @@ namespace PubNubChatAPI.Entities
                     PNMembershipField.CHANNEL_TYPE,
                     PNMembershipField.CHANNEL_STATUS
                 }).Channels(new List<string>() { Id })
-                .ExecuteAsync();
+                .ExecuteAsync().ConfigureAwait(false);
             if (remove.Status.Error)
             {
                 chat.Logger.Error($"Error when trying to leave channel \"{Id}\": {remove.Status.ErrorData.Information}");
@@ -573,14 +573,14 @@ namespace PubNubChatAPI.Entities
                     PNMembershipField.STATUS,
                     PNMembershipField.CHANNEL,
                     PNMembershipField.CHANNEL_CUSTOM
-                }).ExecuteAsync();
+                }).ExecuteAsync().ConfigureAwait(false);
             if (response.Status.Error)
             {
                 chat.Logger.Error($"Error when trying to Join() to channel \"{Id}\": {response.Status.ErrorData.Information}");
                 return;
             }
             var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
-            await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
+            await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
             
             Connect();
         }
@@ -605,12 +605,12 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="GetUserRestrictions"/>
         public async Task<ChatOperationResult> SetRestrictions(string userId, bool banUser, bool muteUser, string reason)
         {
-            return await chat.SetRestriction(userId, Id, banUser, muteUser, reason);
+            return await chat.SetRestriction(userId, Id, banUser, muteUser, reason).ConfigureAwait(false);
         }
 
         public async Task<ChatOperationResult> SetRestrictions(string userId, Restriction restriction)
         {
-            return await SetRestrictions(userId, restriction.Ban, restriction.Mute, restriction.Reason);
+            return await SetRestrictions(userId, restriction.Ban, restriction.Mute, restriction.Reason).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -630,12 +630,12 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="OnMessageReceived"/>
         public async Task<ChatOperationResult> SendText(string message)
         {
-            return await SendText(message, new SendTextParams());
+            return await SendText(message, new SendTextParams()).ConfigureAwait(false);
         }
 
         public virtual async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
         {
-            var result = new ChatOperationResult();
+            var result = new ChatOperationResult("Channel.SendText()", chat);
             
             var baseInterval = Type switch
             {
@@ -677,7 +677,7 @@ namespace PubNubChatAPI.Entities
                     .UsePOST(sendTextParams.SendByPost)
                     .Message(chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(messageDict))
                     .Meta(meta)
-                    .ExecuteAsync();
+                    .ExecuteAsync().ConfigureAwait(false);
                 if (result.RegisterOperation(publishResult))
                 {
                     return result;
@@ -685,7 +685,7 @@ namespace PubNubChatAPI.Entities
                 foreach (var mention in sendTextParams.MentionedUsers)
                 {
                     result.RegisterOperation(await EmitUserMention(mention.Value.Id,
-                        publishResult.Result.Timetoken.ToString(), message));
+                        publishResult.Result.Timetoken.ToString(), message).ConfigureAwait(false));
                 }
                 return result;
             }, response =>
@@ -701,7 +701,7 @@ namespace PubNubChatAPI.Entities
                 completionSource.SetResult(true);
             });
 
-            await completionSource.Task;
+            await completionSource.Task.ConfigureAwait(false);
 
             return result;
         }
@@ -729,7 +729,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="ChatChannelData"/>
         public async Task<ChatOperationResult> Update(ChatChannelData updatedData)
         {
-            return await chat.UpdateChannel(Id, updatedData);
+            return await chat.UpdateChannel(Id, updatedData).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -774,11 +774,11 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="SetRestrictions"/>
         public async Task<ChatOperationResult<Restriction>> GetUserRestrictions(User user)
         {
-            var result = new ChatOperationResult<Restriction>();
+            var result = new ChatOperationResult<Restriction>("Channel.GetUserRestrictions()", chat);
             var membershipsResult = await chat.PubnubInstance.GetMemberships().Uuid(user.Id).Include(new[]
             {
                 PNMembershipField.CUSTOM
-            }).Filter($"channel.id == \"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}\"").IncludeCount(true).ExecuteAsync();
+            }).Filter($"channel.id == \"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}\"").IncludeCount(true).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(membershipsResult) || membershipsResult.Result.Memberships == null || !membershipsResult.Result.Memberships.Any())
             {
                 result.Error = true;
@@ -805,7 +805,7 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult<UsersRestrictionsWrapper>> GetUsersRestrictions(string sort = "", int limit = 0,
             PNPageObject page = null)
         {
-            var result = new ChatOperationResult<UsersRestrictionsWrapper>(){Result = new UsersRestrictionsWrapper()};
+            var result = new ChatOperationResult<UsersRestrictionsWrapper>("Channel.GetUsersRestrictions()", chat){Result = new UsersRestrictionsWrapper()};
             var operation = chat.PubnubInstance.GetChannelMembers().Channel($"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}")
                 .Include(new[]
                 {
@@ -824,7 +824,7 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Page(page);
             }
-            var membersResult = await operation.ExecuteAsync();
+            var membersResult = await operation.ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(membersResult))
             {
                 return result;
@@ -870,7 +870,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="WhoIsPresent"/>
         public async Task<ChatOperationResult<bool>> IsUserPresent(string userId)
         {
-            var result = new ChatOperationResult<bool>();
+            var result = new ChatOperationResult<bool>("Channel.IsUserPresent()", chat);
             var wherePresent = await chat.WherePresent(userId);
             if (result.RegisterOperation(wherePresent))
             {
@@ -899,9 +899,9 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="IsUserPresent"/>
         public async Task<ChatOperationResult<List<string>>> WhoIsPresent()
         {
-            var result = new ChatOperationResult<List<string>>() { Result = new List<string>() };
+            var result = new ChatOperationResult<List<string>>("Channel.WhoIsPresent()", chat) { Result = new List<string>() };
             var response = await chat.PubnubInstance.HereNow().Channels(new[] { Id }).IncludeState(true)
-                .IncludeUUIDs(true).ExecuteAsync();
+                .IncludeUUIDs(true).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(response))
             {
                 return result;
