@@ -18,6 +18,8 @@ namespace PubNubChatAPI.Entities
         {
             ParentChannelId = parentChannelId;
             ParentMessageTimeToken = parentMessageTimeToken;
+            data.CustomData["parentChannelId"] = ParentChannelId;
+            data.CustomData["parentMessageTimetoken"] = ParentMessageTimeToken;
         }
 
         private async Task<ChatOperationResult> InitThreadChannel()

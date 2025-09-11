@@ -38,6 +38,8 @@ namespace PubNubChatAPI.Entities
         public PubnubChatConfig Config { get; }
         internal ExponentialRateLimiter RateLimiter { get; }
 
+        private bool storeActivity = false;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Chat"/> class.
         /// <para>
@@ -53,6 +55,10 @@ namespace PubNubChatAPI.Entities
         public static async Task<ChatOperationResult<Chat>> CreateInstance(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, ChatListenerFactory? listenerFactory = null)
         {
             var chat = new Chat(chatConfig, pubnubConfig, listenerFactory);
+            if (chatConfig.StoreUserActivityTimestamp)
+            {
+                chat.StoreActivityTimeStamp();
+            }
             var result = new ChatOperationResult<Chat>(){Result = chat};
             var getUser = await chat.GetCurrentUser();
             if (getUser.Error)
@@ -268,7 +274,7 @@ namespace PubNubChatAPI.Entities
             var result = new ChatOperationResult<Membership>();
             //Check if already a member first
             var members = await GetChannelMemberships(channelId, filter:$"uuid.id == \"{userId}\"");
-            if (!result.RegisterOperation(members))
+            if (!result.RegisterOperation(members) && members.Result.Memberships.Any())
             {
                 //Already a member, just return current membership
                 result.Result = members.Result.Memberships[0];
@@ -354,6 +360,10 @@ namespace PubNubChatAPI.Entities
             foreach (var channelMember in inviteResponse.Result.ChannelMembers)
             {
                 var userId = channelMember.UuidMetadata.Uuid;
+                if (!users.Any(x => x.Id == userId))
+                {
+                    continue;
+                }
                 var newMembership = new Membership(this, userId, channelId, channelMember);
                 await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow());
                 result.Result.Add(newMembership);
@@ -380,8 +390,16 @@ namespace PubNubChatAPI.Entities
             {
                 return result;
             }
-            var channel = new Channel(this, channelId, getResult.Result);
-            result.Result = channel;
+            if (channelId.Contains(MESSAGE_THREAD_ID_PREFIX) 
+                && getResult.Result.Custom.TryGetValue("parentChannelId", out var parentChannelId)
+                && getResult.Result.Custom.TryGetValue("parentMessageTimetoken", out var parentMessageTimeToken))
+            {
+                result.Result = new ThreadChannel(this, channelId, parentChannelId.ToString(), parentMessageTimeToken.ToString(), getResult.Result);
+            }
+            else
+            {
+                result.Result = new Channel(this, channelId, getResult.Result);
+            }
             return result;
         }
 
@@ -475,6 +493,30 @@ namespace PubNubChatAPI.Entities
 
         #region Users
 
+        internal async void StoreActivityTimeStamp()
+        {
+            var currentUserId = PubnubInstance.GetCurrentUserId();
+            while (storeActivity)
+            {
+                var getResult = await User.GetUserData(this, currentUserId);
+                var data = (ChatUserData)getResult.Result;
+                if (getResult.Status.Error)
+                {
+                    Logger.Error($"Error when trying to store user activity timestamp: {getResult.Status.ErrorData}");
+                    await Task.Delay(Config.StoreUserActivityInterval);
+                    continue;
+                }
+                data.CustomData ??= new Dictionary<string, object>();
+                data.CustomData["lastActiveTimestamp"] = ChatUtils.TimeTokenNow();
+                var setData = await User.UpdateUserData(this, currentUserId, data);
+                if (setData.Status.Error)
+                {
+                    Logger.Error($"Error when trying to store user activity timestamp: {setData.Status.ErrorData}");
+                }
+                await Task.Delay(Config.StoreUserActivityInterval);
+            }
+        }
+        
         public async Task<ChatOperationResult<UserMentionsWrapper>> GetCurrentUserMentions(string startTimeToken, string endTimeToken,
             int count)
         {
@@ -1178,6 +1220,7 @@ namespace PubNubChatAPI.Entities
             var memberships = getCurrentMemberships.Result.Memberships;
             foreach (var membership in memberships)
             {
+                membership.MembershipData.CustomData ??= new(); 
                 membership.MembershipData.CustomData["lastReadMessageTimetoken"] = timeToken;
             }
             if (result.RegisterOperation(await Membership.UpdateMembershipsData(this, currentUserId, memberships)))
@@ -1234,7 +1277,6 @@ namespace PubNubChatAPI.Entities
                 var lastRead = string.IsNullOrEmpty(membership.LastReadMessageTimeToken) ? Membership.EMPTY_TIMETOKEN : long.Parse(membership.LastReadMessageTimeToken);
                 timeTokens.Add(lastRead);
             }
-            //TODO: ISSUE: count also includes events
             var getCounts = await PubnubInstance.MessageCounts().Channels(channelIds.ToArray()).ChannelsTimetoken(timeTokens.ToArray())
                 .ExecuteAsync();
             if (result.RegisterOperation(getCounts))
@@ -1459,8 +1501,12 @@ namespace PubNubChatAPI.Entities
             jsonPayload = jsonPayload.Remove(0, 1);
             jsonPayload = jsonPayload.Remove(jsonPayload.Length - 1);
             var fullPayload = $"{{{jsonPayload}, \"type\": \"{ChatEnumConverters.ChatEventTypeToString(type)}\"}}";
-            result.RegisterOperation(await PubnubInstance.Publish().Channel(channelId).Message(fullPayload)
-                .ExecuteAsync());
+            var emitOperation = PubnubInstance.Publish().Channel(channelId).Message(fullPayload);
+            if (type is PubnubChatEventType.Receipt or PubnubChatEventType.Typing)
+            {
+                emitOperation.ShouldStore(false);
+            }
+            result.RegisterOperation(await emitOperation.ExecuteAsync());
             return result;
         }
 
@@ -1468,6 +1514,7 @@ namespace PubNubChatAPI.Entities
 
         public void Destroy()
         {
+            storeActivity = false;
             PubnubInstance.Destroy();
             RateLimiter.Dispose();
         }

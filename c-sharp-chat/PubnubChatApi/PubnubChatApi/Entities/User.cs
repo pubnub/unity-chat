@@ -84,7 +84,14 @@ namespace PubNubChatAPI.Entities
         {
             get
             {
-                throw new NotImplementedException();
+                if (CustomData == null || !CustomData.TryGetValue("lastActiveTimestamp", out var lastActiveTimestamp))
+                {
+                    return false;
+                }
+                var currentTimeStamp = ChatUtils.TimeTokenNowLong();
+                var interval = chat.Config.StoreUserActivityInterval;
+                var lastActive = Convert.ToInt64(lastActiveTimestamp);
+                return currentTimeStamp - lastActive <= interval * 1000000;
             }
         }
 
@@ -92,7 +99,11 @@ namespace PubNubChatAPI.Entities
         {
             get
             {
-                throw new NotImplementedException();
+                if (CustomData == null || !CustomData.TryGetValue("lastActiveTimestamp", out var lastActiveTimestamp))
+                {
+                    return string.Empty;
+                }
+                return lastActiveTimestamp.ToString();
             }
         }
         
@@ -144,7 +155,7 @@ namespace PubNubChatAPI.Entities
         
         public void SetListeningForMentionEvents(bool listen)
         {
-            SetListening(mentionsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref mentionsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Mention, out var mentionEvent))
@@ -157,7 +168,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForInviteEvents(bool listen)
         {
-            SetListening(invitesSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref invitesSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Invite, out var inviteEvent))
@@ -170,7 +181,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForModerationEvents(bool listen)
         {
-            SetListening(moderationSubscription, SubscriptionOptions.None, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref moderationSubscription, SubscriptionOptions.None, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Moderation, out var moderationEvent))
@@ -208,7 +219,7 @@ namespace PubNubChatAPI.Entities
 
         internal static async Task<PNResult<PNSetUuidMetadataResult>> UpdateUserData(Chat chat, string userId, ChatUserData chatUserData)
         {
-            var operation = chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true).Uuid(userId);
+            var operation = chat.PubnubInstance.SetUuidMetadata().IncludeCustom(true).IncludeStatus(true).IncludeType(true).Uuid(userId);
             if (!string.IsNullOrEmpty(chatUserData.Username))
             {
                 operation = operation.Name(chatUserData.Username);
@@ -233,7 +244,7 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Status(chatUserData.Status);
             }
-            if (chatUserData.CustomData.Any())
+            if (chatUserData.CustomData != null)
             {
                 operation = operation.Custom(chatUserData.CustomData);
             }
@@ -463,7 +474,18 @@ namespace PubNubChatAPI.Entities
         /// </example>
         public async Task<ChatOperationResult<List<string>>> WherePresent()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<List<string>>();
+            var where = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync();
+            if (result.RegisterOperation(where))
+            {
+                return result;
+            }
+            result.Result = new List<string>();
+            if (where.Result != null)
+            {
+                result.Result.AddRange(where.Result.Channels);
+            }
+            return result;
         }
 
         /// <summary>

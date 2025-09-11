@@ -62,24 +62,25 @@ public class MembershipTests
             {
                 {"key", Guid.NewGuid().ToString()}
             },
-            Type = "some_membership",
+            Type = "someMembership",
             Status = "active"
         };
 
         var manualUpdatedEvent = new ManualResetEvent(false);
         testMembership.OnMembershipUpdated += membership =>
         {
+            Assert.True(membership.MembershipData.Type == testMembership.MembershipData.Type);
+            Assert.True(membership.MembershipData.Status == testMembership.MembershipData.Status);
             Assert.True(membership.Id == testMembership.Id);
-            var updatedData = membership.MembershipData.CustomData;
-            Assert.True(updatedData["key"].ToString() == updateData.CustomData["key"].ToString());
+            Assert.True(membership.MembershipData.CustomData["key"].ToString() == updateData.CustomData["key"].ToString());
             manualUpdatedEvent.Set();
         };
         testMembership.SetListeningForUpdates(true);
 
         await Task.Delay(4000);
 
-        await testMembership.Update(updateData);
-        var updated = manualUpdatedEvent.WaitOne(8000);
+        TestUtils.AssertOperation(await testMembership.Update(updateData));
+        var updated = manualUpdatedEvent.WaitOne(10000);
         Assert.IsTrue(updated);
     }
 

@@ -253,13 +253,35 @@ namespace PubNubChatAPI.Entities
             }
             result.RegisterOperation(await chat.PubnubInstance.AddMessageAction()
                 .Action(new PNMessageAction() { Type = "edited", Value = newText })
+                .Channel(ChannelId)
                 .MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync());
             return result;
         }
 
-        public bool TryGetQuotedMessage(out Message quotedMessage)
+        public async Task<ChatOperationResult<Message>> GetQuotedMessage()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<Message>();
+            if (!Meta.TryGetValue("quotedMessage", out var quotedMessage))
+            {
+                result.Error = true;
+                result.Exception = new PNException("No quoted message was found.");
+                return result;
+            }
+            if (quotedMessage is not Dictionary<string, object> quotedMessageDict ||
+                !quotedMessageDict.TryGetValue("timetoken", out var timetoken) ||
+                !quotedMessageDict.TryGetValue("channelId", out var channelId))
+            {
+                result.Error = true;
+                result.Exception = new PNException("Quoted message data has incorrect format.");
+                return result;
+            }
+            var getMessage = await chat.GetMessage(channelId.ToString(), timetoken.ToString());
+            if (result.RegisterOperation(getMessage))
+            {
+                return result;
+            }
+            result.Result = getMessage.Result;
+            return result;
         }
 
         public bool HasThread()
@@ -378,17 +400,62 @@ namespace PubNubChatAPI.Entities
 
         public bool HasUserReaction(string reactionValue)
         {
-            throw new NotImplementedException();
+            return Reactions.Any(x => x.Value == reactionValue);
         }
 
-        public async Task ToggleReaction(string reactionValue)
+        public async Task<ChatOperationResult> ToggleReaction(string reactionValue)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            var currentUserId = chat.PubnubInstance.GetCurrentUserId();
+            for (var i = 0; i < MessageActions.Count; i++)
+            {
+                var reaction = MessageActions[i];
+                if (reaction.Type == PubnubMessageActionType.Reaction && reaction.UserId == currentUserId && reaction.Value == reactionValue)
+                {
+                    //Removing old one
+                    var remove = await chat.PubnubInstance.RemoveMessageAction().MessageTimetoken(long.Parse(TimeToken))
+                        .ActionTimetoken(long.Parse(reaction.TimeToken)).ExecuteAsync();
+                    if (result.RegisterOperation(remove))
+                    {
+                        return result;
+                    }
+                    MessageActions.RemoveAt(i);
+                    break;
+                }
+            }
+            var add = await chat.PubnubInstance.AddMessageAction().Action(new PNMessageAction()
+            {
+                Type = "reaction", Value = reactionValue
+            }).MessageTimetoken(long.Parse(TimeToken)).Channel(ChannelId).ExecuteAsync();
+            if (result.RegisterOperation(add))
+            {
+                return result;
+            }
+            MessageActions.Add(new MessageAction()
+            {
+                UserId = currentUserId,
+                TimeToken = add.Result.MessageTimetoken.ToString(),
+                Type = PubnubMessageActionType.Reaction,
+                Value = reactionValue
+            });
+            return result;
         }
 
-        public async Task Restore()
+        public async Task<ChatOperationResult> Restore()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            if (!IsDeleted)
+            {
+                result.Error = true;
+                result.Exception = new PNException("Can't restore a message that wasn't deleted!");
+                return result;
+            }
+            var deleteAction = MessageActions.First(x => x.Type == PubnubMessageActionType.Deleted);
+            var restore = await chat.PubnubInstance.RemoveMessageAction().MessageTimetoken(long.Parse(TimeToken))
+                .ActionTimetoken(long.Parse(deleteAction.TimeToken)).Channel(ChannelId).ExecuteAsync();
+            result.RegisterOperation(restore);
+            MessageActions.RemoveAt(MessageActions.IndexOf(deleteAction));
+            return result;
         }
 
         /// <summary>
@@ -408,14 +475,63 @@ namespace PubNubChatAPI.Entities
         /// </example>
         /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
-        public async Task Delete(bool soft)
+        public async Task<ChatOperationResult> Delete(bool soft)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            if (soft)
+            {
+                var add = await chat.PubnubInstance.AddMessageAction()
+                    .MessageTimetoken(long.Parse(TimeToken)).Action(new PNMessageAction()
+                    {
+                        Type = "deleted",
+                        Value = "deleted"
+                    }).Channel(ChannelId).ExecuteAsync();
+                if (result.RegisterOperation(add))
+                {
+                    return result;
+                }
+                MessageActions.Add(new MessageAction()
+                {
+                    TimeToken = add.Result.ActionTimetoken.ToString(),
+                    UserId = chat.PubnubInstance.GetCurrentUserId(),
+                    Type = PubnubMessageActionType.Deleted,
+                    Value = "deleted"
+                });
+            }
+            else
+            {
+                if (HasThread())
+                {
+                    var getThread = await GetThread();
+                    if (result.RegisterOperation(getThread))
+                    {
+                        return result;
+                    }
+                    var deleteThread = await getThread.Result.Delete();
+                    if (result.RegisterOperation(deleteThread))
+                    {
+                        return result;
+                    }
+                }
+                var startTimeToken = long.Parse(TimeToken) + 1;
+                var deleteMessage = await chat.PubnubInstance.DeleteMessages().Start(startTimeToken)
+                    .End(long.Parse(TimeToken)).ExecuteAsync();
+                result.RegisterOperation(deleteMessage);
+            }
+            return result;
         }
 
-        public override Task<ChatOperationResult> Refresh()
+        public override async Task<ChatOperationResult> Refresh()
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult();
+            var get = await chat.GetMessage(ChannelId, TimeToken);
+            if (result.RegisterOperation(get))
+            {
+                return result;
+            }
+            MessageActions = get.Result.MessageActions;
+            Meta = get.Result.Meta;
+            return result;
         }
     }
 }

@@ -40,7 +40,7 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// The string time token of last read message on the membership channel.
         /// </summary>
-        public string LastReadMessageTimeToken => MembershipData.CustomData.TryGetValue("lastReadMessageTimetoken", out var timeToken) ? timeToken.ToString() : "";
+        public string LastReadMessageTimeToken => MembershipData.CustomData != null && MembershipData.CustomData.TryGetValue("lastReadMessageTimetoken", out var timeToken) ? timeToken.ToString() : "";
 
         public ChatMembershipData MembershipData { get; private set; }
 
@@ -109,7 +109,7 @@ namespace PubNubChatAPI.Entities
 
         internal async Task<PNResult<PNMembershipsResult>> UpdateMembershipData(ChatMembershipData membershipData)
         {
-            return await chat.PubnubInstance.SetMemberships().Uuid(UserId).Channels(new List<PNMembership>()
+            return await chat.PubnubInstance.ManageMemberships().Uuid(UserId).Set(new List<PNMembership>()
             {
                 new()
                 {
@@ -126,7 +126,7 @@ namespace PubNubChatAPI.Entities
                 PNMembershipField.CHANNEL,
                 PNMembershipField.CHANNEL_CUSTOM,
                 PNMembershipField.CHANNEL_TYPE,
-                PNMembershipField.CHANNEL_STATUS
+                PNMembershipField.CHANNEL_STATUS,
             }).ExecuteAsync();
         }
         
@@ -159,6 +159,7 @@ namespace PubNubChatAPI.Entities
         public async Task<ChatOperationResult> SetLastReadMessageTimeToken(string timeToken)
         {
             var result = new ChatOperationResult();
+            MembershipData.CustomData ??= new Dictionary<string, object>();
             MembershipData.CustomData["lastReadMessageTimetoken"] = timeToken;
             var update = await UpdateMembershipData(MembershipData);
             if (result.RegisterOperation(update))

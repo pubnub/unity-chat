@@ -195,6 +195,10 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Custom(data.CustomData);
             }
+            if (!string.IsNullOrEmpty(data.Type))
+            {
+                operation = operation.Type(data.Type);
+            }
             return await operation.ExecuteAsync();
         }
         
@@ -219,7 +223,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForCustomEvents(bool listen)
         {
-            SetListening(customEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref customEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Custom, out var customEvent))
@@ -232,7 +236,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForReportEvents(bool listen)
         {
-            SetListening(reportEventsSubscription, SubscriptionOptions.None, listen, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref reportEventsSubscription, SubscriptionOptions.None, listen, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Report, out var reportEvent))
@@ -245,7 +249,7 @@ namespace PubNubChatAPI.Entities
         
         public void SetListeningForReadReceiptsEvents(bool listen)
         {
-            SetListening(readReceiptsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref readReceiptsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 async delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
@@ -270,7 +274,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForTyping(bool listen)
         {
-            SetListening(typingEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref typingEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Typing, out var rawTypingEvent))
@@ -326,7 +330,7 @@ namespace PubNubChatAPI.Entities
 
         public void SetListeningForPresence(bool listen)
         {
-            SetListening(presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
+            SetListening(ref presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
                 async delegate(Pubnub pn, PNPresenceEventResult p)
                 {
                     var whoIs = await WhoIsPresent();
@@ -451,7 +455,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public void Disconnect()
         {
-            SetListening(subscription, SubscriptionOptions.None, false, Id, null);
+            SetListening(ref subscription, SubscriptionOptions.None, false, Id, null);
         }
 
         /// <summary>
@@ -516,7 +520,7 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="Join"/>
         public void Connect()
         {
-            SetListening(subscription, SubscriptionOptions.None, true, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            SetListening(ref subscription, SubscriptionOptions.None, true, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseMessageResult(chat, m, out var message))
@@ -866,7 +870,14 @@ namespace PubNubChatAPI.Entities
         /// <seealso cref="WhoIsPresent"/>
         public async Task<ChatOperationResult<bool>> IsUserPresent(string userId)
         {
-            throw new NotImplementedException();
+            var result = new ChatOperationResult<bool>();
+            var wherePresent = await chat.WherePresent(userId);
+            if (result.RegisterOperation(wherePresent))
+            {
+                return result;
+            }
+            result.Result = wherePresent.Result.Contains(Id);
+            return result;
         }
 
         /// <summary>

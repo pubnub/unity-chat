@@ -47,15 +47,7 @@ public class MessageTests
             Assert.True(message.Type == PubnubChatMessageType.Text);
             manualReceiveEvent.Set();
         };
-        await channel.SendText("Test message text", new SendTextParams()
-        {
-            //TODO: C# FIX, re-enable as soon as UserMetadata is in correct format
-            /*MentionedUsers = new Dictionary<int, MentionedUser>() { { 0, new MentionedUser()
-            {
-                Id = user.Id,
-                Name = user.UserName
-            } } },*/
-        });
+        await channel.SendText("Test message text");
         var received = manualReceiveEvent.WaitOne(6000);
         Assert.IsTrue(received);
     }
@@ -84,8 +76,8 @@ public class MessageTests
             else if (message.MessageText == "message_with_data")
             {
                 Assert.True(message.MentionedUsers.Any(x => x.Id == user.Id));
-                Assert.True(message.TryGetQuotedMessage(out var quotedMessage) &&
-                            quotedMessage.MessageText == "message_to_be_quoted");
+                var quoted = TestUtils.AssertOperation(await message.GetQuotedMessage());
+                Assert.True(quoted.MessageText == "message_to_be_quoted");
                 manualReceiveEvent.Set();
             }
         };
@@ -99,19 +91,21 @@ public class MessageTests
     public async Task TestGetMessage()
     {
         var manualReceiveEvent = new ManualResetEvent(false);
+        ChatOperationResult<Message> receivedMessage = null;
         channel.OnMessageReceived += async message =>
         {
+            await Task.Delay(3000);
             if (message.ChannelId == channel.Id)
             {
-                var getMessage = await chat.GetMessage(channel.Id, message.TimeToken);
-                Assert.True(!getMessage.Error, $"Error when trying to GetMessage(): {getMessage.Error}");
+                receivedMessage = await chat.GetMessage(channel.Id, message.TimeToken);
                 manualReceiveEvent.Set();
             }
         };
         await channel.SendText("something");
 
-        var received = manualReceiveEvent.WaitOne(4000);
+        var received = manualReceiveEvent.WaitOne(8000);
         Assert.IsTrue(received);
+        Assert.True(!receivedMessage.Error, $"Error when trying to GetMessage(): {receivedMessage.Exception?.Message}");
     }
 
     [Test]

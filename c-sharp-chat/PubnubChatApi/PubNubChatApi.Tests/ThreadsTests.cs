@@ -82,13 +82,13 @@ public class ThreadsTests
             await thread.PinMessageToParentChannel(threadMessage);
             
             await Task.Delay(7000);
-
+            
             var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
             Assert.True(pinned.MessageText == "thread init message");
             await thread.UnPinMessageFromParentChannel();
             
             await Task.Delay(7000);
-
+            
             var getPinned = await channel.GetPinnedMessage();
             Assert.True(getPinned.Error);
             historyReadReset.Set();

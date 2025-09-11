@@ -101,12 +101,16 @@ public class ChatTests
     public async Task TestCreateDirectConversation()
     {
         var convoUser = await chat.GetOrCreateUser("direct_conversation_user");
+        var id = Guid.NewGuid().ToString();
         var directConversation = TestUtils.AssertOperation(
-            await chat.CreateDirectConversation(convoUser, "direct_conversation_test"));
-        Assert.True(directConversation.CreatedChannel is { Id: "direct_conversation_test" });
+            await chat.CreateDirectConversation(convoUser, id));
+        Assert.True(directConversation.CreatedChannel.Id == id);
         Assert.True(directConversation.HostMembership != null && directConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(directConversation.InviteesMemberships != null &&
                     directConversation.InviteesMemberships.First().UserId == convoUser.Id);
+
+        //Cleanup
+        await directConversation.CreatedChannel.Delete();
     }
 
     [Test]
@@ -115,13 +119,17 @@ public class ChatTests
         var convoUser1 = await chat.GetOrCreateUser("group_conversation_user_1");
         var convoUser2 = await chat.GetOrCreateUser("group_conversation_user_2");
         var convoUser3 = await chat.GetOrCreateUser("group_conversation_user_3");
+        var id = Guid.NewGuid().ToString();
         var groupConversation = TestUtils.AssertOperation(await 
-            chat.CreateGroupConversation([convoUser1, convoUser2, convoUser3], "group_conversation_test"));
-        Assert.True(groupConversation.CreatedChannel is { Id: "group_conversation_test" });
+            chat.CreateGroupConversation([convoUser1, convoUser2, convoUser3], id));
+        Assert.True(groupConversation.CreatedChannel.Id == id);
         Assert.True(groupConversation.HostMembership != null && groupConversation.HostMembership.UserId == currentUser.Id);
         Assert.True(groupConversation.InviteesMemberships is { Count: 3 });
         Assert.True(groupConversation.InviteesMemberships.Any(x =>
-            x.UserId == convoUser1.Id && x.ChannelId == "group_conversation_test"));
+            x.UserId == convoUser1.Id && x.ChannelId == id));
+        
+        //Cleanup
+        await groupConversation.CreatedChannel.Delete();
     }
 
     [Test]
@@ -152,7 +160,8 @@ public class ChatTests
         var reportManualEvent = new ManualResetEvent(false);
         channel.OnCustomEvent += customEvent =>
         {
-            Assert.True(customEvent.Payload == "{\"test\":\"some_nonsense\", \"type\": \"custom\"}");
+            Assert.True(customEvent.Payload.Contains("test"));
+            Assert.True(customEvent.Payload.Contains("some_nonsense"));
             reportManualEvent.Set();
         };
         channel.SetListeningForCustomEvents(true);

@@ -59,37 +59,25 @@ namespace PubnubChatApi.Utilities
                 var type = PubnubChatMessageType.Text;
                 var text = messageDict["text"].ToString();
                 
-                //TODO: C# FIX, Meta shouldn't be an object but a deserialized type
-                var meta = chat.PubnubInstance.JsonPluggableLibrary.ConvertToDictionaryObject(historyItem.Meta) ?? new Dictionary<string, object>();
-                
-                //TODO: C# FIX, Actions shouldn't be an object but a deserialized type
                 var actions = new List<MessageAction>();
-                if (historyItem.Actions is Dictionary<string, object> actionsDict)
+                if (historyItem.ActionItems != null)
                 {
-                    foreach (var kvp in actionsDict)
+                    foreach (var kvp in historyItem.ActionItems)
                     {
-                        var actionType = kvp.Key;
-                        var entries = kvp.Value as Dictionary<string, object>;
-                        foreach (var entryPair in entries)
+                        var actionType = ChatEnumConverters.StringToActionType(kvp.Key);
+                        foreach (var actionEntry in kvp.Value)
                         {
-                            var actionValue = entryPair.Key;
-                            var actionEntries = entryPair.Value as List<object>;
-                            foreach (var entry in actionEntries)
+                            actions.Add(new MessageAction()
                             {
-                                var entryDict = entry as Dictionary<string, object>;
-                                actions.Add(new MessageAction()
-                                {
-                                    TimeToken = entryDict["actionTimetoken"].ToString(),
-                                    UserId = entryDict["uuid"].ToString(),
-                                    Type = ChatEnumConverters.StringToActionType(actionType),
-                                    Value = actionValue
-                                });
-                            }
+                                TimeToken = actionEntry.ActionTimetoken.ToString(),
+                                UserId = actionEntry.Uuid,
+                                Type = actionType,
+                                Value = actionEntry.Action.Value
+                            });
                         }
                     }
                 }
-                
-                message = new Message(chat, historyItem.Timetoken.ToString(), text, channelId, historyItem.Uuid, type, meta, actions);
+                message = new Message(chat, historyItem.Timetoken.ToString(), text, channelId, historyItem.Uuid, type, historyItem.Meta, actions);
                 return true;
             }
             catch (Exception e)
@@ -104,8 +92,8 @@ namespace PubnubChatApi.Utilities
         {
             try
             {
-                var channel = objectEvent.ChannelMetadata.Channel;
-                var user = objectEvent.UuidMetadata.Uuid;
+                var channel = objectEvent.MembershipMetadata.Channel;
+                var user = objectEvent.MembershipMetadata.Uuid;
                 var type = objectEvent.Type;
                 if (type == "membership" && channel == membership.ChannelId && user == membership.UserId)
                 {

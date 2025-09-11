@@ -7,7 +7,7 @@ namespace PubNubChatAPI.Entities
     public abstract class ChatEntity
     {
         protected Chat chat;
-        protected Subscription? updateSubscription;
+        protected Subscription updateSubscription;
         protected abstract string UpdateChannelId { get; }
 
         internal ChatEntity(Chat chat)
@@ -15,7 +15,7 @@ namespace PubNubChatAPI.Entities
             this.chat = chat;
         }
 
-        protected void SetListening(Subscription subscription, SubscriptionOptions subscriptionOptions, bool listen, string channelId, SubscribeCallback listener)
+        protected void SetListening(ref Subscription subscription, SubscriptionOptions subscriptionOptions, bool listen, string channelId, SubscribeCallback listener)
         {
             if (listen)
             {
@@ -35,7 +35,7 @@ namespace PubNubChatAPI.Entities
         
         public virtual void SetListeningForUpdates(bool listen)
         {
-            SetListening(updateSubscription, SubscriptionOptions.None, listen, UpdateChannelId, CreateUpdateListener());
+            SetListening(ref updateSubscription, SubscriptionOptions.None, listen, UpdateChannelId, CreateUpdateListener());
         }
         
         protected abstract SubscribeCallback CreateUpdateListener();

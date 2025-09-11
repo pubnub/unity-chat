@@ -56,10 +56,10 @@ public class UserTests
     public async Task TestUserUpdate()
     {
         var updatedReset = new ManualResetEvent(false);
-        var testUser = await chat.GetOrCreateUser("wolololo_guy");
-
-        await Task.Delay(5000);
-        
+        var testUser = await chat.GetOrCreateUser(Guid.NewGuid().ToString());
+        await Task.Delay(3000);
+        testUser.SetListeningForUpdates(true);
+        await Task.Delay(3000);
         var newRandomUserName = Guid.NewGuid().ToString();
         testUser.OnUserUpdated += updatedUser =>
         {
@@ -72,8 +72,6 @@ public class UserTests
             Assert.True(updatedUser.DataType == "someType");
             updatedReset.Set();
         };
-        testUser.SetListeningForUpdates(true);
-        await Task.Delay(3000);
         await testUser.Update(new ChatUserData()
         {
             Username = newRandomUserName,
@@ -88,7 +86,11 @@ public class UserTests
             Type = "someType"
         });
         var updated = updatedReset.WaitOne(15000);
+        testUser.SetListeningForUpdates(false);
         Assert.True(updated);
+        
+        //Cleanup
+        await testUser.DeleteUser();
     }
 
     [Test]
