@@ -153,6 +153,14 @@ namespace PubNubChatAPI.Entities
             });
         }
         
+        /// <summary>
+        /// Sets whether to listen for mention events for this user.
+        /// <para>
+        /// When enabled, the user will receive mention events when they are mentioned in messages.
+        /// </para>
+        /// </summary>
+        /// <param name="listen">True to start listening, false to stop listening.</param>
+        /// <seealso cref="OnMentionEvent"/>
         public void SetListeningForMentionEvents(bool listen)
         {
             SetListening(ref mentionsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
@@ -166,6 +174,14 @@ namespace PubNubChatAPI.Entities
                 }));
         }
 
+        /// <summary>
+        /// Sets whether to listen for invite events for this user.
+        /// <para>
+        /// When enabled, the user will receive invite events when they are invited to channels.
+        /// </para>
+        /// </summary>
+        /// <param name="listen">True to start listening, false to stop listening.</param>
+        /// <seealso cref="OnInviteEvent"/>
         public void SetListeningForInviteEvents(bool listen)
         {
             SetListening(ref invitesSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
@@ -179,6 +195,14 @@ namespace PubNubChatAPI.Entities
                 }));
         }
 
+        /// <summary>
+        /// Sets whether to listen for moderation events for this user.
+        /// <para>
+        /// When enabled, the user will receive moderation events such as bans, mutes, and other restrictions.
+        /// </para>
+        /// </summary>
+        /// <param name="listen">True to start listening, false to stop listening.</param>
+        /// <seealso cref="OnModerationEvent"/>
         public void SetListeningForModerationEvents(bool listen)
         {
             SetListening(ref moderationSubscription, SubscriptionOptions.None, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
@@ -199,10 +223,11 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="updatedData">The updated data for the user.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// user.UpdateUser(new ChatUserData
+        /// var result = await user.Update(new ChatUserData
         /// {
         ///    UserName = "New User Name",
         /// });
@@ -265,6 +290,24 @@ namespace PubNubChatAPI.Entities
             userData = newData;
         }
         
+        /// <summary>
+        /// Refreshes the user data from the server.
+        /// <para>
+        /// Fetches the latest user information from the server and updates the local data.
+        /// This is useful when you want to ensure you have the most up-to-date user information.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the refresh operation.</returns>
+        /// <example>
+        /// <code>
+        /// var user = // ...;
+        /// var result = await user.Refresh();
+        /// if (!result.Error) {
+        ///     // User data has been refreshed
+        ///     Console.WriteLine($"User name: {user.UserName}");
+        /// }
+        /// </code>
+        /// </example>
         public override async Task<ChatOperationResult> Refresh()
         {
             var result = new ChatOperationResult("User.Refresh()", chat);
@@ -284,15 +327,16 @@ namespace PubNubChatAPI.Entities
         /// It will remove the user from all the channels and delete the user's data.
         /// </para>
         /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// user.DeleteUser();
+        /// await user.DeleteUser();
         /// </code>
         /// </example>
-        public async Task DeleteUser()
+        public async Task<ChatOperationResult> DeleteUser()
         {
-            await chat.DeleteUser(Id).ConfigureAwait(false);
+            return await chat.DeleteUser(Id).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -317,25 +361,40 @@ namespace PubNubChatAPI.Entities
             return await chat.SetRestriction(Id, channelId, banUser, muteUser, reason).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Sets restrictions on the user using a Restriction object.
+        /// <para>
+        /// This method sets the restrictions on the user using a structured Restriction object
+        /// that contains ban, mute, and reason information.
+        /// </para>
+        /// </summary>
+        /// <param name="channelId">The channel id on which the restrictions are set.</param>
+        /// <param name="restriction">The restriction object containing ban, mute, and reason information.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <seealso cref="SetRestriction(string, bool, bool, string)"/>
         public async Task<ChatOperationResult> SetRestriction(string channelId, Restriction restriction)
         {
             return await chat.SetRestriction(Id, channelId, restriction).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Gets the restrictions on the user for the channel.
+        /// Gets the restrictions on the user for a specific channel.
         /// <para>
-        /// This method gets the restrictions on the user for the channel.
-        /// You can get the restrictions on the user for the channel.
+        /// This method gets the restrictions (bans and mutes) that have been applied to this user
+        /// on the specified channel.
         /// </para>
         /// </summary>
-        /// <param name="channelId">The channel id for which the restrictions are to be fetched.</param>
-        /// <param name="limit">The limit on the number of restrictions to be fetched.</param>
-        /// <param name="startTimeToken">The start time token from which the restrictions are to be fetched.</param>
-        /// <param name="endTimeToken">The end time token till which the restrictions are to be fetched.</param>
-        /// <returns>
-        /// The restrictions on the user for the channel.
-        /// </returns>
+        /// <param name="channel">The channel for which the restrictions are to be fetched.</param>
+        /// <returns>A ChatOperationResult containing the Restriction object if restrictions exist for this user on the channel, error otherwise.</returns>
+        /// <example>
+        /// <code>
+        /// var user = // ...;
+        /// var channel = // ...;
+        /// var result = await user.GetChannelRestrictions(channel);
+        /// var restriction = result.Result;
+        /// </code>
+        /// </example>
+        /// <seealso cref="SetRestriction"/>
         public async Task<ChatOperationResult<Restriction>> GetChannelRestrictions(Channel channel)
         {
             var result = new ChatOperationResult<Restriction>("User.GetChannelRestrictions()", chat);
@@ -366,6 +425,29 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Gets all channel restrictions for this user across all channels.
+        /// <para>
+        /// This method retrieves all restrictions (bans and mutes) that have been applied to this user
+        /// across all channels where they have restrictions.
+        /// </para>
+        /// </summary>
+        /// <param name="sort">Sort criteria for restrictions.</param>
+        /// <param name="limit">The maximum number of restrictions to retrieve.</param>
+        /// <param name="page">Pagination object for retrieving specific page results.</param>
+        /// <returns>A ChatOperationResult containing the wrapper with all channel restrictions for this user.</returns>
+        /// <example>
+        /// <code>
+        /// var user = // ...;
+        /// var result = await user.GetChannelsRestrictions(limit: 10);
+        /// var restrictions = result.Result.Restrictions;
+        /// foreach (var restriction in restrictions) {
+        ///     Console.WriteLine($"Channel: {restriction.ChannelId}, Ban: {restriction.Ban}, Mute: {restriction.Mute}");
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="GetChannelRestrictions"/>
+        /// <seealso cref="SetRestriction"/>
         public async Task<ChatOperationResult<ChannelsRestrictionsWrapper>> GetChannelsRestrictions(string sort = "", int limit = 0,
             PNPageObject page = null)
         {
@@ -430,7 +512,7 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         /// <param name="channelId">The channel id on which the user's presence is to be checked.</param>
         /// <returns>
-        /// <c>true</c> if the user is present on the channel; otherwise, <c>false</c>.
+        /// A ChatOperationResult with <c>true</c> if the user is present on the channel; otherwise, <c>false</c>.
         /// </returns>
         /// <example>
         /// <code>
@@ -440,15 +522,16 @@ namespace PubNubChatAPI.Entities
         /// }
         /// </code>
         /// </example>
-        public async Task<bool> IsPresentOn(string channelId)
+        public async Task<ChatOperationResult<bool>> IsPresentOn(string channelId)
         {
+            var result = new ChatOperationResult<bool>("User.IsPresentOn()", chat);
             var response = await chat.PubnubInstance.WhereNow().Uuid(Id).ExecuteAsync().ConfigureAwait(false);
-            if (response.Status.Error)
+            if (result.RegisterOperation(response))
             {
-                chat.Logger.Error($"Error when trying to perform IsPresentOn(): {response.Status.ErrorData.Information}");
-                return false;
+                return result;
             }
-            return response.Result.Channels.Contains(channelId);
+            result.Result = response.Result.Channels.Contains(channelId);
+            return result;
         }
 
         /// <summary>
@@ -458,7 +541,7 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <returns>
-        /// The list of channels where the user is present.
+        /// A ChatOperationResult containing the list of channels where the user is present.
         /// </returns>
         /// <remarks>
         /// The list is kept as a list of channel ids.
@@ -466,7 +549,8 @@ namespace PubNubChatAPI.Entities
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// var channels = user.WherePresent();
+        /// var result = await user.WherePresent();
+        /// var channels = result.Result;
         /// foreach (var channel in channels) {
         ///  Console.WriteLine(channel);
         /// }
@@ -495,16 +579,18 @@ namespace PubNubChatAPI.Entities
         /// All the relationships of the user with the channels are considered as memberships.
         /// </para>
         /// </summary>
+        /// <param name="filter">The filter parameter.</param>
+        /// <param name="sort">The sort parameter.</param>
         /// <param name="limit">The limit on the number of memberships to be fetched.</param>
-        /// <param name="startTimeToken">The start time token from which the memberships are to be fetched.</param>
-        /// <param name="endTimeToken">The end time token till which the memberships are to be fetched.</param>
+        /// <param name="page">The page object for pagination.</param>
         /// <returns>
-        /// The list of memberships of the user.
+        /// A ChatOperationResult containing the list of memberships of the user.
         /// </returns>
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// var memberships = user.GetMemberships(50, "99999999999999999", "00000000000000000");
+        /// var result = await user.GetMemberships(limit: 50);
+        /// var memberships = result.Result.Memberships;
         /// foreach (var membership in memberships) {
         /// Console.WriteLine(membership.ChannelId);
         /// }

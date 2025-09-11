@@ -165,7 +165,7 @@ public class MembershipTests
         
         var membership = TestUtils.AssertOperation(await unreadChannel.GetMemberships())
             .Memberships.FirstOrDefault(x => x.UserId == user.Id);
-        var unreadCount = membership == null ? -1 : await membership.GetUnreadMessagesCount();
+        var unreadCount = membership == null ? -1 : TestUtils.AssertOperation(await membership.GetUnreadMessagesCount());
         Assert.True(unreadCount >= 3, $"Expected >=3 unread but got: {unreadCount}");
     }
     
@@ -184,7 +184,7 @@ public class MembershipTests
         }
         await Task.Delay(5000);
         var history = await channel.GetMessageHistory("99999999999999999", "00000000000000000", 1);
-        var unread = await membership.GetUnreadMessagesCount();
+        var unread = TestUtils.AssertOperation(await membership.GetUnreadMessagesCount());
         Assert.True(unread >= 1);
     }
 }

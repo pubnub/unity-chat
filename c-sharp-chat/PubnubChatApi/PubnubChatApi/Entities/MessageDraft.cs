@@ -167,7 +167,7 @@ namespace PubNubChatAPI.Entities
                             suggestion.Target = new MentionTarget() { Target = user.Id, Type = rawMention.Target.Type };
                             suggestion.ReplaceTo = user.UserName;
                             if (userSuggestionSource == UserSuggestionSource.CHANNEL &&
-                                !await user.IsPresentOn(channel.Id).ConfigureAwait(false))
+                                !(await user.IsPresentOn(channel.Id).ConfigureAwait(false)).Result)
                             {
                                 continue;
                             }
@@ -236,8 +236,11 @@ namespace PubNubChatAPI.Entities
         }
         
         /// <summary>
+        /// Inserts a suggested mention into the draft at the appropriate position.
+        /// <para>
         /// Insert mention into the MessageDraft according to SuggestedMention.Offset, SuggestedMention.ReplaceFrom and
         /// SuggestedMention.target.
+        /// </para>
         /// </summary>
         /// <param name="mention">A SuggestedMention that can be obtained from OnDraftUpdated when ShouldSearchForSuggestions is set to true</param>
         /// <param name="text">The text to replace SuggestedMention.ReplaceFrom with. SuggestedMention.ReplaceTo can be used for example.</param>
@@ -573,8 +576,9 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Validates that mentions don't overlap
+        /// Validates that mentions don't overlap and are within valid text bounds.
         /// </summary>
+        /// <returns>True if all mentions are valid, false otherwise.</returns>
         public bool ValidateMentions()
         {
             for (int i = 0; i < _mentions.Count; i++)
@@ -628,8 +632,12 @@ namespace PubNubChatAPI.Entities
         }
 
         /// <summary>
-        /// Renders the message with markdown-style links
+        /// Renders the draft text with mentions converted to their appropriate schema format.
+        /// <para>
+        /// Renders the message with markdown-style links.
+        /// </para>
         /// </summary>
+        /// <returns>The rendered text with schema-formatted mentions.</returns>
         public string Render()
         {
             var elements = GetMessageElements();

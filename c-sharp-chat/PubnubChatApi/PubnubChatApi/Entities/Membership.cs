@@ -96,6 +96,7 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="membershipData">The ChatMembershipData object to update the membership with.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <seealso cref="OnMembershipUpdated"/>
         public async Task<ChatOperationResult> Update(ChatMembershipData membershipData)
         {
@@ -151,11 +152,33 @@ namespace PubNubChatAPI.Entities
             }).ExecuteAsync().ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Sets the last read message for this membership.
+        /// <para>
+        /// Updates the membership to mark the specified message as the last one read by the user.
+        /// This is used for tracking read receipts and unread message counts.
+        /// </para>
+        /// </summary>
+        /// <param name="message">The message to mark as last read.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <seealso cref="SetLastReadMessageTimeToken"/>
+        /// <seealso cref="GetUnreadMessagesCount"/>
         public async Task<ChatOperationResult> SetLastReadMessage(Message message)
         {
             return await SetLastReadMessageTimeToken(message.TimeToken).ConfigureAwait(false);
         }
         
+        /// <summary>
+        /// Sets the last read message time token for this membership.
+        /// <para>
+        /// Updates the membership to mark the message with the specified time token as the last one read by the user.
+        /// This is used for tracking read receipts and unread message counts.
+        /// </para>
+        /// </summary>
+        /// <param name="timeToken">The time token of the message to mark as last read.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <seealso cref="SetLastReadMessage"/>
+        /// <seealso cref="GetUnreadMessagesCount"/>
         public async Task<ChatOperationResult> SetLastReadMessageTimeToken(string timeToken)
         {
             var result = new ChatOperationResult("Membership.SetLastReadMessageTimeToken()", chat);
@@ -171,24 +194,43 @@ namespace PubNubChatAPI.Entities
             return result;
         }
         
-        public async Task<long> GetUnreadMessagesCount()
+        /// <summary>
+        /// Gets the count of unread messages for this membership.
+        /// <para>
+        /// Calculates the number of messages that have been sent to the channel since the last read message time token.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult with the number of unread messages</returns>
+        /// <seealso cref="SetLastReadMessage"/>
+        /// <seealso cref="SetLastReadMessageTimeToken"/>
+        public async Task<ChatOperationResult<long>> GetUnreadMessagesCount()
         {
+            var result = new ChatOperationResult<long>("Membership.GetUnreadMessagesCount()", chat);
             if (!long.TryParse(LastReadMessageTimeToken, out var lastRead))
             {
-                chat.Logger.Error("LastReadMessageTimeToken is not a valid time token!");
-                return -1;
+                result.Error = true;
+                result.Exception = new PNException("LastReadMessageTimeToken is not a valid time token!");
+                return result;
             }
             lastRead = lastRead == 0 ? EMPTY_TIMETOKEN : lastRead;
             var countsResponse = await chat.PubnubInstance.MessageCounts().Channels(new[] { ChannelId })
                 .ChannelsTimetoken(new[] { lastRead }).ExecuteAsync().ConfigureAwait(false);
-            if (countsResponse.Status.Error)
+            if (result.RegisterOperation(countsResponse))
             {
-                chat.Logger.Error($"Error when trying to get message counts on channel \"{ChannelId}\": {countsResponse.Status.ErrorData}");
-                return -1;
+                return result;
             }
-            return countsResponse.Result.Channels[ChannelId];
+            result.Result = countsResponse.Result.Channels[ChannelId];
+            return result;
         }
 
+        /// <summary>
+        /// Refreshes the membership data from the server.
+        /// <para>
+        /// Fetches the latest membership information from the server and updates the local data.
+        /// This is useful when you want to ensure you have the most up-to-date membership information.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the refresh operation.</returns>
         public override async Task<ChatOperationResult> Refresh()
         {
             return await chat.GetChannelMemberships(ChannelId, filter:$"uuid.id == \"{UserId}\"").ConfigureAwait(false);

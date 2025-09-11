@@ -88,6 +88,13 @@ namespace PubNubChatAPI.Entities
         /// </summary>
         public bool IsDeleted => MessageActions.Any(x => x.Type == PubnubMessageActionType.Deleted);
         
+        /// <summary>
+        /// Gets the list of users mentioned in this message.
+        /// <para>
+        /// Extracts user mentions from the message metadata and returns them as a list of MentionedUser objects.
+        /// </para>
+        /// </summary>
+        /// <value>A list of users that were mentioned in this message.</value>
         public List<MentionedUser> MentionedUsers {
             get
             {
@@ -114,6 +121,13 @@ namespace PubNubChatAPI.Entities
             }
         }
         
+        /// <summary>
+        /// Gets the list of channels referenced in this message.
+        /// <para>
+        /// Extracts channel references from the message metadata and returns them as a list of ReferencedChannel objects.
+        /// </para>
+        /// </summary>
+        /// <value>A list of channels that were referenced in this message.</value>
         public List<ReferencedChannel> ReferencedChannels {
             get
             {
@@ -140,6 +154,14 @@ namespace PubNubChatAPI.Entities
             }
         }
         
+        /// <summary>
+        /// Gets the list of text links found in this message.
+        /// <para>
+        /// Extracts text links from the message metadata and returns them as a list of TextLink objects
+        /// containing start index, end index, and link URL information.
+        /// </para>
+        /// </summary>
+        /// <value>A list of text links found in this message.</value>
         public List<TextLink> TextLinks {
             get
             {
@@ -167,8 +189,22 @@ namespace PubNubChatAPI.Entities
             }
         }
 
+        /// <summary>
+        /// Gets or sets the list of message actions applied to this message.
+        /// <para>
+        /// Message actions include reactions, edits, deletions, and other modifications to the message.
+        /// </para>
+        /// </summary>
+        /// <value>A list of all message actions applied to this message.</value>
         public List<MessageAction> MessageActions { get; internal set; } = new();
 
+        /// <summary>
+        /// Gets the list of reactions added to this message.
+        /// <para>
+        /// Filters the message actions to return only reactions (like emojis or other reaction types).
+        /// </para>
+        /// </summary>
+        /// <value>A list of reaction message actions for this message.</value>
         public List<MessageAction> Reactions =>
             MessageActions.Where(x => x.Type == PubnubMessageActionType.Reaction).ToList();
 
@@ -235,10 +271,11 @@ namespace PubNubChatAPI.Entities
         /// </para>
         /// </summary>
         /// <param name="newText">The new text of the message.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var message = // ...;
-        /// message.EditMessageText("New text");
+        /// var result = await message.EditMessageText("New text");
         /// </code>
         /// </example>
         /// <seealso cref="OnMessageUpdated"/>
@@ -258,6 +295,10 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Gets the quoted message if this message quotes another message.
+        /// </summary>
+        /// <returns>A ChatOperationResult containing the quoted Message object if one exists, null otherwise.</returns>
         public async Task<ChatOperationResult<Message>> GetQuotedMessage()
         {
             var result = new ChatOperationResult<Message>("Message.GetQuotedMessage()", chat);
@@ -284,6 +325,15 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Checks if this message has a thread associated with it.
+        /// <para>
+        /// Determines whether a thread channel has been created for this message by checking for thread-related message actions.
+        /// </para>
+        /// </summary>
+        /// <returns>True if this message has a thread, false otherwise.</returns>
+        /// <seealso cref="CreateThread"/>
+        /// <seealso cref="GetThread"/>
         public bool HasThread()
         {
             return MessageActions.Any(x => x.Type == PubnubMessageActionType.ThreadRootId);
@@ -294,6 +344,27 @@ namespace PubNubChatAPI.Entities
             return $"{Chat.MESSAGE_THREAD_ID_PREFIX}_{ChannelId}_{TimeToken}";
         }
 
+        /// <summary>
+        /// Creates a thread channel for this message.
+        /// <para>
+        /// Creates a new thread channel that is associated with this message. Users can send messages
+        /// to the thread to have conversations related to this specific message.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult containing the created ThreadChannel object.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// var result = message.CreateThread();
+        /// if (!result.Error) {
+        ///     var threadChannel = result.Result;
+        ///     // Use the thread channel
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="HasThread"/>
+        /// <seealso cref="GetThread"/>
+        /// <seealso cref="RemoveThread"/>
         public ChatOperationResult<ThreadChannel> CreateThread()
         {
             var result = new ChatOperationResult<ThreadChannel>("Message.CreateThread()", chat);
@@ -328,12 +399,34 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// Asynchronously tries to get the ThreadChannel started on this Message.
         /// </summary>
-        /// <returns>The retrieved ThreadChannel object, null if one wasn't found.</returns>
+        /// <returns>A ChatOperationResult containing the retrieved ThreadChannel object, null if one wasn't found.</returns>
         public async Task<ChatOperationResult<ThreadChannel>> GetThread()
         {
             return await chat.GetThreadChannel(this).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Removes the thread channel associated with this message.
+        /// <para>
+        /// Deletes the thread channel that was created for this message, including all messages in the thread.
+        /// This action cannot be undone.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// if (message.HasThread()) {
+        ///     var result = await message.RemoveThread();
+        ///     if (!result.Error) {
+        ///         // Thread has been removed
+        ///     }
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="HasThread"/>
+        /// <seealso cref="CreateThread"/>
+        /// <seealso cref="GetThread"/>
         public async Task<ChatOperationResult> RemoveThread()
         {
             var result = new ChatOperationResult("Message.RemoveThread()", chat);
@@ -344,7 +437,7 @@ namespace PubNubChatAPI.Entities
                 return result;
             }
             var threadMessageAction = MessageActions.First(x => x.Type == PubnubMessageActionType.ThreadRootId);
-            var getThread = await GetThread();
+            var getThread = await GetThread().ConfigureAwait(false);
             if (result.RegisterOperation(getThread))
             {
                 return result;
@@ -360,6 +453,25 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Pins this message to its channel.
+        /// <para>
+        /// Marks this message as the pinned message for the channel it belongs to.
+        /// Only one message can be pinned per channel.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// var result = await message.Pin();
+        /// if (!result.Error) {
+        ///     // Message has been pinned to the channel
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="Channel.PinMessage"/>
+        /// <seealso cref="Channel.UnpinMessage"/>
         public async Task<ChatOperationResult> Pin()
         {
             var result = new ChatOperationResult("Message.Pin()", chat);
@@ -372,6 +484,24 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Reports this message for inappropriate content or behavior.
+        /// <para>
+        /// Submits a report about this message to the moderation system with the specified reason.
+        /// This helps maintain community guidelines and content standards.
+        /// </para>
+        /// </summary>
+        /// <param name="reason">The reason for reporting this message.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// var result = await message.Report("Spam content");
+        /// if (!result.Error) {
+        ///     // Message has been reported
+        /// }
+        /// </code>
+        /// </example>
         public async Task<ChatOperationResult> Report(string reason)
         {
             var jsonDict = new Dictionary<string, string>()
@@ -386,6 +516,24 @@ namespace PubNubChatAPI.Entities
                 chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict)).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Forwards this message to another channel.
+        /// <para>
+        /// Sends a copy of this message to the specified channel, preserving the original text and metadata.
+        /// </para>
+        /// </summary>
+        /// <param name="channelId">The ID of the channel to forward the message to.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// var result = await message.Forward("target-channel-id");
+        /// if (!result.Error) {
+        ///     // Message has been forwarded
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="Channel.ForwardMessage"/>
         public async Task<ChatOperationResult> Forward(string channelId)
         {
             var result = new ChatOperationResult("Message.Forward()", chat);
@@ -398,11 +546,49 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Checks if this message has a specific reaction.
+        /// <para>
+        /// Determines whether the specified reaction value (like an emoji) has been added to this message.
+        /// </para>
+        /// </summary>
+        /// <param name="reactionValue">The reaction value to check for (e.g., "👍", "❤️").</param>
+        /// <returns>True if the message has the specified reaction, false otherwise.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// if (message.HasUserReaction("👍")) {
+        ///     // Message has a thumbs up reaction
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="ToggleReaction"/>
+        /// <seealso cref="Reactions"/>
         public bool HasUserReaction(string reactionValue)
         {
             return Reactions.Any(x => x.Value == reactionValue);
         }
 
+        /// <summary>
+        /// Toggles a reaction on this message.
+        /// <para>
+        /// Adds the specified reaction if it doesn't exist, or removes it if it already exists.
+        /// This allows users to react to messages with emojis or other reaction types.
+        /// </para>
+        /// </summary>
+        /// <param name="reactionValue">The reaction value to toggle (e.g., "👍", "❤️").</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// var result = await message.ToggleReaction("👍");
+        /// if (!result.Error) {
+        ///     // Reaction has been toggled
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="HasUserReaction"/>
+        /// <seealso cref="Reactions"/>
         public async Task<ChatOperationResult> ToggleReaction(string reactionValue)
         {
             var result = new ChatOperationResult("Message.ToggleReaction()", chat);
@@ -441,6 +627,27 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Restores a previously deleted message.
+        /// <para>
+        /// Undoes the soft deletion of this message, making it visible again to all users.
+        /// This only works for messages that were soft deleted.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// if (message.IsDeleted) {
+        ///     var result = await message.Restore();
+        ///     if (!result.Error) {
+        ///         // Message has been restored
+        ///     }
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="Delete"/>
+        /// <seealso cref="IsDeleted"/>
         public async Task<ChatOperationResult> Restore()
         {
             var result = new ChatOperationResult("Message.Restore()", chat);
@@ -461,16 +668,15 @@ namespace PubNubChatAPI.Entities
         /// <summary>
         /// Deletes the message.
         /// <para>
-        /// This method deletes the message.
-        /// It marks the message as deleted.
-        /// It means that the message will not be visible to other users, but the 
-        /// message is treated as soft deleted.
+        /// A soft-deleted message can be restored, a hard-deleted one is permanently gone.
         /// </para>
         /// </summary>
+        /// <param name="soft">Whether to perform a soft delete (true) or hard delete (false).</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var message = // ...;
-        /// message.DeleteMessage();
+        /// var result = await message.Delete(soft: true);
         /// </code>
         /// </example>
         /// <seealso cref="IsDeleted"/>
@@ -521,6 +727,24 @@ namespace PubNubChatAPI.Entities
             return result;
         }
 
+        /// <summary>
+        /// Refreshes the message data from the server.
+        /// <para>
+        /// Fetches the latest message information from the server and updates the local data,
+        /// including message actions, metadata, and other properties that may have changed.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the refresh operation.</returns>
+        /// <example>
+        /// <code>
+        /// var message = // ...;
+        /// var result = await message.Refresh();
+        /// if (!result.Error) {
+        ///     // Message data has been refreshed
+        ///     Console.WriteLine($"Updated text: {message.MessageText}");
+        /// }
+        /// </code>
+        /// </example>
         public override async Task<ChatOperationResult> Refresh()
         {
             var result = new ChatOperationResult("Message.Refresh()", chat);

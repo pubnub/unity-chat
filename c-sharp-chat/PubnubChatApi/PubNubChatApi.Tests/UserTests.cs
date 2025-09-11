@@ -132,7 +132,7 @@ public class UserTests
 
         await Task.Delay(4000);
 
-        var isOn = await user.IsPresentOn(someChannel.Id);
+        var isOn = TestUtils.AssertOperation(await user.IsPresentOn(someChannel.Id));
         
         Assert.True(isOn, "user.IsPresentOn() doesn't return true for most recently joined channel!");
     }
