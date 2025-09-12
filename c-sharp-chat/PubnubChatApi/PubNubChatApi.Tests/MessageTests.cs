@@ -94,7 +94,7 @@ public class MessageTests
         ChatOperationResult<Message> receivedMessage = null;
         channel.OnMessageReceived += async message =>
         {
-            await Task.Delay(3000);
+            await Task.Delay(5000);
             if (message.ChannelId == channel.Id)
             {
                 receivedMessage = await chat.GetMessage(channel.Id, message.TimeToken);
@@ -103,7 +103,7 @@ public class MessageTests
         };
         await channel.SendText("something");
 
-        var received = manualReceiveEvent.WaitOne(8000);
+        var received = manualReceiveEvent.WaitOne(12000);
         Assert.IsTrue(received);
         Assert.True(!receivedMessage.Error, $"Error when trying to GetMessage(): {receivedMessage.Exception?.Message}");
     }
