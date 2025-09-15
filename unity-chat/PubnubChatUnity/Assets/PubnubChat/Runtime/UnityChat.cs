@@ -24,7 +24,7 @@ namespace PubnubChat.Runtime
         /// </remarks>
         public static async Task<ChatOperationResult<Chat>> CreateInstance(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, bool webGLBuildMode = false, bool unityLogging = false)
         {
-            var pubnub = PubnubUnityUtils.NewUnityPubnub(pubnubConfig, webGLBuildMode, unityLogging);
+            var pubnub = PubnubUnityUtils.NewUnityPubnub(pubnubConfig, webGLBuildMode, unityLogging, new UnityChatPNSDKSource());
             return await Chat.CreateInstance(chatConfig, pubnub, new UnityListenerFactory());
         }
 
@@ -43,7 +43,7 @@ namespace PubnubChat.Runtime
         /// </remarks>
         public static async Task<ChatOperationResult<Chat>> CreateInstance(PubnubChatConfig chatConfig, PNConfigAsset configurationAsset, string userId)
         {
-            var pubnub = PubnubUnityUtils.NewUnityPubnub(configurationAsset, userId);
+            var pubnub = PubnubUnityUtils.NewUnityPubnub(configurationAsset, userId, new UnityChatPNSDKSource());
             return await Chat.CreateInstance(chatConfig, pubnub, new UnityListenerFactory());
         }
         
