@@ -24,17 +24,14 @@ namespace PubnubChatApi.Entities.Data
         /// Registers a single PNResult to this overall Chat Operation Result.
         /// Returns pubnubResult.Status.Error
         /// </summary>
-        internal bool RegisterOperation<T>(PNResult<T> pubnubResult, bool logIfError = true)
+        internal bool RegisterOperation<T>(PNResult<T> pubnubResult)
         {
             InternalStatuses.Add(pubnubResult.Status);
             chat.Logger.Debug($"Chat operation \"{OperationName}\" registered PN Status: {chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(pubnubResult.Status)}");
             Error = pubnubResult.Status.Error;
             if (Error)
             {
-                if (logIfError)
-                {
-                    chat.Logger.Error($"Chat operation \"{OperationName}\" registered PN Status with error: {pubnubResult.Status.ErrorData.Information}");
-                }
+                chat.Logger.Debug($"Chat operation \"{OperationName}\" registered PN Status with error: {pubnubResult.Status.ErrorData.Information}");
                 Exception = pubnubResult.Status.ErrorData.Throwable;
             }
             return Error;
@@ -44,7 +41,7 @@ namespace PubnubChatApi.Entities.Data
         /// Registers another ChatOperationResult to this ChatOperationResult.
         /// Returns otherChatResult.Error
         /// </summary>
-        internal bool RegisterOperation(ChatOperationResult otherChatResult, bool logIfError = true)
+        internal bool RegisterOperation(ChatOperationResult otherChatResult)
         {
             foreach (var status in otherChatResult.InternalStatuses)
             {
@@ -52,9 +49,9 @@ namespace PubnubChatApi.Entities.Data
                 InternalStatuses.Add(status);
 
             }
-            if (otherChatResult.Error && logIfError)
+            if (otherChatResult.Error)
             {
-                chat.Logger.Error($"Chat operation \"{OperationName}\" registered PN Status from operation \"{otherChatResult.OperationName}\" with error: {otherChatResult.Exception.Message}");
+                chat.Logger.Debug($"Chat operation \"{OperationName}\" registered PN Status from operation \"{otherChatResult.OperationName}\" with error: {otherChatResult.Exception.Message}");
             }
             Exception = otherChatResult.Exception;
             Error = otherChatResult.Error;

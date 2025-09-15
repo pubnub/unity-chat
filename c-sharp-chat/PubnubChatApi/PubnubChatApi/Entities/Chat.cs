@@ -191,7 +191,7 @@ namespace PubNubChatAPI.Entities
         {
             var result = new ChatOperationResult<Channel>("Chat.CreatePublicConversation()", this);
             var existingChannel = await GetChannel(channelId).ConfigureAwait(false);
-            if (!result.RegisterOperation(existingChannel, false))
+            if (!result.RegisterOperation(existingChannel))
             {
                 Logger.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
                 result.Result = existingChannel.Result;
@@ -224,7 +224,7 @@ namespace PubNubChatAPI.Entities
             }
             
             var existingChannel = await GetChannel(channelId).ConfigureAwait(false);
-            if (!result.RegisterOperation(existingChannel, false))
+            if (!result.RegisterOperation(existingChannel))
             {
                 Logger.Debug("Trying to create a channel with ID that already exists! Returning existing one.");
                 result.Result.CreatedChannel = existingChannel.Result;
@@ -333,7 +333,7 @@ namespace PubNubChatAPI.Entities
             var result = new ChatOperationResult<Membership>("Chat.InviteToChannel()", this);
             //Check if already a member first
             var members = await GetChannelMemberships(channelId, filter:$"uuid.id == \"{userId}\"").ConfigureAwait(false);
-            if (!result.RegisterOperation(members, false) && members.Result.Memberships.Any())
+            if (!result.RegisterOperation(members) && members.Result.Memberships.Any())
             {
                 //Already a member, just return current membership
                 result.Result = members.Result.Memberships[0];
@@ -817,7 +817,7 @@ namespace PubNubChatAPI.Entities
         {
             var result = new ChatOperationResult<User>("Chat.CreateUser()", this);
             var existingUser = await GetUser(userId).ConfigureAwait(false);
-            if (!result.RegisterOperation(existingUser, false))
+            if (!result.RegisterOperation(existingUser))
             {
                 result.Result = existingUser.Result;
                 return result;
