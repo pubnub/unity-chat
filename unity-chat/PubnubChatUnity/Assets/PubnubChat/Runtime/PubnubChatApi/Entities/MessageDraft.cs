@@ -191,6 +191,10 @@ namespace PubNubChatAPI.Entities
                             continue;
                         }
                         break;
+                    case MentionType.Url:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
                 suggestions.Add(suggestion);
             }

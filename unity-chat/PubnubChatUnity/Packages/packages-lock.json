@@ -7,7 +7,7 @@
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       },
-      "hash": "c7e3f452dc9feee8c3396011e157605119186058"
+      "hash": "4abedb90b80e8c615425ec4aaa397f4a62b16a98"
     },
     "com.unity.collab-proxy": {
       "version": "2.6.0",
@@ -25,7 +25,7 @@
     },
     "com.unity.ext.nunit": {
       "version": "1.0.6",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -45,8 +45,8 @@
       }
     },
     "com.unity.ide.rider": {
-      "version": "3.0.34",
-      "depth": 1,
+      "version": "3.0.37",
+      "depth": 0,
       "source": "registry",
       "dependencies": {
         "com.unity.ext.nunit": "1.0.6"

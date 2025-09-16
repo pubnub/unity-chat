@@ -24,7 +24,6 @@ namespace PubNubChatAPI.Entities
     public class Chat
     {
         internal const string INTERNAL_MODERATION_PREFIX = "PUBNUB_INTERNAL_MODERATION";
-        internal const string INTERNAL_ADMIN_CHANNEL = "PUBNUB_INTERNAL_ADMIN_CHANNEL";
         internal const string MESSAGE_THREAD_ID_PREFIX = "PUBNUB_INTERNAL_THREAD";
         
         public Pubnub PubnubInstance { get; }

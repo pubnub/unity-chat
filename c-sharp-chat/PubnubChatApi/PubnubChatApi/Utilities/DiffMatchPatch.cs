@@ -428,6 +428,8 @@ namespace DiffMatchPatch {
             text_delete = string.Empty;
             text_insert = string.Empty;
             break;
+          default:
+            throw new ArgumentOutOfRangeException();
         }
         pointer++;
       }
