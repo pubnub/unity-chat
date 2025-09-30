@@ -3,12 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubApi.Unity;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChat.Runtime;
-using Channel = PubNubChatAPI.Entities.Channel;
-using UnityEngine;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
+
 // snippet.end
 
 public class UpdatesChannelSample

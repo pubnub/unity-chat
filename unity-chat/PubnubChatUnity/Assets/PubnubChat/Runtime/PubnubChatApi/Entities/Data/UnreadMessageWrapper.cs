@@ -1,8 +1,4 @@
-using System;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Utilities;
-
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public struct UnreadMessageWrapper
     {

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using PubNubChatAPI.Entities;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public class CreatedChannelWrapper
     {

@@ -1,10 +1,8 @@
 using System;
 using System.Globalization;
 using PubnubApi;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
 
-namespace PubnubChatApi.Utilities
+namespace PubnubChatApi
 {
     internal static class ChatUtils
     {

@@ -1,7 +1,7 @@
 using System;
 using PubnubApi;
 
-namespace PubnubChatApi.Utilities
+namespace PubnubChatApi
 {
     public class DotNetListenerFactory : ChatListenerFactory
     {

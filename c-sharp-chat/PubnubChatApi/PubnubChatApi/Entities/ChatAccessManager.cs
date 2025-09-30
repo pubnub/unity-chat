@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubChatApi.Enums;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     public class ChatAccessManager
     {

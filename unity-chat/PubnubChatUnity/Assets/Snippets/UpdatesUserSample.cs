@@ -3,11 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubApi.Unity;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChat.Runtime;
-using UnityEngine;
+using PubnubChatApi;
+
 // snippet.end
 
 public class UpdatesUserSample

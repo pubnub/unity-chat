@@ -1,7 +1,7 @@
 using System;
 using PubnubApi;
 using PubnubApi.Unity;
-using PubnubChatApi.Utilities;
+using PubnubChatApi;
 
 public class UnityListenerFactory : ChatListenerFactory
 {

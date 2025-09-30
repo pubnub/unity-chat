@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public struct MentionedUser
     {

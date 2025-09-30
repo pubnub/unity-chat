@@ -1,4 +1,4 @@
-namespace PubnubChatApi.Enums
+namespace PubnubChatApi
 {
     public enum PubnubMessageActionType
     {

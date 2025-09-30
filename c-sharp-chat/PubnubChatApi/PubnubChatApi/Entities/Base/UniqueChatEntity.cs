@@ -1,6 +1,6 @@
 using System;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     public abstract class UniqueChatEntity : ChatEntity
     {

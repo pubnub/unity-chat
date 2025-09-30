@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Enums;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     public class ThreadChannel : Channel
     {

@@ -1,6 +1,4 @@
-using PubnubChatApi.Enums;
-
-namespace PubnubChatApi.Entities.Events
+namespace PubnubChatApi
 {
     public struct ChatEvent
     {

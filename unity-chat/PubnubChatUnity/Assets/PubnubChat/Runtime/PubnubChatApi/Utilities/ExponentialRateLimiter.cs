@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PubnubChatApi.Utilities
+namespace PubnubChatApi
 {
     public class ExponentialRateLimiter : IDisposable
     {

@@ -1,6 +1,6 @@
 using PubnubApi;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public class PubnubChatConfig
     {

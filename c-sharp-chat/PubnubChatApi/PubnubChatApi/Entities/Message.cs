@@ -1,17 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using PubnubApi;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Enums;
-using PubnubChatApi.Utilities;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     /// <summary>
     /// Represents a message in a chat channel.

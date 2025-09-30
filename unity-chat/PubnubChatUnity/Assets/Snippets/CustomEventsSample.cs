@@ -4,12 +4,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubApi.Unity;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChat.Runtime;
-using PubnubChatApi.Enums;
-using UnityEngine;
-using Newtonsoft.Json;
+using PubnubChatApi;
+
 // snippet.end
 
 public class CustomEventsSample
@@ -69,13 +65,13 @@ public class CustomEventsSample
 
         // example function to handle the "frustrated" event and satisfy the customer
         void HandleFrustratedEvent(string eventData) {
-            //example basic JSON parsing using Newtonsoft JSON.NET
-            var data = JsonConvert.DeserializeObject<Dictionary<string,string>>(eventData);
+            //basic JSON parsing using the pluggable library
+            var data = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(eventData);
             
             // extract relevant information from the event data
-            string customerID = data["customerID"];
-            string timestamp = data["timestamp"];
-            string triggerWord = data["triggerWord"];
+            string customerID = data["customerID"].ToString();
+            string timestamp = data["timestamp"].ToString();
+            string triggerWord = data["triggerWord"].ToString();
 
             // create a response
             string response = "Thank you for reaching out. We're sorry to hear " +

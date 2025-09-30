@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using PubnubChatApi.Entities.Data;
 using DiffMatchPatch;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     public enum MentionType
     {

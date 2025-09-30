@@ -2,11 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Enums;
-using PubnubChatApi.Utilities;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     public class ThreadMessage : Message
     {

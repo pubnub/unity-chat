@@ -4,12 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using PubnubApi;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Entities.Events;
-using PubnubChatApi.Enums;
-using PubnubChatApi.Utilities;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     /// <summary>
     /// Class <c>Channel</c> represents a chat channel.

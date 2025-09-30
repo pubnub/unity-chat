@@ -1,7 +1,6 @@
 using System;
-using PubnubChatApi.Enums;
 
-namespace PubnubChatApi.Utilities
+namespace PubnubChatApi
 {
     internal static class ChatEnumConverters
     {

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using PubnubChatApi.Entities.Events;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public struct EventsHistoryWrapper
     {

@@ -1,6 +1,4 @@
-using PubnubChatApi.Enums;
-
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public struct MessageAction
     {

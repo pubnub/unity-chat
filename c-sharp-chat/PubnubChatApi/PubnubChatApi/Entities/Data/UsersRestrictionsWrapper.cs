@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using PubnubApi;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public class UsersRestrictionsWrapper
     {

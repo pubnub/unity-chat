@@ -1,8 +1,7 @@
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubChatApi.Entities.Data;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     public abstract class ChatEntity
     {

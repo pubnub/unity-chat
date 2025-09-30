@@ -1,10 +1,8 @@
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubApi.Unity;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
 
-namespace PubnubChat.Runtime
+namespace PubnubChatApi
 {
     public static class UnityChat
     {

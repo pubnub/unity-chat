@@ -3,7 +3,7 @@ using System.Reflection;
 using PubnubApi;
 using PubnubApi.PNSDK;
 
-namespace PubnubChatApi.Utilities
+namespace PubnubChatApi
 {
     public class PubnubChatDotNetPNSDKSource : IPNSDKSource
     {

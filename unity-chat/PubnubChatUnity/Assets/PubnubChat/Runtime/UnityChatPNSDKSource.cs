@@ -1,6 +1,7 @@
 using PubnubApi.PNSDK;
+using PubnubApi.Unity;
 
-namespace PubnubApi.Unity
+namespace PubnubChatApi
 {
     public class UnityChatPNSDKSource : IPNSDKSource
     {

@@ -3,12 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Entities.Events;
-using PubnubChatApi.Enums;
-using PubnubChatApi.Utilities;
 
-namespace PubNubChatAPI.Entities
+namespace PubnubChatApi
 {
     //TODO: make IDisposable?
     /// <summary>

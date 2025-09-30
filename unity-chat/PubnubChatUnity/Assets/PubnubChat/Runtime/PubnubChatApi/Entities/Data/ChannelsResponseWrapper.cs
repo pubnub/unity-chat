@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using PubnubApi;
-using PubnubChatApi.Utilities;
-using Channel = PubNubChatAPI.Entities.Channel;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public struct ChannelsResponseWrapper
     {

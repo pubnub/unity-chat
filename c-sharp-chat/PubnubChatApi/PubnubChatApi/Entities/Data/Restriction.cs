@@ -1,4 +1,4 @@
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     /// <summary>
     /// Data struct for restriction.

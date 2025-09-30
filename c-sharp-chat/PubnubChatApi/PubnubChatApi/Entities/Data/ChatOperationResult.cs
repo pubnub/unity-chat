@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using PubnubApi;
-using PubNubChatAPI.Entities;
 
-namespace PubnubChatApi.Entities.Data
+namespace PubnubChatApi
 {
     public class ChatOperationResult
     {

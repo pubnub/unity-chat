@@ -1,4 +1,4 @@
-namespace PubnubChatApi.Enums
+namespace PubnubChatApi
 {
     /// <summary>
     /// Represents the type of a chat message.

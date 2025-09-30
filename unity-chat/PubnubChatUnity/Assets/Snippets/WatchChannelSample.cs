@@ -1,13 +1,10 @@
 // snippet.using
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubApi.Unity;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChat.Runtime;
-using UnityEngine;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
+
 // snippet.end
 
 public class WatchChannelSample
@@ -58,7 +55,7 @@ public class WatchChannelSample
         // snippet.end
     }
     
-    public static void UnwatchChannelExample(PubNubChatAPI.Entities.Channel channel)
+    public static void UnwatchChannelExample(Channel channel)
     {
         // snippet.unwatch_channel_example
         void OnMessageReceivedHandler(Message message)

@@ -2,13 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using PubnubApi;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Entities.Events;
-using PubnubChatApi.Enums;
-using Channel = PubNubChatAPI.Entities.Channel;
 
-namespace PubnubChatApi.Utilities
+namespace PubnubChatApi
 {
     internal static class ChatParsers
     {
