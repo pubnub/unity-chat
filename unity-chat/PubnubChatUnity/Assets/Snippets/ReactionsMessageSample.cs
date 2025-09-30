@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,17 +40,17 @@ public class ReactionsMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Support channel not found.");
+            Debug.Log("Support channel not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
 
         // get the message history with the desired count
         var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
         if (messageHistoryResult.Error)
         {
-            Console.WriteLine("Could not retrieve message history.");
+            Debug.Log("Could not retrieve message history.");
             return;
         }
 
@@ -61,11 +61,11 @@ public class ReactionsMessageSample
         {
             // add the "thumb up" emoji to the last message
             await lastMessage.ToggleReaction("\\u{1F44D}");
-            Console.WriteLine("Added 'thumb up' reaction to the last message.");
+            Debug.Log("Added 'thumb up' reaction to the last message.");
         }
         else
         {
-            Console.WriteLine("No messages found in the channel history.");
+            Debug.Log("No messages found in the channel history.");
         }
         // snippet.end
     }
@@ -77,17 +77,17 @@ public class ReactionsMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Support channel not found.");
+            Debug.Log("Support channel not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
 
         // get the message history with the desired count
         var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
         if (messageHistoryResult.Error)
         {
-            Console.WriteLine("Could not retrieve message history.");
+            Debug.Log("Could not retrieve message history.");
             return;
         }
 
@@ -100,12 +100,12 @@ public class ReactionsMessageSample
             var reactions = lastMessage.Reactions;
             foreach (var reaction in reactions)
             {
-                Console.WriteLine($"Reaction: {reaction.Value}");
+                Debug.Log($"Reaction: {reaction.Value}");
             }
         }
         else
         {
-            Console.WriteLine("No messages found in the channel history.");
+            Debug.Log("No messages found in the channel history.");
         }
         // snippet.end
     }
@@ -117,17 +117,17 @@ public class ReactionsMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Support channel not found.");
+            Debug.Log("Support channel not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
 
         // get the message history with the desired count
         var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
         if (messageHistoryResult.Error)
         {
-            Console.WriteLine("Could not retrieve message history.");
+            Debug.Log("Could not retrieve message history.");
             return;
         }
 
@@ -139,16 +139,16 @@ public class ReactionsMessageSample
             // Check if the current user added the "thumb up" emoji to the last message
             if (lastMessage.HasUserReaction("\\u{1F44D}"))
             {
-                Console.WriteLine("The current user has added a 'thumb up' reaction to the last message.");
+                Debug.Log("The current user has added a 'thumb up' reaction to the last message.");
             }
             else
             {
-                Console.WriteLine("The current user has not added a 'thumb up' reaction to the last message.");
+                Debug.Log("The current user has not added a 'thumb up' reaction to the last message.");
             }
         }
         else
         {
-            Console.WriteLine("No messages found in the channel history.");
+            Debug.Log("No messages found in the channel history.");
         }
         // snippet.end
     }

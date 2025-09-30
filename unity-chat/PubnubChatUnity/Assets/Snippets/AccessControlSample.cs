@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -46,7 +46,7 @@ public class AccessControlSample
         var chatResult = await Chat.CreateInstance(chatConfig, pnConfiguration);
         if (chatResult.Error)
         {
-            Console.WriteLine("Failed to create chat instance");
+            Debug.Log("Failed to create chat instance");
             return;
         }
         var chat = chatResult.Result;
@@ -65,11 +65,11 @@ public class AccessControlSample
         // output the result
         if (canSendMessage)
         {
-            Console.WriteLine("The current user has permission to send messages to the 'support' channel.");
+            Debug.Log("The current user has permission to send messages to the 'support' channel.");
         }
         else
         {
-            Console.WriteLine("The current user does not have permission to send messages to the 'support' channel.");
+            Debug.Log("The current user does not have permission to send messages to the 'support' channel.");
         }
         // snippet.end
     }
@@ -86,7 +86,7 @@ public class AccessControlSample
         var chatResult = await Chat.CreateInstance(chatConfig, pnConfiguration);
         if (chatResult.Error)
         {
-            Console.WriteLine("Failed to create chat instance");
+            Debug.Log("Failed to create chat instance");
             return;
         }
         var chat = chatResult.Result;
@@ -108,7 +108,7 @@ public class AccessControlSample
         var chatResult = await Chat.CreateInstance(chatConfig, pnConfiguration);
         if (chatResult.Error)
         {
-            Console.WriteLine("Failed to create chat instance");
+            Debug.Log("Failed to create chat instance");
             return;
         }
         var chat = chatResult.Result;
@@ -117,7 +117,7 @@ public class AccessControlSample
         var tokenDetails = chat.PubnubInstance.ParseToken("p0thisAkFl043rhDdHRsCkNyZXisRGNoYW6hanNlY3JldAFDZ3Jwsample3KgQ3NwY6BDcGF0pERjaGFuoENnctokenVzcqBDc3BjoERtZXRhoENzaWdYIGOAeTyWGJI");
 
         // Output the token details
-        Console.WriteLine("Token Details: " + chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(tokenDetails));
+        Debug.Log("Token Details: " + chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(tokenDetails));
         // snippet.end
     }
 }

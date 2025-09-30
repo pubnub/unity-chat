@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -106,25 +106,25 @@ public class LinksMessageSample
                 // check if the message contains any text links
                 if (message.TextLinks != null && message.TextLinks.Count > 0)
                 {
-                    Console.WriteLine("The message contains the following text links:");
+                    Debug.Log("The message contains the following text links:");
                     foreach (var textLink in message.TextLinks)
                     {
-                        Console.WriteLine($"Text Link: {textLink.Link}");
+                        Debug.Log($"Text Link: {textLink.Link}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("The message does not contain any text links.");
+                    Debug.Log("The message does not contain any text links.");
                 }
             }
             else
             {
-                Console.WriteLine("Message with specified timetoken not found.");
+                Debug.Log("Message with specified timetoken not found.");
             }
         }
         else
         {
-            Console.WriteLine("Channel 'support' not found.");
+            Debug.Log("Channel 'support' not found.");
         }
         // snippet.end
     }

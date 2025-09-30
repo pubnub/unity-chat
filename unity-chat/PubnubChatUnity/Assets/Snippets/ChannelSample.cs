@@ -1,8 +1,9 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
+
 // snippet.end
 
 public class ChannelSample
@@ -42,7 +43,7 @@ public class ChannelSample
             
             channel.OnMessageReceived += (message) =>
             {
-                Console.WriteLine("New message received!");
+                Debug.Log("New message received!");
             };
         }
         // snippet.end

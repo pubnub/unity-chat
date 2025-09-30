@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -48,7 +48,7 @@ public class MessageSample
                 
                 message.OnMessageUpdated += (message) =>
                 {
-                    Console.WriteLine("Message was edited!");
+                    Debug.Log("Message was edited!");
                 };
             }
         }

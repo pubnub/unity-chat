@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -41,7 +41,7 @@ public class UnreadMessageSample
         if (!userResult.Error)
         {
             var user = userResult.Result;
-            Console.WriteLine($"Found user with name {user.UserName}");
+            Debug.Log($"Found user with name {user.UserName}");
             
             // get the list of all user memberships
             var membershipsResponse = await user.GetMemberships();
@@ -58,17 +58,17 @@ public class UnreadMessageSample
                 {
                     // retrieve the last read message timetoken
                     var lastReadToken = membership.LastReadMessageTimeToken;
-                    Console.WriteLine($"The last read message timetoken for user {user.UserName} on channel 'support' is {lastReadToken}");
+                    Debug.Log($"The last read message timetoken for user {user.UserName} on channel 'support' is {lastReadToken}");
                 }
                 else
                 {
-                    Console.WriteLine("The user 'support_agent_15' is not a member of the 'support' channel.");
+                    Debug.Log("The user 'support_agent_15' is not a member of the 'support' channel.");
                 }
             }
         }
         else
         {
-            Console.WriteLine("User 'support_agent_15' not found.");
+            Debug.Log("User 'support_agent_15' not found.");
         }
         // snippet.end
     }
@@ -81,7 +81,7 @@ public class UnreadMessageSample
         if (!userResult.Error)
         {
             var user = userResult.Result;
-            Console.WriteLine($"Found user with name {user.UserName}");
+            Debug.Log($"Found user with name {user.UserName}");
             
             // get the list of all user memberships using the GetMemberships method
             var membershipsResponse = await user.GetMemberships();
@@ -100,18 +100,18 @@ public class UnreadMessageSample
                     var unreadMessagesCountResult = await membership.GetUnreadMessagesCount();
                     if (!unreadMessagesCountResult.Error)
                     {
-                        Console.WriteLine($"The number of unread messages for user {user.UserName} on channel 'support' is {unreadMessagesCountResult.Result}");
+                        Debug.Log($"The number of unread messages for user {user.UserName} on channel 'support' is {unreadMessagesCountResult.Result}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("The user 'support_agent_15' is not a member of the 'support' channel.");
+                    Debug.Log("The user 'support_agent_15' is not a member of the 'support' channel.");
                 }
             }
         }
         else
         {
-            Console.WriteLine("User 'support_agent_15' not found.");
+            Debug.Log("User 'support_agent_15' not found.");
         }
         // snippet.end
     }
@@ -124,7 +124,7 @@ public class UnreadMessageSample
         if (!currentUserResult.Error)
         {
             var currentUser = currentUserResult.Result;
-            Console.WriteLine($"Current user is {currentUser.UserName}");
+            Debug.Log($"Current user is {currentUser.UserName}");
             
             // retrieve the unread message counts for the current user with default parameters
             var unreadMessageCountsResult = await chat.GetUnreadMessagesCounts();
@@ -133,13 +133,13 @@ public class UnreadMessageSample
                 // process and display the retrieved unread message counts
                 foreach (var unreadMessage in unreadMessageCountsResult.Result)
                 {
-                    Console.WriteLine($"Channel ID: {unreadMessage.ChannelId}, Unread Messages: {unreadMessage.Count}");
+                    Debug.Log($"Channel ID: {unreadMessage.ChannelId}, Unread Messages: {unreadMessage.Count}");
                 }
             }
         }
         else
         {
-            Console.WriteLine("Current user not found.");
+            Debug.Log("Current user not found.");
         }
         // snippet.end
     }
@@ -152,7 +152,7 @@ public class UnreadMessageSample
         if (!userResult.Error)
         {
             var user = userResult.Result;
-            Console.WriteLine($"Found user with name {user.UserName}");
+            Debug.Log($"Found user with name {user.UserName}");
 
             // get the list of all user memberships
             var membershipsResponse = await user.GetMemberships();
@@ -163,45 +163,45 @@ public class UnreadMessageSample
                 var membership = membershipsResponse.Result.Memberships.FirstOrDefault(m => m.ChannelId == "support");
                 if (membership != null)
                 {
-                    Console.WriteLine($"Found membership for channel: {membership.ChannelId}");
+                    Debug.Log($"Found membership for channel: {membership.ChannelId}");
 
                     // reference the "support" channel
                     var channelResult = await chat.GetChannel("support");
                     if (!channelResult.Error)
                     {
                         var channel = channelResult.Result;
-                        Console.WriteLine($"Found channel with name {channel.Name}");
+                        Debug.Log($"Found channel with name {channel.Name}");
 
                         // return the message object with the "16200000000000001" timetoken
                         var messageResult = await channel.GetMessage("16200000000000001");
                         if (!messageResult.Error)
                         {
                             var message = messageResult.Result;
-                            Console.WriteLine($"Is deleted?: {message.IsDeleted}");
+                            Debug.Log($"Is deleted?: {message.IsDeleted}");
 
                             // set the last read message for the membership
                             await membership.SetLastReadMessage(message);
-                            Console.WriteLine($"Last read message set for user {user.UserName} in channel {channel.Name}");
+                            Debug.Log($"Last read message set for user {user.UserName} in channel {channel.Name}");
                         }
                         else
                         {
-                            Console.WriteLine("Message with the specified timetoken not found.");
+                            Debug.Log("Message with the specified timetoken not found.");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Channel 'support' not found.");
+                        Debug.Log("Channel 'support' not found.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Membership for 'support' channel not found.");
+                    Debug.Log("Membership for 'support' channel not found.");
                 }
             }
         }
         else
         {
-            Console.WriteLine("User 'support_agent_15' not found.");
+            Debug.Log("User 'support_agent_15' not found.");
         }
         // snippet.end
     }
@@ -214,7 +214,7 @@ public class UnreadMessageSample
         if (!userResult.Error)
         {
             var user = userResult.Result;
-            Console.WriteLine($"Found user with name {user.UserName}");
+            Debug.Log($"Found user with name {user.UserName}");
 
             // get the list of all user memberships
             var membershipsResponse = await user.GetMemberships();
@@ -225,34 +225,34 @@ public class UnreadMessageSample
                 var membership = membershipsResponse.Result.Memberships.FirstOrDefault(m => m.ChannelId == "support");
                 if (membership != null)
                 {
-                    Console.WriteLine($"Found membership for channel: {membership.ChannelId}");
+                    Debug.Log($"Found membership for channel: {membership.ChannelId}");
 
                     // reference the "support" channel
                     var channelResult = await chat.GetChannel("support");
                     if (!channelResult.Error)
                     {
                         var channel = channelResult.Result;
-                        Console.WriteLine($"Found channel with name {channel.Name}");
+                        Debug.Log($"Found channel with name {channel.Name}");
 
                         // set the last read message timetoken for the membership
                         string timeToken = "16200000000000001";
                         await membership.SetLastReadMessageTimeToken(timeToken);
-                        Console.WriteLine($"Last read message timetoken set for user {user.UserName} in channel {channel.Name}");
+                        Debug.Log($"Last read message timetoken set for user {user.UserName} in channel {channel.Name}");
                     }
                     else
                     {
-                        Console.WriteLine("Channel 'support' not found.");
+                        Debug.Log("Channel 'support' not found.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Membership for 'support' channel not found.");
+                    Debug.Log("Membership for 'support' channel not found.");
                 }
             }
         }
         else
         {
-            Console.WriteLine("User 'support_agent_15' not found.");
+            Debug.Log("User 'support_agent_15' not found.");
         }
         // snippet.end
     }
@@ -273,7 +273,7 @@ public class UnreadMessageSample
         var result = await chat.MarkAllMessagesAsRead(limit: 50, page: nextPage);
 
         // process the result as needed
-        Console.WriteLine("Messages marked as read successfully");
+        Debug.Log("Messages marked as read successfully");
         // snippet.end
     }
 }

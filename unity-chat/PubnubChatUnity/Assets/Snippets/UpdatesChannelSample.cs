@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
 using Channel = PubnubChatApi.Channel;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,7 +41,7 @@ public class UpdatesChannelSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -72,7 +73,7 @@ public class UpdatesChannelSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -81,7 +82,7 @@ public class UpdatesChannelSample
 
         void OnChannelUpdateHandler(Channel channel)
         {
-            Console.WriteLine($"Channel updated: {channel.Id}");
+            Debug.Log($"Channel updated: {channel.Id}");
         }
         // snippet.end
     }
@@ -93,7 +94,7 @@ public class UpdatesChannelSample
         Action<Channel> listener = (Channel channel) => 
             {
                 // Print the updated channel name
-                Console.WriteLine("Updated Channel Name: " + channel.Name);
+                Debug.Log("Updated Channel Name: " + channel.Name);
             };
 
         await chat.AddListenerToChannelsUpdate(channelIds, listener);

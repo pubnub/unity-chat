@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -41,7 +41,7 @@ public class ListChannelSample
         // print all channel IDs
         foreach (var channel in channelsWrapper.Channels)
         {
-            Console.WriteLine(channel.Id);
+            Debug.Log(channel.Id);
         }
         // snippet.end
     }
@@ -52,19 +52,19 @@ public class ListChannelSample
         // fetch the initial 25 channels
         var channelsWrapper = await chat.GetChannels(limit: 25);
 
-        Console.WriteLine("Initial 25 channels:");
+        Debug.Log("Initial 25 channels:");
         foreach (var channel in channelsWrapper.Channels)
         {
-            Console.WriteLine($"Id: {channel.Id}");
+            Debug.Log($"Id: {channel.Id}");
         }
 
         // fetch the next set of channels using the page object from returned wrapper
         var nextChannelsWrapper = await chat.GetChannels(limit: 25, page: channelsWrapper.Page);
 
-        Console.WriteLine("\nNext set of channels:");
+        Debug.Log("\nNext set of channels:");
         foreach (var channel in nextChannelsWrapper.Channels)
         {
-            Console.WriteLine($"Id: {channel.Id}");
+            Debug.Log($"Id: {channel.Id}");
         }
         // snippet.end
     }

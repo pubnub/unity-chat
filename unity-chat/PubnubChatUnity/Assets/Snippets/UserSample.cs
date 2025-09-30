@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -43,7 +43,7 @@ public class UserSample
             
             user.OnUserUpdated += (user) =>
             {
-                Console.WriteLine("User metadata updated!");
+                Debug.Log("User metadata updated!");
             };
         }
         // snippet.end

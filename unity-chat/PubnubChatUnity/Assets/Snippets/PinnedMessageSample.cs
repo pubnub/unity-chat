@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,17 +41,17 @@ public class PinnedMessageSample
         var channelResult = await chat.GetChannel("incident-management");
         if (channelResult.Error)
         {
-            Console.WriteLine("Incident-management channel not found.");
+            Debug.Log("Incident-management channel not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
         
         // retrieve the message history with the desired count
         var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
         if (messageHistoryResult.Error)
         {
-            Console.WriteLine("Could not retrieve message history.");
+            Debug.Log("Could not retrieve message history.");
             return;
         }
 
@@ -61,11 +62,11 @@ public class PinnedMessageSample
         if (lastMessage != null)
         {
             await lastMessage.Pin();
-            Console.WriteLine("Pinned the last message in the incident-management channel.");
+            Debug.Log("Pinned the last message in the incident-management channel.");
         }
         else
         {
-            Console.WriteLine("No messages found in the channel history.");
+            Debug.Log("No messages found in the channel history.");
         }
         // snippet.end
     }
@@ -77,17 +78,17 @@ public class PinnedMessageSample
         var channelResult = await chat.GetChannel("incident-management");
         if (channelResult.Error)
         {
-            Console.WriteLine("Incident-management channel not found.");
+            Debug.Log("Incident-management channel not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
         
         // retrieve the message history with the desired count
         var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
         if (messageHistoryResult.Error)
         {
-            Console.WriteLine("Could not retrieve message history.");
+            Debug.Log("Could not retrieve message history.");
             return;
         }
 
@@ -98,11 +99,11 @@ public class PinnedMessageSample
         if (lastMessage != null)
         {
             await channel.PinMessage(lastMessage);
-            Console.WriteLine("Pinned the last message in the incident-management channel.");
+            Debug.Log("Pinned the last message in the incident-management channel.");
         }
         else
         {
-            Console.WriteLine("No messages found in the channel history.");
+            Debug.Log("No messages found in the channel history.");
         }
         // snippet.end
     }
@@ -113,22 +114,22 @@ public class PinnedMessageSample
         var channelResult = await chat.GetChannel("incident-management");
         if (channelResult.Error)
         {
-            Console.WriteLine("Channel 'incident-management' not found.");
+            Debug.Log("Channel 'incident-management' not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
 
         // Try to get the pinned message from the channel
         var pinnedMessageResult = await channel.GetPinnedMessage();
         if (!pinnedMessageResult.Error)
         {
             var pinnedMessage = pinnedMessageResult.Result;
-            Console.WriteLine("Pinned message found: " + pinnedMessage.MessageText);
+            Debug.Log("Pinned message found: " + pinnedMessage.MessageText);
         }
         else
         {
-            Console.WriteLine("No pinned message found.");
+            Debug.Log("No pinned message found.");
         }
         // snippet.end
     }
@@ -141,22 +142,22 @@ public class PinnedMessageSample
         if (!channelResult.Error)
         {
             var channel = channelResult.Result;
-            Console.WriteLine($"Found channel with name {channel.Name}");
+            Debug.Log($"Found channel with name {channel.Name}");
 
             // attempt to unpin a message
             try
             {
                 await channel.UnpinMessage();
-                Console.WriteLine("Message has been unpinned successfully.");
+                Debug.Log("Message has been unpinned successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to unpin the message: {ex.Message}");
+                Debug.Log($"Failed to unpin the message: {ex.Message}");
             }
         }
         else
         {
-            Console.WriteLine("Channel 'incident-management' not found.");
+            Debug.Log("Channel 'incident-management' not found.");
         }
         // snippet.end
     }

@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -38,7 +38,7 @@ public class DeleteChannelSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Channel to delete doesn't exist.");
+            Debug.Log("Channel to delete doesn't exist.");
             return;
         }
         var channel = channelResult.Result;

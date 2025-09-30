@@ -1,10 +1,10 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
 using Channel = PubnubChatApi.Channel;
+using UnityEngine;
 
 // snippet.end
 
@@ -42,7 +42,7 @@ public class ThreadsMessageSample
         if (!channelResult.Error)
         {
             var channel = channelResult.Result;
-            Console.WriteLine($"Found channel with name {channel.Name}");
+            Debug.Log($"Found channel with name {channel.Name}");
 
             // fetch the last message from the "support" channel
             // fetch only the last message
@@ -50,7 +50,7 @@ public class ThreadsMessageSample
             var messageHistoryResult = await channel.GetMessageHistory(null, null, count); // Omitting unnecessary time tokens
             if (messageHistoryResult.Error)
             {
-                Console.WriteLine("Could not fetch message history.");
+                Debug.Log("Could not fetch message history.");
                 return;
             }
             var lastMessage = messageHistoryResult.Result.FirstOrDefault();
@@ -62,23 +62,23 @@ public class ThreadsMessageSample
                 var threadChannelResult = lastMessage.CreateThread();
                 if (threadChannelResult.Error)
                 {
-                    Console.WriteLine($"Could not create thread: {threadChannelResult.Exception.Message}");
+                    Debug.Log($"Could not create thread: {threadChannelResult.Exception.Message}");
                     return;
                 }
                 var threadChannel = threadChannelResult.Result;
 
                 // (optional) display thread creation information
-                Console.WriteLine($"Thread created for message with ID {lastMessage.Id} in channel 'support'.");
-                Console.WriteLine($"Thread Channel ID: {threadChannel.Id}");
+                Debug.Log($"Thread created for message with ID {lastMessage.Id} in channel 'support'.");
+                Debug.Log($"Thread Channel ID: {threadChannel.Id}");
             }
             else
             {
-                Console.WriteLine("No messages found in the 'support' channel.");
+                Debug.Log("No messages found in the 'support' channel.");
             }
         }
         else
         {
-            Console.WriteLine("Support channel not found.");
+            Debug.Log("Support channel not found.");
         }
         // snippet.end
     }
@@ -91,7 +91,7 @@ public class ThreadsMessageSample
         if (!channelResult.Error)
         {
             var channel = channelResult.Result;
-            Console.WriteLine($"Found channel with name {channel.Name}");
+            Debug.Log($"Found channel with name {channel.Name}");
 
             // fetch the last message from the "support" channel
             // fetch only the last message
@@ -99,7 +99,7 @@ public class ThreadsMessageSample
             var messageHistoryResult = await channel.GetMessageHistory(null, null, count); // omitting unnecessary timetokens
             if (messageHistoryResult.Error)
             {
-                Console.WriteLine("Could not fetch message history.");
+                Debug.Log("Could not fetch message history.");
                 return;
             }
             var lastMessage = messageHistoryResult.Result.FirstOrDefault();
@@ -111,28 +111,28 @@ public class ThreadsMessageSample
                 var threadChannelResult = lastMessage.CreateThread();
                 if (threadChannelResult.Error)
                 {
-                    Console.WriteLine($"Could not create thread: {threadChannelResult.Exception.Message}");
+                    Debug.Log($"Could not create thread: {threadChannelResult.Exception.Message}");
                     return;
                 }
                 var threadChannel = threadChannelResult.Result;
 
                 // (optional) display thread creation information
-                Console.WriteLine($"Thread created for message with ID {lastMessage.Id} in channel 'support'.");
-                Console.WriteLine($"Thread Channel ID: {threadChannel.Id}");
+                Debug.Log($"Thread created for message with ID {lastMessage.Id} in channel 'support'.");
+                Debug.Log($"Thread Channel ID: {threadChannel.Id}");
 
                 // send a reply in the created thread
                 string replyMessage = "Good job, guys!";
                 await threadChannel.SendText(replyMessage);
-                Console.WriteLine($"Sent reply in thread: {replyMessage}");
+                Debug.Log($"Sent reply in thread: {replyMessage}");
             }
             else
             {
-                Console.WriteLine("No messages found in the 'support' channel.");
+                Debug.Log("No messages found in the 'support' channel.");
             }
         }
         else
         {
-            Console.WriteLine("Support channel not found.");
+            Debug.Log("Support channel not found.");
         }
         // snippet.end
     }
@@ -155,21 +155,21 @@ public class ThreadsMessageSample
                 if (!threadChannelResult.Error)
                 {
                     var threadChannel = threadChannelResult.Result;
-                    Console.WriteLine($"Thread channel successfully retrieved: {threadChannel.Name}");
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
                 }
                 else
                 {
-                    Console.WriteLine("No thread channel associated with this message.");
+                    Debug.Log("No thread channel associated with this message.");
                 }
             }
             else
             {
-                Console.WriteLine("Message with the given timetoken not found.");
+                Debug.Log("Message with the given timetoken not found.");
             }
         }
         else
         {
-            Console.WriteLine("Channel 'support' not found.");
+            Debug.Log("Channel 'support' not found.");
         }
         // snippet.end
     }
@@ -192,21 +192,21 @@ public class ThreadsMessageSample
                 if (!threadChannelResult.Error)
                 {
                     var threadChannel = threadChannelResult.Result;
-                    Console.WriteLine($"Thread channel successfully retrieved: {threadChannel.Name}");
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
                 }
                 else
                 {
-                    Console.WriteLine("No thread channel associated with this message.");
+                    Debug.Log("No thread channel associated with this message.");
                 }
             }
             else
             {
-                Console.WriteLine("Message with the given timetoken not found.");
+                Debug.Log("Message with the given timetoken not found.");
             }
         }
         else
         {
-            Console.WriteLine("Channel 'support' not found.");
+            Debug.Log("Channel 'support' not found.");
         }
         // snippet.end
     }
@@ -230,21 +230,21 @@ public class ThreadsMessageSample
                 // check if the message starts a thread
                 if (message.HasThread())
                 {
-                    Console.WriteLine("The message starts a thread.");
+                    Debug.Log("The message starts a thread.");
                 }
                 else
                 {
-                    Console.WriteLine("The message does not start a thread.");
+                    Debug.Log("The message does not start a thread.");
                 }
             }
             else
             {
-                Console.WriteLine("No messages found for the specified time token.");
+                Debug.Log("No messages found for the specified time token.");
             }
         }
         else
         {
-            Console.WriteLine("Channel 'support' not found.");
+            Debug.Log("Channel 'support' not found.");
         }
         // snippet.end
     }
@@ -267,30 +267,30 @@ public class ThreadsMessageSample
                 if (!threadChannelResult.Error)
                 {
                     var threadChannel = threadChannelResult.Result;
-                    Console.WriteLine($"Thread channel successfully retrieved: {threadChannel.Name}");
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
 
                     // subscribe to updates on the thread channel
                     threadChannel.OnChannelUpdate += OnThreadChannelUpdateHandler;
                 }
                 else
                 {
-                    Console.WriteLine("No thread channel associated with this message.");
+                    Debug.Log("No thread channel associated with this message.");
                 }
             }
             else
             {
-                Console.WriteLine("Message with the given timetoken not found.");
+                Debug.Log("Message with the given timetoken not found.");
             }
         }
         else
         {
-            Console.WriteLine("Channel 'support' not found.");
+            Debug.Log("Channel 'support' not found.");
         }
         
         // handler for thread channel updates
         void OnThreadChannelUpdateHandler(Channel threadChannel)
         {
-            Console.WriteLine($"Thread channel updated: {threadChannel.Id}");
+            Debug.Log($"Thread channel updated: {threadChannel.Id}");
         }
         // snippet.end
     }

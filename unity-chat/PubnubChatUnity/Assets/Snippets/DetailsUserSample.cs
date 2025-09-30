@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class DetailsUserSample
         if (!result.Error)
         {
             var user = result.Result;
-            Console.WriteLine($"Found user with name {user.UserName}");
+            Debug.Log($"Found user with name {user.UserName}");
         }
         // snippet.end
     }
@@ -51,13 +51,13 @@ public class DetailsUserSample
         if (!result.Error)
         {
             var user = result.Result;
-            Console.WriteLine($"Current user is {user.UserName}");
+            Debug.Log($"Current user is {user.UserName}");
             
             // perform additional actions with the user if needed
         }
         else
         {
-            Console.WriteLine("Current user not found.");
+            Debug.Log("Current user not found.");
         }
         // snippet.end
     }

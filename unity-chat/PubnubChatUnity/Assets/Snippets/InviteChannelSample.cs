@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,7 +40,7 @@ public class InviteChannelSample
         var userResult = await chat.GetUser("support-agent-15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user to invite!");
+            Debug.Log("Couldn't find user to invite!");
             return;
         }
         var user = userResult.Result;
@@ -49,7 +49,7 @@ public class InviteChannelSample
         var channelResult = await chat.GetChannel("high-prio-incidents");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel to invite!");
+            Debug.Log("Couldn't find channel to invite!");
             return;
         }
         var channel = channelResult.Result;
@@ -66,7 +66,7 @@ public class InviteChannelSample
         var user1Result = await chat.GetUser("support-agent-15");
         if (user1Result.Error)
         {
-            Console.WriteLine("Couldn't find first user!");
+            Debug.Log("Couldn't find first user!");
             return;
         }
         var user1 = user1Result.Result;
@@ -75,7 +75,7 @@ public class InviteChannelSample
         var user2Result = await chat.GetUser("support-agent-16");
         if (user2Result.Error)
         {
-            Console.WriteLine("Couldn't find second user!");
+            Debug.Log("Couldn't find second user!");
             return;
         }
         var user2 = user2Result.Result;
@@ -84,7 +84,7 @@ public class InviteChannelSample
         var channelResult = await chat.GetChannel("high-prio-incidents");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -99,7 +99,7 @@ public class InviteChannelSample
         // snippet.listen_to_invite_events_example
         var userResult = await chat.GetUser("support-agent-2");
         if(userResult.Error){
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;
@@ -111,7 +111,7 @@ public class InviteChannelSample
             {
                 if(inviteEvent.ChannelId == "support" && inviteEvent.UserId == "support-agent-2")
                 {
-                    Console.WriteLine("User support-agent-2 has been invited to the support channel!");
+                    Debug.Log("User support-agent-2 has been invited to the support channel!");
                 }    
             };
         // snippet.end

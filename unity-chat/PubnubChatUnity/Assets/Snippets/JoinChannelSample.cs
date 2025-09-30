@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class JoinChannelSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -48,7 +48,7 @@ public class JoinChannelSample
 
         void OnMessageReceivedHandler(Message message)
         {
-            Console.WriteLine($"Message received: {message.MessageText}");
+            Debug.Log($"Message received: {message.MessageText}");
         }
 
         // join the channel and add metadata to the newly created membership

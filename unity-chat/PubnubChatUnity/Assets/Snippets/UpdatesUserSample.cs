@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +40,7 @@ public class UpdatesUserSample
         var userResult = await chat.GetUser("user_id");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;
@@ -68,7 +69,7 @@ public class UpdatesUserSample
         var userResult = await chat.GetUser("support_agent_15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;
@@ -78,7 +79,7 @@ public class UpdatesUserSample
         user.OnUserUpdated += OnUserUpdatedHandler; // or use lambda
         void OnUserUpdatedHandler(User user)
         {
-            Console.WriteLine($"User updated: {user.Id}");
+            Debug.Log($"User updated: {user.Id}");
         }
         // snippet.end
     }
@@ -90,7 +91,7 @@ public class UpdatesUserSample
         Action<User> listener = (User user) => 
         {
             // Print the updated user name
-            Console.WriteLine("Updated user Name: " + user.UserName);
+            Debug.Log("Updated user Name: " + user.UserName);
         };
         chat.AddListenerToUsersUpdate(users, listener);
         // snippet.end

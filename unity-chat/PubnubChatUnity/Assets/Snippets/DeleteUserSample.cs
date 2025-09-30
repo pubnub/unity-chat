@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -38,7 +38,7 @@ public class DeleteUserSample
         var userResult = await chat.GetUser("support_agent_15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;

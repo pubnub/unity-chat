@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,7 +40,7 @@ public class DeleteMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -49,7 +49,7 @@ public class DeleteMessageSample
         var messagesResult = await channel.GetMessageHistory("16200000000000000", "16200000000000001", 1);
         if (messagesResult.Error || !messagesResult.Result.Any())
         {
-            Console.WriteLine("Couldn't find message!");
+            Debug.Log("Couldn't find message!");
             return;
         }
         var message = messagesResult.Result[0];
@@ -66,7 +66,7 @@ public class DeleteMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -75,7 +75,7 @@ public class DeleteMessageSample
         var messagesResult = await channel.GetMessageHistory("16200000000000000", "16200000000000001", 1);
         if (messagesResult.Error || !messagesResult.Result.Any())
         {
-            Console.WriteLine("Couldn't find message!");
+            Debug.Log("Couldn't find message!");
             return;
         }
         var message = messagesResult.Result[0];

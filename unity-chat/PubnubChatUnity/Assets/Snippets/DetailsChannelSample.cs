@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class DetailsChannelSample
         if (!result.Error)
         {
             var channel = result.Result;
-            Console.WriteLine($"Found channel with name {channel.Name}");
+            Debug.Log($"Found channel with name {channel.Name}");
         }
         // snippet.end
     }

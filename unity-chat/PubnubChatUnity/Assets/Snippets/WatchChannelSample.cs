@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
 using Channel = PubnubChatApi.Channel;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class WatchChannelSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -48,7 +48,7 @@ public class WatchChannelSample
 
         void OnMessageReceivedHandler(Message message)
         {
-            Console.WriteLine($"Message received: {message.MessageText}");
+            Debug.Log($"Message received: {message.MessageText}");
         }
 
         channel.Connect();
@@ -60,9 +60,9 @@ public class WatchChannelSample
         // snippet.unwatch_channel_example
         void OnMessageReceivedHandler(Message message)
         {
-            Console.WriteLine($"Message received: {message.MessageText}");
+            Debug.Log($"Message received: {message.MessageText}");
             channel.Disconnect();
-            Console.WriteLine("Disconnected from the channel.");
+            Debug.Log("Disconnected from the channel.");
         }
         // snippet.end
     }

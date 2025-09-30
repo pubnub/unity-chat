@@ -1,8 +1,9 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
+
 // snippet.end
 
 public class ChatSample
@@ -36,7 +37,7 @@ public class ChatSample
         // snippet.any_event_subscription_example
         chat.OnAnyEvent += (chatEvent) =>
         {
-            Console.WriteLine($"New event of type {chatEvent.Type} received!");
+            Debug.Log($"New event of type {chatEvent.Type} received!");
         };
         // snippet.end
     }

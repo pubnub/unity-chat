@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,18 +40,18 @@ public class ModerationMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Support channel not found.");
+            Debug.Log("Support channel not found.");
             return;
         }
         var channel = channelResult.Result;
 
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
 
         // retrieve the message history with the desired count
         var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
         if (messageHistoryResult.Error)
         {
-            Console.WriteLine("Could not retrieve message history.");
+            Debug.Log("Could not retrieve message history.");
             return;
         }
 
@@ -62,11 +62,11 @@ public class ModerationMessageSample
         if (lastMessage != null)
         {
             await lastMessage.Report("This is insulting!");
-            Console.WriteLine("Reported the last message in the support channel.");
+            Debug.Log("Reported the last message in the support channel.");
         }
         else
         {
-            Console.WriteLine("No messages found in the channel history.");
+            Debug.Log("No messages found in the channel history.");
         }
         // snippet.end
     }
@@ -76,14 +76,14 @@ public class ModerationMessageSample
         // snippet.listen_to_report_events_example
         var channelResult = await chat.GetChannel("support");
         if(channelResult.Error){
-            Console.WriteLine("Couldn't find the support channel!");
+            Debug.Log("Couldn't find the support channel!");
             return;
         }
         var channel = channelResult.Result;
         channel.SetListeningForReportEvents(true);
         channel.OnReportEvent += reportEvent => 
         {
-            Console.WriteLine("Message reported on the support channel!");
+            Debug.Log("Message reported on the support channel!");
         };
         // snippet.end
     }

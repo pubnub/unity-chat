@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -40,11 +40,11 @@ public class RestoreMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Channel 'support' not found.");
+            Debug.Log("Channel 'support' not found.");
             return;
         }
         var channel = channelResult.Result;
-        Console.WriteLine($"Found channel with name {channel.Name}");
+        Debug.Log($"Found channel with name {channel.Name}");
 
         // invoke the method on the "channel" object to get message history
         var messagesResult = await channel.GetMessageHistory(
@@ -54,7 +54,7 @@ public class RestoreMessageSample
         );
         if (messagesResult.Error || !messagesResult.Result.Any())
         {
-            Console.WriteLine("Message not found.");
+            Debug.Log("Message not found.");
             return;
         }
 

@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -43,7 +43,7 @@ public class MembershipSample
             
             membership.OnMembershipUpdated += (membership) =>
             {
-                Console.WriteLine("Membership metadata updated!");
+                Debug.Log("Membership metadata updated!");
             };
         }
         // snippet.end

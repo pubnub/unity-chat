@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -38,7 +38,7 @@ public class ForwardMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -47,7 +47,7 @@ public class ForwardMessageSample
         var messageResult = await channel.GetMessage("16686902600029072");
         if (messageResult.Error) 
         {
-            Console.WriteLine("Couldn't find message!");
+            Debug.Log("Couldn't find message!");
             return;
         }
         var message = messageResult.Result;
@@ -63,7 +63,7 @@ public class ForwardMessageSample
         var originalChannelResult = await chat.GetChannel("support");
         if (originalChannelResult.Error)
         {
-            Console.WriteLine("Couldn't find original channel!");
+            Debug.Log("Couldn't find original channel!");
             return;
         }
         var originalChannel = originalChannelResult.Result;
@@ -72,7 +72,7 @@ public class ForwardMessageSample
         var messageResult = await originalChannel.GetMessage("16686902600029072");
         if (messageResult.Error) 
         {
-            Console.WriteLine("Couldn't find message!");
+            Debug.Log("Couldn't find message!");
             return;
         }
         var message = messageResult.Result;
@@ -81,7 +81,7 @@ public class ForwardMessageSample
         var channelResult = await chat.GetChannel("incident-management");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;

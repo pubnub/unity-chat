@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class PresenceUserSample
         var userResult = await chat.GetUser("support_agent_15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;
@@ -70,7 +70,7 @@ public class PresenceUserSample
         var userResult = await chat.GetUser("support_agent_15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;
@@ -89,7 +89,7 @@ public class PresenceUserSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -119,7 +119,7 @@ public class PresenceUserSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -149,7 +149,7 @@ public class PresenceUserSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -158,7 +158,7 @@ public class PresenceUserSample
 
         void OnPresenceUpdateHandler(List<string> users)
         {
-            Console.WriteLine($"Users present: {string.Join(", ", users)}");
+            Debug.Log($"Users present: {string.Join(", ", users)}");
         }
         // snippet.end
     }
@@ -170,11 +170,11 @@ public class PresenceUserSample
         if (!userResult.Error)
         {
             var user = userResult.Result;
-            Console.WriteLine($"Is user active?: {user.Active}");
+            Debug.Log($"Is user active?: {user.Active}");
         }
         else 
         {
-            Console.WriteLine("User not found.");
+            Debug.Log("User not found.");
         }
         // snippet.end
     }
@@ -187,11 +187,11 @@ public class PresenceUserSample
         if (!userResult.Error)
         {
             var user = userResult.Result;
-            Console.WriteLine($"User last active timestamp: {user.LastActiveTimeStamp}");
+            Debug.Log($"User last active timestamp: {user.LastActiveTimeStamp}");
         }
         else 
         {
-            Console.WriteLine("User not found.");
+            Debug.Log("User not found.");
         }
         // snippet.end
     }

@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -150,7 +150,7 @@ public class ModerationUserSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -158,7 +158,7 @@ public class ModerationUserSample
         var userResult = await chat.GetUser("support_agent_15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var user = userResult.Result;
@@ -175,7 +175,7 @@ public class ModerationUserSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -183,7 +183,7 @@ public class ModerationUserSample
         var userResult = await chat.GetUser("support_agent_15");
         if (userResult.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
         var restrictedUser = userResult.Result;
@@ -206,7 +206,7 @@ public class ModerationUserSample
         {
             foreach(var restriction in restrictionsWrapperResult.Result.Restrictions)
             {
-                Console.WriteLine($"Channel: {restriction.ChannelId}, Ban: {restriction.Ban}, Mute: {restriction.Mute}");
+                Debug.Log($"Channel: {restriction.ChannelId}, Ban: {restriction.Ban}, Mute: {restriction.Mute}");
             }
         }
         // snippet.end
@@ -224,7 +224,7 @@ public class ModerationUserSample
         {
             foreach(var userRestriction in restrictionsWrapperResult.Result.Restrictions)
             {
-                Console.WriteLine(
+                Debug.Log(
                             $"User: {userRestriction.UserId}, " +
                             $"Banned: {userRestriction.Ban}, " +
                             $"Muted: {userRestriction.Mute}, " +

@@ -1,10 +1,10 @@
 // snippet.using
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubApi.Unity;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -98,7 +98,7 @@ public class CustomEventsSample
     private static void SendResponseToCustomerChat(string customerID, string timestamp, string response)
     {
         // Implementation would go here
-        Console.WriteLine($"Sending response to {customerID}: {response}");
+        Debug.Log($"Sending response to {customerID}: {response}");
     }
     
     public static async Task GetEventsHistoryExample()
@@ -120,7 +120,7 @@ public class CustomEventsSample
         // process the returned historical events
         foreach (var eventItem in history.Events)
         {
-            Console.WriteLine($"Timestamp: {eventItem.TimeToken}, Event type: {eventItem.Type}");
+            Debug.Log($"Timestamp: {eventItem.TimeToken}, Event type: {eventItem.Type}");
         }
         // snippet.end
     }

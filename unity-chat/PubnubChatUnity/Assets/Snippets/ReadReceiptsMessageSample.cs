@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -41,7 +41,7 @@ public class ReadReceiptsMessageSample
         if (!channelResult.Error)
         {
             var channel = channelResult.Result;
-            Console.WriteLine($"Found channel with name {channel.Name}");
+            Debug.Log($"Found channel with name {channel.Name}");
 
             // join the channel and start listening to read receipt events
             await channel.Join();
@@ -52,7 +52,7 @@ public class ReadReceiptsMessageSample
         }
         else
         {
-            Console.WriteLine("Channel not found");
+            Debug.Log("Channel not found");
         }
         
         // the event handler
@@ -64,7 +64,7 @@ public class ReadReceiptsMessageSample
                 var channel = kvp.Key;
                 foreach (var user in kvp.Value)
                 {
-                    Console.WriteLine(
+                    Debug.Log(
                         $"Received a read receipt event on channel {channel}" +
                         $" from user {user}");   
                 }

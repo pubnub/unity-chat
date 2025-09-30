@@ -1,10 +1,10 @@
 // snippet.using
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -47,7 +47,7 @@ public class UpdatesMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -55,7 +55,7 @@ public class UpdatesMessageSample
         var messageResult = await channel.GetMessageHistory(null, null, 1);
         if (messageResult.Error || !messageResult.Result.Any())
         {
-            Console.WriteLine("Couldn't find message!");
+            Debug.Log("Couldn't find message!");
             return;
         }
         var message = messageResult.Result.First();
@@ -64,7 +64,7 @@ public class UpdatesMessageSample
 
         void OnMessageUpdatedHandler(Message message)
         {
-            Console.WriteLine($"Message updated");
+            Debug.Log($"Message updated");
         }
         // snippet.end
     }
@@ -75,7 +75,7 @@ public class UpdatesMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -83,7 +83,7 @@ public class UpdatesMessageSample
         var messagesResult = await channel.GetMessageHistory("15343325214676133", null, 10);
         if (messagesResult.Error)
         {
-            Console.WriteLine("Couldn't get message history!");
+            Debug.Log("Couldn't get message history!");
             return;
         }
         var messages = messagesResult.Result;
@@ -102,7 +102,7 @@ public class UpdatesMessageSample
         
         void OnMessageUpdatedHandler(Message message)
         {
-            Console.WriteLine($"Message updated");
+            Debug.Log($"Message updated");
         }
 
         chat.AddListenerToMessagesUpdate(channelId: "support", messageTimeTokens: timetokens, listener: OnMessageUpdatedHandler);

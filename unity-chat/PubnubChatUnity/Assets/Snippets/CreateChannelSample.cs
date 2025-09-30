@@ -1,9 +1,9 @@
 // snippet.using
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class CreateChannelSample
         var user = await chat.GetUser("agent-007");
         if (user.Error)
         {
-            Console.WriteLine("Couldn't find user!");
+            Debug.Log("Couldn't find user!");
             return;
         }
 
@@ -65,13 +65,13 @@ public class CreateChannelSample
         var user1Result = await chat.GetUser("agent-007");
         if (user1Result.Error)
         {
-            Console.WriteLine("Couldn't find first user!");
+            Debug.Log("Couldn't find first user!");
             return;
         }
         var user2Result = await chat.GetUser("agent-008");
         if (user2Result.Error)
         {
-            Console.WriteLine("Couldn't find second user!");
+            Debug.Log("Couldn't find second user!");
             return;
         }
 

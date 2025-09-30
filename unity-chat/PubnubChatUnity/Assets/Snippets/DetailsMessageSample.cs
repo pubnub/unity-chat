@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -39,7 +39,7 @@ public class DetailsMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -49,7 +49,7 @@ public class DetailsMessageSample
         if (!messageResult.Error)
         {
             var message = messageResult.Result;
-            Console.WriteLine($"Message: {message.MessageText}");
+            Debug.Log($"Message: {message.MessageText}");
         }
         // snippet.end
     }
@@ -61,7 +61,7 @@ public class DetailsMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -71,7 +71,7 @@ public class DetailsMessageSample
         if (!messageResult.Error) 
         {
             var message = messageResult.Result;
-            Console.WriteLine($"Message: {message.MessageText}");
+            Debug.Log($"Message: {message.MessageText}");
         }
         // snippet.end
     }
@@ -84,7 +84,7 @@ public class DetailsMessageSample
         var channelResult = await chat.GetChannel("support");
         if (channelResult.Error)
         {
-            Console.WriteLine("Couldn't find channel!");
+            Debug.Log("Couldn't find channel!");
             return;
         }
         var channel = channelResult.Result;
@@ -94,7 +94,7 @@ public class DetailsMessageSample
         if (!messageResult.Error) 
         {
            var message = messageResult.Result;
-           Console.WriteLine($"Is deleted?: {message.IsDeleted}");
+           Debug.Log($"Is deleted?: {message.IsDeleted}");
         }
         // snippet.end
     }

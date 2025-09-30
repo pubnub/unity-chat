@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -64,7 +64,7 @@ public class QuotesMessageSample
         if (!channelResult.Error)
         {
             var channel = channelResult.Result;
-            Console.WriteLine($"Found channel with name {channel.Name}");
+            Debug.Log($"Found channel with name {channel.Name}");
 
             // retrieve the specific message by its timetoken
             var messageResult = await channel.GetMessage(messageTimeToken);
@@ -76,21 +76,21 @@ public class QuotesMessageSample
                 if (!quotedMessageResult.Error)
                 {
                     var quotedMessage = quotedMessageResult.Result;
-                    Console.WriteLine($"Quoted message: {quotedMessage.MessageText}");
+                    Debug.Log($"Quoted message: {quotedMessage.MessageText}");
                 }
                 else
                 {
-                    Console.WriteLine("No quoted message found.");
+                    Debug.Log("No quoted message found.");
                 }
             }
             else
             {
-                Console.WriteLine("Message not found.");
+                Debug.Log("Message not found.");
             }
         }
         else
         {
-            Console.WriteLine("Channel not found.");
+            Debug.Log("Channel not found.");
         }
         // snippet.end
     }

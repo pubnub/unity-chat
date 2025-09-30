@@ -1,8 +1,8 @@
 // snippet.using
-using System;
 using System.Threading.Tasks;
 using PubnubApi;
 using PubnubChatApi;
+using UnityEngine;
 
 // snippet.end
 
@@ -41,17 +41,17 @@ public class ListUserSample
         // check if users were successfully fetched
         if (!usersWrapper.Error)
         {
-            Console.WriteLine("Existing user IDs:");
+            Debug.Log("Existing user IDs:");
 
             // loop through the users and print their IDs
             foreach (var user in usersWrapper.Result.Users)
             {
-                Console.WriteLine(user.Id);
+                Debug.Log(user.Id);
             }
         }
         else
         {
-            Console.WriteLine("No users found or unable to fetch users.");
+            Debug.Log("No users found or unable to fetch users.");
         }
         // snippet.end
     }
@@ -63,28 +63,28 @@ public class ListUserSample
         var initialUsers = await chat.GetUsers(limit: 25);
         if (initialUsers.Error)
         {
-            Console.WriteLine("Couldn't fetch initial users!");
+            Debug.Log("Couldn't fetch initial users!");
             return;
         }
 
-        Console.WriteLine("Initial 25 users:");
+        Debug.Log("Initial 25 users:");
         foreach (var user in initialUsers.Result.Users)
         {
-            Console.WriteLine($"Id: {user.Id}, UserName: {user.UserName}, Status: {user.Status}");
+            Debug.Log($"Id: {user.Id}, UserName: {user.UserName}, Status: {user.Status}");
         }
 
         // fetch the next set of users using the pagination token
         var nextUsers = await chat.GetUsers(limit: 25, page: initialUsers.Result.Page);
         if (nextUsers.Error)
         {
-            Console.WriteLine("Couldn't fetch next users!");
+            Debug.Log("Couldn't fetch next users!");
             return;
         }
         
-        Console.WriteLine("\nNext users:");
+        Debug.Log("\nNext users:");
         foreach (var user in nextUsers.Result.Users)
         {
-            Console.WriteLine($"Id: {user.Id}, UserName: {user.UserName}, Status: {user.Status}");
+            Debug.Log($"Id: {user.Id}, UserName: {user.UserName}, Status: {user.Status}");
         }
         // snippet.end
     }
@@ -95,13 +95,13 @@ public class ListUserSample
         var deletedUsers = await chat.GetUsers(filter: "Status='deleted'");
         if (deletedUsers.Error)
         {
-            Console.WriteLine("Couldn't fetch deleted users!");
+            Debug.Log("Couldn't fetch deleted users!");
             return;
         }
 
         foreach (var user in deletedUsers.Result.Users)
         {
-            Console.WriteLine($"Id: {user.Id}, UserName: {user.UserName}, Status: {user.Status}");
+            Debug.Log($"Id: {user.Id}, UserName: {user.UserName}, Status: {user.Status}");
         }
         // snippet.end
     }
