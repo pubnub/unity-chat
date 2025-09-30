@@ -161,9 +161,9 @@ namespace PubNubChatAPI.Entities
                     case MentionType.User:
                         var usersWrapper =
                             await chat.GetUsers(filter: $"name LIKE \"{rawMention.Target.Target}*\"", limit:userLimit).ConfigureAwait(false);   
-                        if (usersWrapper.Users != null && usersWrapper.Users.Any())
+                        if (!usersWrapper.Error && usersWrapper.Result.Users.Any())
                         {
-                            var user = usersWrapper.Users[0];
+                            var user = usersWrapper.Result.Users[0];
                             suggestion.Target = new MentionTarget() { Target = user.Id, Type = rawMention.Target.Type };
                             suggestion.ReplaceTo = user.UserName;
                             if (userSuggestionSource == UserSuggestionSource.CHANNEL &&

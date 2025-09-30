@@ -983,9 +983,10 @@ namespace PubNubChatAPI.Entities
         /// </code>
         /// </example>
         /// <seealso cref="User"/>
-        public async Task<UsersResponseWrapper> GetUsers(string filter = "", string sort = "", int limit = 0,
+        public async Task<ChatOperationResult<UsersResponseWrapper>> GetUsers(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
+            var result = new ChatOperationResult<UsersResponseWrapper>("Chat.GetUsers()", this);
             var operation = PubnubInstance.GetAllUuidMetadata().IncludeCustom(true).IncludeStatus(true).IncludeType(true);
             if (!string.IsNullOrEmpty(filter))
             {
@@ -1003,26 +1004,24 @@ namespace PubNubChatAPI.Entities
             {
                 operation = operation.Page(page);
             }
-            var result = await operation.ExecuteAsync().ConfigureAwait(false);
-            
-            if (result.Status.Error)
+            var getUuidMetadata = await operation.ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(getUuidMetadata))
             {
-                Logger.Error($"Error when trying to GetUsers(): {result.Status.ErrorData.Information}");
-                return default;
+                return result;
             }
-
             var response = new UsersResponseWrapper()
             {
                 Users = new List<User>(),
-                Total = result.Result.TotalCount,
+                Total = getUuidMetadata.Result.TotalCount,
                 Page = result.Result.Page
             };
-            foreach (var resultMetadata in result.Result.Uuids)
+            foreach (var resultMetadata in getUuidMetadata.Result.Uuids)
             {
                 var user = new User(this, resultMetadata.Uuid, resultMetadata);
                 response.Users.Add(user);
             }
-            return response;
+            result.Result = response;
+            return result;
         }
         
         /// <summary>
