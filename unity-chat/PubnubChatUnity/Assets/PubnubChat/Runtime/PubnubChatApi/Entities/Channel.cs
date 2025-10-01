@@ -258,7 +258,7 @@ namespace PubnubChatApi
         public void SetListeningForReadReceiptsEvents(bool listen)
         {
             SetListening(ref readReceiptsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
-                async delegate(Pubnub pn, PNMessageResult<object> m)
+                async delegate(Pubnub _, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
                     {
@@ -347,7 +347,7 @@ namespace PubnubChatApi
         public void SetListeningForPresence(bool listen)
         {
             SetListening(ref presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
-                async delegate(Pubnub pn, PNPresenceEventResult p)
+                async delegate
                 {
                     var whoIs = await WhoIsPresent().ConfigureAwait(false);
                     if (whoIs.Error)

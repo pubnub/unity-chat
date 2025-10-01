@@ -436,6 +436,8 @@ namespace PubnubChatApi
                     case Operation.EQUAL:
                         consumed += diff.text.Length;
                         break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
 
