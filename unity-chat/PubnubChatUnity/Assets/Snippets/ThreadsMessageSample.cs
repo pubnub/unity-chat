@@ -294,4 +294,273 @@ public class ThreadsMessageSample
         }
         // snippet.end
     }
+    
+    public static async Task GetHistoricalThreadMessagesExample()
+    {
+        // snippet.get_historical_thread_messages_example
+        // reference the "channel" object
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            Debug.Log($"Found channel with name {channel.Name}");
+            
+            // get the last message in the channel
+            var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
+            var lastMessage = messageHistoryResult.Result.FirstOrDefault();
+            if (lastMessage != null)
+            {
+                Debug.Log($"Found last message with timetoken {lastMessage.TimeToken}");
+                
+                // check if the last message has a thread and fetch its thread channel
+                var threadChannelResult = await lastMessage.GetThread();
+                if (!threadChannelResult.Error)
+                {
+                    var threadChannel = threadChannelResult.Result;
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
+                    
+                    // fetch 10 historical thread messages older than timetoken 15343325214676133
+                    var threadMessagesResult = await threadChannel.GetMessageHistory("15343325214676133", null, 10);
+                    if (!threadMessagesResult.Error)
+                    {
+                        Debug.Log($"Retrieved {threadMessagesResult.Result.Count} historical thread messages.");
+                        foreach (var threadMessage in threadMessagesResult.Result)
+                        {
+                            Debug.Log($"Thread message: {threadMessage.MessageText}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("Could not retrieve historical thread messages.");
+                    }
+                }
+                else
+                {
+                    Debug.Log("No thread channel associated with this message.");
+                }
+            }
+            else
+            {
+                Debug.Log("No messages found in the 'support' channel.");
+            }
+        }
+        else
+        {
+            Debug.Log("Support channel not found.");
+        }
+        // snippet.end
+    }
+    
+    public static async Task RemoveThreadExample()
+    {
+        // snippet.remove_thread_example
+        // reference the "channel" object
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            Debug.Log($"Found channel with name {channel.Name}");
+            
+            // get the last message in the channel
+            var messageHistoryResult = await channel.GetMessageHistory(null, null, 1);
+            var lastMessage = messageHistoryResult.Result.FirstOrDefault();
+            if (lastMessage != null)
+            {
+                Debug.Log($"Found last message with timetoken {lastMessage.TimeToken}");
+                
+                // remove the thread for the last message
+                await lastMessage.RemoveThread();
+                Debug.Log("Thread removed successfully.");
+            }
+            else
+            {
+                Debug.Log("No messages found in the 'support' channel.");
+            }
+        }
+        else
+        {
+            Debug.Log("Support channel not found.");
+        }
+        // snippet.end
+    }
+    
+    public static async Task PinMessageToThreadChannelExample()
+    {
+        // snippet.pin_message_to_thread_channel_example
+        // reference the "support" channel
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            Debug.Log($"Found channel with name {channel.Name}");
+
+            // get the last message on the channel, which is the root message for the thread
+            var channelMessageHistoryResult = await channel.GetMessageHistory(null, null, 1);
+            var lastChannelMessage = channelMessageHistoryResult.Result.FirstOrDefault();
+            if (lastChannelMessage != null)
+            {
+                Debug.Log($"Found last channel message with timetoken {lastChannelMessage.TimeToken}");
+
+                // get the thread channel created from the message
+                var threadChannelResult = await lastChannelMessage.GetThread();
+                if (!threadChannelResult.Error)
+                {
+                    var threadChannel = threadChannelResult.Result;
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
+
+                    // get the last message from the thread channel
+                    var threadMessageHistoryResult = await threadChannel.GetMessageHistory(null, null, 1);
+                    var lastThreadMessage = threadMessageHistoryResult.Result.FirstOrDefault();
+                    if (lastThreadMessage != null)
+                    {
+                        Debug.Log($"Found last thread message with timetoken {lastThreadMessage.TimeToken}");
+
+                        // pin the last thread message to the thread channel
+                        await threadChannel.PinMessage(lastThreadMessage);
+                        Debug.Log("Message pinned to thread channel successfully.");
+                    }
+                    else
+                    {
+                        Debug.Log("No messages found in the thread channel.");
+                    }
+                }
+                else
+                {
+                    Debug.Log("No thread channel associated with this message.");
+                }
+            }
+            else
+            {
+                Debug.Log("No messages found in the 'support' channel.");
+            }
+        }
+        else
+        {
+            Debug.Log("Support channel not found.");
+        }
+        // snippet.end
+    }
+    
+    public static async Task PinMessageToParentChannelExample()
+    {
+        // snippet.pin_message_to_parent_channel_example
+        // reference the "support" channel
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            Debug.Log($"Found channel with name {channel.Name}");
+
+            // get the last message on the channel, which is the root message for the thread
+            var channelMessageHistoryResult = await channel.GetMessageHistory(null, null, 1);
+            var lastChannelMessage = channelMessageHistoryResult.Result.FirstOrDefault();
+            if (lastChannelMessage != null)
+            {
+                Debug.Log($"Found last channel message with timetoken {lastChannelMessage.TimeToken}");
+
+                // get the thread channel created from the message
+                var threadChannelResult = await lastChannelMessage.GetThread();
+                if (!threadChannelResult.Error)
+                {
+                    var threadChannel = threadChannelResult.Result;
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
+
+                    // get the last message from the thread channel
+                    var threadMessageHistoryResult = await threadChannel.GetMessageHistory(null, null, 1);
+                    var lastThreadMessage = threadMessageHistoryResult.Result.FirstOrDefault();
+                    if (lastThreadMessage != null)
+                    {
+                        Debug.Log($"Found last thread message with timetoken {lastThreadMessage.TimeToken}");
+
+                        // pin the last thread message to the parent channel
+                        await channel.PinMessage(lastThreadMessage);
+                        Debug.Log("Thread message pinned to parent channel successfully.");
+                    }
+                    else
+                    {
+                        Debug.Log("No messages found in the thread channel.");
+                    }
+                }
+                else
+                {
+                    Debug.Log("No thread channel associated with this message.");
+                }
+            }
+            else
+            {
+                Debug.Log("No messages found in the 'support' channel.");
+            }
+        }
+        else
+        {
+            Debug.Log("Support channel not found.");
+        }
+        // snippet.end
+    }
+    
+    public static async Task UnpinMessageFromThreadChannelExample()
+    {
+        // snippet.unpin_message_from_thread_channel_example
+        // reference the "support" channel
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            Debug.Log($"Found channel with name {channel.Name}");
+
+            // get the last message on the channel, which is the root message for the thread
+            var channelMessageHistoryResult = await channel.GetMessageHistory(null, null, 1);
+            var lastChannelMessage = channelMessageHistoryResult.Result.FirstOrDefault();
+            if (lastChannelMessage != null)
+            {
+                Debug.Log($"Found last channel message with timetoken {lastChannelMessage.TimeToken}");
+
+                // get the thread channel created from the message
+                var threadChannelResult = await lastChannelMessage.GetThread();
+                if (!threadChannelResult.Error)
+                {
+                    var threadChannel = threadChannelResult.Result;
+                    Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
+
+                    // unpin the message from the thread channel
+                    await threadChannel.UnpinMessage();
+                    Debug.Log("Message unpinned from thread channel successfully.");
+                }
+                else
+                {
+                    Debug.Log("No thread channel associated with this message.");
+                }
+            }
+            else
+            {
+                Debug.Log("No messages found in the 'support' channel.");
+            }
+        }
+        else
+        {
+            Debug.Log("Support channel not found.");
+        }
+        // snippet.end
+    }
+    
+    public static async Task UnpinMessageFromParentChannelExample()
+    {
+        // snippet.unpin_message_from_parent_channel_example
+        // reference the "support" channel
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            Debug.Log($"Found channel with name {channel.Name}");
+
+            // unpin the message from the parent channel
+            await channel.UnpinMessage();
+            Debug.Log("Message unpinned from parent channel successfully.");
+        }
+        else
+        {
+            Debug.Log("Support channel not found.");
+        }
+        // snippet.end
+    }
 }

@@ -233,4 +233,25 @@ public class ModerationUserSample
         }
         // snippet.end
     }
+    
+    public static async Task SetListeningForModerationEventsExample()
+    {
+        // snippet.set_listening_for_moderation_events_example
+        var userResult = await chat.GetUser("support_agent_15");
+        if(userResult.Error){
+            Debug.Log("Couldn't find user!");
+            return;
+        }
+        var user = userResult.Result;
+
+        user.SetListeningForModerationEvents(true);
+
+        user.OnModerationEvent += OnModerationEventHandler; // or use lambda
+
+        void OnModerationEventHandler(ChatEvent moderationEvent)
+        {
+            Debug.Log($"Moderation event received, payload: {moderationEvent.Payload}");
+        }
+        // snippet.end
+    }
 }
