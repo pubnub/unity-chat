@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using PubnubApi;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
+using PubnubChatApi;
 
 namespace PubNubChatApi.Tests;
 

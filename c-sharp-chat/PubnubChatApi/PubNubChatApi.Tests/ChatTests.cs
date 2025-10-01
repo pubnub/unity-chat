@@ -1,9 +1,6 @@
-using System.Diagnostics;
 using PubnubApi;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Enums;
-using Channel = PubNubChatAPI.Entities.Channel;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -85,7 +82,7 @@ public class ChatTests
     [Test]
     public async Task TestGetUsers()
     {
-        var users = await chat.GetUsers();
+        var users = TestUtils.AssertOperation(await chat.GetUsers());
         Assert.True(users.Users.Any());
     }
 

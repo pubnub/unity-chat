@@ -1,9 +1,7 @@
 using System.Diagnostics;
 using PubnubApi;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
-using PubnubChatApi.Enums;
-using Channel = PubNubChatAPI.Entities.Channel;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
 
 namespace PubNubChatApi.Tests;
 
