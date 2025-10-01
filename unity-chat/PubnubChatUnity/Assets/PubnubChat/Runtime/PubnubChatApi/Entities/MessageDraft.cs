@@ -449,7 +449,7 @@ namespace PubnubChatApi
         /// </summary>
         private void ApplyInsertTextInternal(int offset, string text)
         {
-            if (text == null) text = string.Empty;
+            text ??= string.Empty;
             if (offset < 0 || offset > _value.Length)
             {
                 return;
