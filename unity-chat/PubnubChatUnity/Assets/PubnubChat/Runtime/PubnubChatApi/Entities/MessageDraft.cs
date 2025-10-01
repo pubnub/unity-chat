@@ -249,8 +249,14 @@ namespace PubnubChatApi
         /// <param name="text">The text to replace SuggestedMention.ReplaceFrom with. SuggestedMention.ReplaceTo can be used for example.</param>
         public void InsertSuggestedMention(SuggestedMention mention, string text)
         {
-            if (mention == null || string.IsNullOrEmpty(text) || mention.Target == null) return;
-            if (!ValidateSuggestedMention(mention)) return;
+            if (mention == null || string.IsNullOrEmpty(text) || mention.Target == null)
+            {
+                return;
+            }
+            if (!ValidateSuggestedMention(mention))
+            {
+                return;
+            }
             
             TriggerTypingIndicator();
 
@@ -362,7 +368,10 @@ namespace PubnubChatApi
         /// <param name="target">The target of the mention</param>
         public void AddMention(int offset, int length, MentionTarget target)
         {
-            if (target == null || offset < 0 || length <= 0 || offset + length > _value.Length) return;
+            if (target == null || offset < 0 || length <= 0 || offset + length > _value.Length)
+            {
+                return;
+            }
 
             // Add the mention to the list
             _mentions.Add(new InternalMention(offset, length, target));
@@ -439,7 +448,10 @@ namespace PubnubChatApi
         private void ApplyInsertTextInternal(int offset, string text)
         {
             if (text == null) text = string.Empty;
-            if (offset < 0 || offset > _value.Length) return;
+            if (offset < 0 || offset > _value.Length)
+            {
+                return;
+            }
 
             // Insert text at the specified position
             _value = _value.Insert(offset, text);
@@ -472,7 +484,10 @@ namespace PubnubChatApi
         /// </summary>
         private void ApplyRemoveTextInternal(int offset, int length)
         {
-            if (offset < 0 || offset >= _value.Length || length <= 0) return;
+            if (offset < 0 || offset >= _value.Length || length <= 0)
+            {
+                return;
+            }
             
             // Clamp length to not exceed the text bounds
             length = Math.Min(length, _value.Length - offset);
@@ -570,9 +585,18 @@ namespace PubnubChatApi
         /// </summary>
         private bool ValidateSuggestedMention(SuggestedMention suggestedMention)
         {
-            if (suggestedMention.Offset < 0 || suggestedMention.Offset >= _value.Length) return false;
-            if (string.IsNullOrEmpty(suggestedMention.ReplaceFrom)) return false;
-            if (suggestedMention.Offset + suggestedMention.ReplaceFrom.Length > _value.Length) return false;
+            if (suggestedMention.Offset < 0 || suggestedMention.Offset >= _value.Length)
+            {
+                return false;
+            }
+            if (string.IsNullOrEmpty(suggestedMention.ReplaceFrom))
+            {
+                return false;
+            }
+            if (suggestedMention.Offset + suggestedMention.ReplaceFrom.Length > _value.Length)
+            {
+                return false;
+            }
 
             var substring = _value.Substring(suggestedMention.Offset, suggestedMention.ReplaceFrom.Length);
             return substring == suggestedMention.ReplaceFrom;
