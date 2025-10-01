@@ -1,0 +1,7 @@
+---
+exclude_paths:
+  - '**/PubNubChatConsoleExample/**'
+  - '**/PubNubChatApi.Tests/**'
+  - '**/Plugins/**'
+  - '**/Snippets/**'
+  
