@@ -407,7 +407,7 @@ namespace PubnubChatApi
         /// <param name="text"></param>
         public void Update(string text)
         {
-            if (text == null) text = string.Empty;
+            text ??= string.Empty;
             
             TriggerTypingIndicator();
 
@@ -694,6 +694,8 @@ namespace PubnubChatApi
                         case MentionType.Url:
                             result.Append($"[{escapedText}]({escapedUrl})");
                             break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                 }
             }

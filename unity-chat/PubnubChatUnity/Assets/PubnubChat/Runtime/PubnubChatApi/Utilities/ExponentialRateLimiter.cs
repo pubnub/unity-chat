@@ -130,7 +130,7 @@ namespace PubnubChatApi
                     }
 
                     // Start processing the task asynchronously
-                    var processingTask = ProcessLimiterAsync(id, limiter);
+                    var processingTask = ProcessLimiterAsync(limiter);
                     processingTasks.Add(processingTask);
 
                     limiter.CurrentPenalty++;
@@ -168,7 +168,7 @@ namespace PubnubChatApi
             return toSleep;
         }
 
-        private async Task ProcessLimiterAsync(string id, RateLimiterRoot limiterRoot)
+        private async Task ProcessLimiterAsync(RateLimiterRoot limiterRoot)
         {
             TaskElement element;
             
