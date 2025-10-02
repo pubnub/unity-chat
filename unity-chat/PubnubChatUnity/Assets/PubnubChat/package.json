@@ -25,6 +25,6 @@
     }
   ],
   "dependencies": {
-	  "com.pubnub.sdk": "9.1.0"
+	  "com.pubnub.sdk": "9.2.0"
   }
 }
