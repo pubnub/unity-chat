@@ -1,6 +1,15 @@
 --- 
-version: v0.4.4
+version: v1.0.0
 changelog:
+  - date: 2025-10-02
+    version: v1.0.0
+    changes:
+      - type: feature
+        text: "Added WebGL build support because of the migration from C-Core to Unity SDK."
+      - type: improvement
+        text: "Changed the underlying SDK used by the Chat from C-Core to Unity SDK."
+      - type: improvement
+        text: "Added ChatOperationResult and ChatOperationResult<T> as a return types for async network operations with additional debug and error data on potential failure."
   - date: 2025-05-12
     version: v0.4.4
     changes:
