@@ -1,7 +1,7 @@
-using PubnubChatApi.Entities.Data;
+using PubnubChatApi;
 using UnityEngine;
 
-namespace PubnubChat
+namespace PubnubChatApi
 {
     [CreateAssetMenu(fileName = "PubnubChatConfigAsset", menuName = "PubNub/PubNub Chat Config Asset")]
     public class PubnubChatConfigAsset : ScriptableObject

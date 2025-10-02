@@ -1,8 +1,6 @@
 using System.Threading.Tasks;
 using PubnubApi;
-using PubnubChat;
-using PubnubChat.Runtime;
-using PubnubChatApi.Entities.Data;
+using PubnubChatApi;
 using UnityEngine;
 
 /// <summary>
