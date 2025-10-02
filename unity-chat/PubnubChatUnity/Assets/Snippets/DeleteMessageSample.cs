@@ -30,6 +30,7 @@ public class DeleteMessageSample
         {
             chat = chatResult.Result;
         }
+        
         // snippet.end
     }
     
