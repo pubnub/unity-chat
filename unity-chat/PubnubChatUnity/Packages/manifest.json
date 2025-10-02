@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.pubnub.sdk": "https://github.com/pubnub/unity.git?path=/PubNubUnity/Assets/PubNub#c-sharp-7-5-0",
+    "com.pubnub.sdk": "https://github.com/pubnub/unity.git?path=/PubNubUnity/Assets/PubNub",
     "com.unity.collab-proxy": "2.6.0",
     "com.unity.feature.development": "1.0.1",
     "com.unity.ide.rider": "3.0.37",
