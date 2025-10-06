@@ -6,6 +6,9 @@
   "unity": "2022.3",
   "documentationUrl": "https://www.pubnub.com/docs/chat/unity-chat-sdk/overview/",
   "licensesUrl": "https://github.com/pubnub/unity-chat/blob/master/LICENSE",
+  "dependencies": {
+	  "com.pubnub.sdk": "9.2.0"
+  },
  "keywords": [
     "pubnub",
     "chat",
@@ -23,8 +26,5 @@
       "description": "Contains a ScriptableObject with PubnubChatConfig properties that can be used to initialize a new Chat object and a sample Pubnub Chat MonoBehaviour script that runs a few example tasks in the console.",
       "path": "Samples~/PubnubChatConfigAsset"
     }
-  ],
-  "dependencies": {
-	  "com.pubnub.sdk": "9.2.0"
-  }
+  ]
 }
