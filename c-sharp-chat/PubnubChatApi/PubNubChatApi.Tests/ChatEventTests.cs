@@ -1,6 +1,6 @@
-using System.Diagnostics;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
+using PubnubApi;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,16 +14,13 @@ public class ChatEventTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "event_tests_user")
-        );
-        channel = await chat.CreatePublicConversation("event_tests_channel");
-        if (!chat.TryGetCurrentUser(out user))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("event_tests_user"))
         {
-            Assert.Fail();
-        }
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        }));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("event_tests_channel"));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }

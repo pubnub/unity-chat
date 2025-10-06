@@ -1,6 +1,6 @@
-using System.Diagnostics;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
+using PubnubApi;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
 
 namespace PubNubChatApi.Tests;
 
@@ -14,17 +14,13 @@ public class UserTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "user_tests_user", 
-            storeUserActivityTimestamp: true)
-        );
-        channel = await chat.CreatePublicConversation("user_tests_channel");
-        if (!chat.TryGetCurrentUser(out user))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("user_tests_user"))
         {
-            Assert.Fail();
-        }
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        }));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("user_tests_channel"));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }
@@ -59,15 +55,15 @@ public class UserTests
     public async Task TestUserUpdate()
     {
         var updatedReset = new ManualResetEvent(false);
-        var testUser = await chat.GetOrCreateUser("wolololo_guy");
-
-        await Task.Delay(5000);
-        
+        var testUser = await chat.GetOrCreateUser(Guid.NewGuid().ToString());
+        await Task.Delay(3000);
+        testUser.SetListeningForUpdates(true);
+        await Task.Delay(3000);
         var newRandomUserName = Guid.NewGuid().ToString();
         testUser.OnUserUpdated += updatedUser =>
         {
             Assert.True(updatedUser.UserName == newRandomUserName);
-            Assert.True(updatedUser.CustomData == "{\"some_key\":\"some_value\"}");
+            Assert.True(updatedUser.CustomData.TryGetValue("some_key", out var value) && value.ToString() == "some_value");
             Assert.True(updatedUser.Email == "some@guy.com");
             Assert.True(updatedUser.ExternalId == "xxx_some_guy_420_xxx");
             Assert.True(updatedUser.ProfileUrl == "www.some.guy");
@@ -75,12 +71,13 @@ public class UserTests
             Assert.True(updatedUser.DataType == "someType");
             updatedReset.Set();
         };
-        testUser.SetListeningForUpdates(true);
-        await Task.Delay(3000);
         await testUser.Update(new ChatUserData()
         {
             Username = newRandomUserName,
-            CustomDataJson = "{\"some_key\":\"some_value\"}",
+            CustomData = new Dictionary<string, object>()
+            {
+                {"some_key", "some_value"}
+            },
             Email = "some@guy.com",
             ExternalId = "xxx_some_guy_420_xxx",
             ProfileUrl = "www.some.guy",
@@ -88,32 +85,40 @@ public class UserTests
             Type = "someType"
         });
         var updated = updatedReset.WaitOne(15000);
+        testUser.SetListeningForUpdates(false);
         Assert.True(updated);
+        
+        //Cleanup
+        await testUser.DeleteUser();
     }
 
     [Test]
     public async Task TestUserDelete()
     {
-        var someUser = await chat.CreateUser(Guid.NewGuid().ToString());
-        
-        Assert.True(chat.TryGetUser(someUser.Id, out _), "Couldn't get freshly created user");
+        var someUser = TestUtils.AssertOperation(await chat.CreateUser(Guid.NewGuid().ToString()));
+
+        TestUtils.AssertOperation(await chat.GetUser(someUser.Id));
 
         await someUser.DeleteUser();
 
         await Task.Delay(3000);
-        
-        Assert.False(chat.TryGetUser(someUser.Id, out _), "Got the freshly deleted user");
+
+        var getAfterUser = await chat.GetUser(someUser.Id);
+        if (!getAfterUser.Error)
+        {
+            Assert.Fail("Got the freshly deleted user");
+        }
     }
 
     [Test]
     public async Task TestUserWherePresent()
     {
-        var someChannel = await chat.CreatePublicConversation();
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         someChannel.Join();
 
         await Task.Delay(4000);
 
-        var where = await user.WherePresent();
+        var where = TestUtils.AssertOperation(await user.WherePresent());
         
         Assert.Contains(someChannel.Id, where, "user.WherePresent() doesn't have most recently joined channel!");
     }
@@ -121,12 +126,12 @@ public class UserTests
     [Test]
     public async Task TestUserIsPresentOn()
     {
-        var someChannel = await chat.CreatePublicConversation();
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         someChannel.Join();
 
         await Task.Delay(4000);
 
-        var isOn = await user.IsPresentOn(someChannel.Id);
+        var isOn = TestUtils.AssertOperation(await user.IsPresentOn(someChannel.Id));
         
         Assert.True(isOn, "user.IsPresentOn() doesn't return true for most recently joined channel!");
     }

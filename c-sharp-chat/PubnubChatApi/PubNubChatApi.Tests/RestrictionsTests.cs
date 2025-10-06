@@ -1,6 +1,5 @@
-using System.Diagnostics;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
+using PubnubApi;
+using PubnubChatApi;
 
 namespace PubNubChatApi.Tests;
 
@@ -12,11 +11,11 @@ public class RestrictionsTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "restrictions_tests_user")
-        );
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("restrictions_tests_user"))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        }));
     }
     
     [TearDown]
@@ -30,8 +29,8 @@ public class RestrictionsTests
     public async Task TestSetRestrictions()
     {
         var user = await chat.GetOrCreateUser("user123");
-        var channel = await chat.CreatePublicConversation("new_channel");
-
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("new_channel"));
+        
         await Task.Delay(2000);
 
         var restriction = new Restriction()
@@ -40,16 +39,16 @@ public class RestrictionsTests
             Mute = true,
             Reason = "Some Reason"
         };
-        await channel.SetRestrictions(user.Id, restriction);
+        TestUtils.AssertOperation(await channel.SetRestrictions(user.Id, restriction));
 
         await Task.Delay(3000);
-
-        var fetchedRestriction = await channel.GetUserRestrictions(user);
+        
+        var fetchedRestriction = TestUtils.AssertOperation(await channel.GetUserRestrictions(user));
 
         Assert.True(restriction.Ban == fetchedRestriction.Ban && restriction.Mute == fetchedRestriction.Mute &&
                     restriction.Reason == fetchedRestriction.Reason);
 
-        var restrictionFromUser = await user.GetChannelRestrictions(channel);
+        var restrictionFromUser = TestUtils.AssertOperation(await user.GetChannelRestrictions(channel));
         
         Assert.True(restriction.Ban == restrictionFromUser.Ban && restriction.Mute == restrictionFromUser.Mute &&
                     restriction.Reason == restrictionFromUser.Reason);
@@ -59,7 +58,7 @@ public class RestrictionsTests
     public async Task TestGetRestrictionsSets()
     {
         var user = await chat.GetOrCreateUser("user1234");
-        var channel = await chat.CreatePublicConversation("new_channel_2");
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("new_channel"));
 
         await Task.Delay(4000);
 
@@ -69,12 +68,12 @@ public class RestrictionsTests
             Mute = true,
             Reason = "Some Reason"
         };
-        await channel.SetRestrictions(user.Id, restriction);
-
+        TestUtils.AssertOperation(await channel.SetRestrictions(user.Id, restriction));
+        
         await Task.Delay(4000);
 
-        var a = await channel.GetUsersRestrictions();
-        var b = await user.GetChannelsRestrictions();
+        var a = TestUtils.AssertOperation(await channel.GetUsersRestrictions());
+        var b = TestUtils.AssertOperation(await user.GetChannelsRestrictions());
         
         Assert.True(a.Restrictions.Any(x => x.UserId == user.Id));
         Assert.True(b.Restrictions.Any(x => x.ChannelId == channel.Id));

@@ -1,6 +1,7 @@
-using System.Diagnostics;
-using PubNubChatAPI.Entities;
-using PubnubChatApi.Entities.Data;
+using PubnubApi;
+using PubnubChatApi;
+using Channel = PubnubChatApi.Channel;
+
 
 namespace PubNubChatApi.Tests;
 
@@ -14,17 +15,14 @@ public class ThreadsTests
     [SetUp]
     public async Task Setup()
     {
-        chat = await Chat.CreateInstance(new PubnubChatConfig(
-            PubnubTestsParameters.PublishKey,
-            PubnubTestsParameters.SubscribeKey,
-            "threads_tests_user_2")
-        );
-        var randomId = Guid.NewGuid().ToString()[..10];
-        channel = await chat.CreatePublicConversation(randomId);
-        if (!chat.TryGetCurrentUser(out user))
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), new PNConfiguration(new UserId("threads_tests_user_2"))
         {
-            Assert.Fail();
-        }
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        }));
+        var randomId = Guid.NewGuid().ToString()[..10];
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation(randomId));
+        user = TestUtils.AssertOperation(await chat.GetCurrentUser());
         channel.Join();
         await Task.Delay(3500);
     }
@@ -46,7 +44,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(message.CreateThread());
             thread.Join();
 
             await Task.Delay(5000);
@@ -57,7 +55,7 @@ public class ThreadsTests
 
             await Task.Delay(10000);
 
-            var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
+            var history = TestUtils.AssertOperation(await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3));
             Assert.True(history.Count == 3 && history.Any(x => x.MessageText == "one"));
             historyReadReset.Set();
         };
@@ -73,26 +71,26 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(message.CreateThread());
             thread.Join();
             await thread.SendText("thread init message");
 
             await Task.Delay(7000);
 
             var threadMessage = 
-                (await thread.GetThreadHistory("99999999999999999", "00000000000000000", 1))[0];
+                TestUtils.AssertOperation(await thread.GetThreadHistory("99999999999999999", "00000000000000000", 1))[0];
             await thread.PinMessageToParentChannel(threadMessage);
             
             await Task.Delay(7000);
             
-            var hasPinned = channel.TryGetPinnedMessage(out var pinnedMessage);
-            var correctText = hasPinned && pinnedMessage.MessageText == "thread init message";
-            Assert.True(hasPinned && correctText);
+            var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
+            Assert.True(pinned.MessageText == "thread init message");
             await thread.UnPinMessageFromParentChannel();
             
             await Task.Delay(7000);
-
-            Assert.False(channel.TryGetPinnedMessage(out _));
+            
+            var getPinned = await channel.GetPinnedMessage();
+            Assert.True(getPinned.Error);
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");
@@ -106,7 +104,7 @@ public class ThreadsTests
         var mentionedReset = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(message.CreateThread());
             thread.Join();
             await Task.Delay(2500);
             user.SetListeningForMentionEvents(true);
@@ -130,7 +128,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(message.CreateThread());
             thread.Join();
 
             await Task.Delay(3500);
@@ -141,19 +139,21 @@ public class ThreadsTests
             
             await Task.Delay(8000);
             
-            var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
+            var history = TestUtils.AssertOperation(await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3));
             var threadMessage = history[0];
             await threadMessage.PinMessageToParentChannel();
             
             await Task.Delay(5000);
 
-            Assert.True(channel.TryGetPinnedMessage(out var pinnedMessage) && pinnedMessage.MessageText == threadMessage.MessageText);
+            var pinned = TestUtils.AssertOperation(await channel.GetPinnedMessage());
+            Assert.True(pinned.MessageText == threadMessage.MessageText);
             
             await threadMessage.UnPinMessageFromParentChannel();
             
             await Task.Delay(5000);
 
-            Assert.False(channel.TryGetPinnedMessage(out _));
+            var getPinned = await channel.GetPinnedMessage();
+            Assert.True(getPinned.Error);
             historyReadReset.Set();
         };
         await channel.SendText("thread_start_message");
@@ -168,7 +168,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             message.SetListeningForUpdates(true);
-            var thread = await message.CreateThread();
+            var thread = TestUtils.AssertOperation(message.CreateThread());
             thread.Join();
             
             await Task.Delay(3000);
@@ -179,7 +179,7 @@ public class ThreadsTests
             
             await Task.Delay(10000);
             
-            var history = await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3);
+            var history = TestUtils.AssertOperation(await thread.GetThreadHistory("99999999999999999", "00000000000000000", 3));
             var threadMessage = history[0];
             
             threadMessage.SetListeningForUpdates(true);

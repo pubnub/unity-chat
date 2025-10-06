@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.pubnub.sdk": {
+      "version": "https://github.com/pubnub/unity.git?path=/PubNubUnity/Assets/PubNub",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2"
+      },
+      "hash": "841822252c4f8c932961a3386cd55610b749e319"
+    },
     "com.unity.collab-proxy": {
       "version": "2.6.0",
       "depth": 0,
@@ -16,7 +25,7 @@
     },
     "com.unity.ext.nunit": {
       "version": "1.0.6",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -36,8 +45,8 @@
       }
     },
     "com.unity.ide.rider": {
-      "version": "3.0.34",
-      "depth": 1,
+      "version": "3.0.37",
+      "depth": 0,
       "source": "registry",
       "dependencies": {
         "com.unity.ext.nunit": "1.0.6"
@@ -55,6 +64,13 @@
     },
     "com.unity.ide.vscode": {
       "version": "1.2.5",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.1",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
