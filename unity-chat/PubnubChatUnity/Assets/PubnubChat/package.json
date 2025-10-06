@@ -6,9 +6,6 @@
   "unity": "2022.3",
   "documentationUrl": "https://www.pubnub.com/docs/chat/unity-chat-sdk/overview/",
   "licensesUrl": "https://github.com/pubnub/unity-chat/blob/master/LICENSE",
-  "dependencies": {
-	  "com.pubnub.sdk": "9.2.0"
-  },
  "keywords": [
     "pubnub",
     "chat",
@@ -27,5 +24,8 @@
       "path": "Samples~/PubnubChatConfigAsset"
     }
   ],
+  "dependencies": {
+	  "com.pubnub.sdk": "9.2.0"
+  },
   "repository": "https://github.com/pubnub/unity-chat"
 }
