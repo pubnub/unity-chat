@@ -32,7 +32,7 @@ public class ThreadsTests
     {
         channel.Leave();
         await Task.Delay(3000);
-        await channel.Delete();
+        await channel.Delete(false);
         chat.Destroy();
         await Task.Delay(3000);
     }

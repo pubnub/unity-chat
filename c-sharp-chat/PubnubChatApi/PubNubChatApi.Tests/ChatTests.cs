@@ -107,7 +107,7 @@ public class ChatTests
                     directConversation.InviteesMemberships.First().UserId == convoUser.Id);
 
         //Cleanup
-        await directConversation.CreatedChannel.Delete();
+        await directConversation.CreatedChannel.Delete(false);
     }
 
     [Test]
@@ -126,7 +126,7 @@ public class ChatTests
             x.UserId == convoUser1.Id && x.ChannelId == id));
         
         //Cleanup
-        await groupConversation.CreatedChannel.Delete();
+        await groupConversation.CreatedChannel.Delete(false);
     }
 
     [Test]
@@ -200,7 +200,7 @@ public class ChatTests
         var counts = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
 
         markTestChannel.Leave();
-        await markTestChannel.Delete();
+        await markTestChannel.Delete(false);
         
         Assert.False(counts.Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
     }

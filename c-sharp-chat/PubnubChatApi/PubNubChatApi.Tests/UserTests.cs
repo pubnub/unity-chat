@@ -89,17 +89,17 @@ public class UserTests
         Assert.True(updated);
         
         //Cleanup
-        await testUser.DeleteUser();
+        await testUser.Delete(false);
     }
 
     [Test]
-    public async Task TestUserDelete()
+    public async Task TestHardUserDelete()
     {
         var someUser = TestUtils.AssertOperation(await chat.CreateUser(Guid.NewGuid().ToString()));
 
         TestUtils.AssertOperation(await chat.GetUser(someUser.Id));
 
-        await someUser.DeleteUser();
+        await someUser.Delete(false);
 
         await Task.Delay(3000);
 
@@ -108,6 +108,34 @@ public class UserTests
         {
             Assert.Fail("Got the freshly deleted user");
         }
+    }
+    
+    [Test]
+    public async Task TestSoftDeleteAndRestoreUser()
+    {
+        var testUser = TestUtils.AssertOperation(await chat.CreateUser(Guid.NewGuid().ToString()));
+
+        await Task.Delay(3000);
+        
+        var userExists = await chat.GetUser(testUser.Id);
+        Assert.False(userExists.Error, "Couldn't fetch created user from chat");
+
+        await testUser.Delete(true);
+
+        await Task.Delay(3000);
+        
+        var userAfterDelete = await chat.GetUser(testUser.Id);
+        Assert.False(userAfterDelete.Error, "User should still exist after soft-delete");
+        Assert.True(userAfterDelete.Result.IsDeleted, "user should be marked as soft-deleted");
+
+        await userAfterDelete.Result.Restore();
+        Assert.False(userAfterDelete.Result.IsDeleted, "User should be restored");
+        
+        await Task.Delay(3000);
+        
+        var userAfterRestore = await chat.GetUser(testUser.Id);
+        Assert.False(userAfterRestore.Error, "User should still exist after restore");
+        Assert.False(userAfterRestore.Result.IsDeleted, "User fetched from server again should be marked as not-deleted after restore");
     }
 
     [Test]
