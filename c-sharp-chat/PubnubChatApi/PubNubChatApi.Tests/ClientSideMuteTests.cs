@@ -60,6 +60,9 @@ public class ClientSideMuteTests
             messageReset.Set();
         };
         await channel1.Join();
+
+        await Task.Delay(3000);
+        
         await channel2.SendText("This message should not be muted.");
         var received = messageReset.WaitOne(10000);
         Assert.True(received, "Didn't receive message from not-yet-muted user.");
@@ -83,6 +86,8 @@ public class ClientSideMuteTests
         await channel2.SendText("One");
         await channel2.SendText("Two");
         await channel2.SendText("Three");
+
+        await Task.Delay(6000);
 
         var history = TestUtils.AssertOperation(await channel1.GetMessageHistory("99999999999999999", "00000000000000000", 3));
         Assert.True(history.Count == 3, "Didn't get message history for non-muted user");
@@ -111,6 +116,8 @@ public class ClientSideMuteTests
             eventReset.Set();
         };
         channel1.SetListeningForCustomEvents(true);
+
+        await Task.Delay(3000);
         
         await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"not-muted\"}");
         var received = eventReset.WaitOne(10000);
