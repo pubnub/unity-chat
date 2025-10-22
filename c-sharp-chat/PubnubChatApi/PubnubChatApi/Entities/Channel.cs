@@ -579,7 +579,8 @@ namespace PubnubChatApi
             SetListening(ref subscription, SubscriptionOptions.None, true, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
-                    if (ChatParsers.TryParseMessageResult(chat, m, out var message))
+                    if (ChatParsers.TryParseMessageResult(chat, m, out var message) 
+                        && !chat.MutedUsersManager.MutedUsers.Contains(message.UserId))
                     {
                         OnMessageReceived?.Invoke(message);
                     }
