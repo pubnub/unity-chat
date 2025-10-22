@@ -172,11 +172,14 @@ public class ChatTests
     [Test]
     public async Task TestGetUnreadMessagesCounts()
     {
-        await channel.SendText("wololo");
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await testChannel.SendText("wololo");
 
         await Task.Delay(5000);
 
-        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == channel.Id && x.Count > 0));
+        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == testChannel.Id && x.Count > 0));
+
+        await testChannel.Delete(false);
     }
 
     [Test]
