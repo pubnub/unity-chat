@@ -174,7 +174,7 @@ public class ChatTests
     {
         await channel.SendText("wololo");
 
-        await Task.Delay(3000);
+        await Task.Delay(5000);
 
         Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == channel.Id && x.Count > 0));
     }
