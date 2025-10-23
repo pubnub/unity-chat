@@ -181,7 +181,9 @@ public class ChatTests
 
         await Task.Delay(6000);
 
-        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == testChannel.Id && x.Count > 0));
+        var unreads =
+            TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(filter:$"channel.id LIKE \"{testChannel.Id}\""));
+        Assert.True(unreads.Any(x => x.ChannelId == testChannel.Id && x.Count == 4));
 
         await testChannel.Delete(false);
     }
