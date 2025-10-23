@@ -173,6 +173,7 @@ public class ChatTests
     public async Task TestGetUnreadMessagesCounts()
     {
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await testChannel.Join();
         await testChannel.SendText("wololo");
 
         await Task.Delay(5000);
