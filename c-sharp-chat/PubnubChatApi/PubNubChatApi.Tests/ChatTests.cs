@@ -175,8 +175,11 @@ public class ChatTests
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         await testChannel.Join();
         await testChannel.SendText("wololo");
+        await testChannel.SendText("wololo1");
+        await testChannel.SendText("wololo2");
+        await testChannel.SendText("wololo3");
 
-        await Task.Delay(5000);
+        await Task.Delay(6000);
 
         Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == testChannel.Id && x.Count > 0));
 
