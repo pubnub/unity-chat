@@ -30,6 +30,7 @@ namespace PubnubChatApi
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
+        public MutedUsersManager MutedUsersManager { get; }
         public PubnubChatConfig Config { get; }
         internal ExponentialRateLimiter RateLimiter { get; }
 
@@ -99,6 +100,7 @@ namespace PubnubChatApi
             ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             Config = chatConfig;
             ChatAccessManager = new ChatAccessManager(this);
+            MutedUsersManager = new MutedUsersManager(this);
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
         
@@ -108,6 +110,7 @@ namespace PubnubChatApi
             PubnubInstance = pubnub;
             ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             ChatAccessManager = new ChatAccessManager(this);
+            MutedUsersManager = new MutedUsersManager(this);
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
         
@@ -1585,7 +1588,8 @@ namespace PubnubChatApi
             var isMore = getHistory.Result.More != null;
             foreach (var historyItem in getHistory.Result.Messages[channelId])
             {
-                if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message))
+                if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message) 
+                    && !MutedUsersManager.MutedUsers.Contains(message.UserId))
                 {
                     result.Result.Add(message);
                 }
@@ -1633,7 +1637,8 @@ namespace PubnubChatApi
             var events = new List<ChatEvent>();
             foreach (var message in getHistory.Result.Messages[channelId])
             {
-                if (ChatParsers.TryParseEventFromHistory(this, channelId, message, out var chatEvent))
+                if (ChatParsers.TryParseEventFromHistory(this, channelId, message, out var chatEvent) 
+                    && !MutedUsersManager.MutedUsers.Contains(chatEvent.UserId))
                 {
                     events.Add(chatEvent);
                 }

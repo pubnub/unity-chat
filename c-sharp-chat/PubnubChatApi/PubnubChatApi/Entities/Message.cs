@@ -674,7 +674,7 @@ namespace PubnubChatApi
         /// </example>
         /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
-        public async Task<ChatOperationResult> Delete(bool soft)
+        public async Task<ChatOperationResult> Delete(bool soft = false)
         {
             var result = new ChatOperationResult("Message.Delete()", chat);
             if (soft)

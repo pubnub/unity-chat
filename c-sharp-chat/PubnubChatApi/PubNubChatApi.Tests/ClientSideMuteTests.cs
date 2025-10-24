@@ -42,9 +42,9 @@ public class ClientSideMuteTests
     {
         await channel1.Leave();
         await channel2.Leave();
-        await user1.Delete(false);
+        await user1.DeleteUser(false);
         chat1.Destroy();
-        await user2.Delete(false);
+        await user2.DeleteUser(false);
         chat2.Destroy();
         await channel1.Delete(false);
         await channel2.Delete(false);

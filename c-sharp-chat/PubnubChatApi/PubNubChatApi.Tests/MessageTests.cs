@@ -160,7 +160,7 @@ public class MessageTests
         var manualReceivedEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
         {
-            message.Delete(true);
+            await message.Delete(true);
 
             await Task.Delay(2000);
 

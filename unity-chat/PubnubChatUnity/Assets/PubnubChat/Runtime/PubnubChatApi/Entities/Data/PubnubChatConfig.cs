@@ -19,10 +19,11 @@ namespace PubnubChatApi
         public RateLimitPerChannel RateLimitsPerChannel { get; }
         public bool StoreUserActivityTimestamp { get; }
         public int StoreUserActivityInterval { get; }
+        public bool SyncMutedUsers { get; }
         
         public PubnubChatConfig(int typingTimeout = 5000, int typingTimeoutDifference = 1000, int rateLimitFactor = 2,
             RateLimitPerChannel rateLimitPerChannel = null, bool storeUserActivityTimestamp = false,
-            int storeUserActivityInterval = 60000)
+            int storeUserActivityInterval = 60000, bool syncMutedUsers = false)
         {
             RateLimitsPerChannel = rateLimitPerChannel ?? new RateLimitPerChannel();
             RateLimitFactor = rateLimitFactor;
@@ -30,6 +31,7 @@ namespace PubnubChatApi
             StoreUserActivityInterval = storeUserActivityInterval;
             TypingTimeout = typingTimeout;
             TypingTimeoutDifference = typingTimeoutDifference;
+            SyncMutedUsers = syncMutedUsers;
         }
     }
 }

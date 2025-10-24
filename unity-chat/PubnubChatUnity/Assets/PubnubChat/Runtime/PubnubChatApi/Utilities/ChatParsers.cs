@@ -223,6 +223,11 @@ namespace PubnubChatApi
                     chatEvent = default;
                     return false;
                 }
+                if (chat.MutedUsersManager.MutedUsers.Contains(messageResult.Publisher))
+                {
+                    chatEvent = default;
+                    return false;
+                }
                 chatEvent = new ChatEvent()
                 {
                     TimeToken = messageResult.Timetoken.ToString(),

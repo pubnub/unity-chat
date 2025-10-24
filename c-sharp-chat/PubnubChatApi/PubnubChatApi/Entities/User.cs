@@ -339,12 +339,12 @@ namespace PubnubChatApi
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// await user.Delete();
+        /// await user.DeleteUser();
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> Delete(bool soft)
+        public async Task<ChatOperationResult> DeleteUser(bool soft = false)
         {
-            var result = new ChatOperationResult("User.Delete()", chat);
+            var result = new ChatOperationResult("User.DeleteUser()", chat);
             if (!soft)
             {
                 var hardDeleteResult = await chat.DeleteUser(Id).ConfigureAwait(false);
@@ -379,7 +379,7 @@ namespace PubnubChatApi
         /// }
         /// </code>
         /// </example>
-        /// <seealso cref="Delete"/>
+        /// <seealso cref="DeleteUser"/>
         /// <seealso cref="IsDeleted"/>
         public async Task<ChatOperationResult> Restore()
         {

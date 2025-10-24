@@ -89,7 +89,7 @@ public class UserTests
         Assert.True(updated);
         
         //Cleanup
-        await testUser.Delete(false);
+        await testUser.DeleteUser(false);
     }
 
     [Test]
@@ -99,7 +99,7 @@ public class UserTests
 
         TestUtils.AssertOperation(await chat.GetUser(someUser.Id));
 
-        await someUser.Delete(false);
+        await someUser.DeleteUser(false);
 
         await Task.Delay(3000);
 
@@ -120,7 +120,7 @@ public class UserTests
         var userExists = await chat.GetUser(testUser.Id);
         Assert.False(userExists.Error, "Couldn't fetch created user from chat");
 
-        await testUser.Delete(true);
+        await testUser.DeleteUser(true);
 
         await Task.Delay(3000);
         

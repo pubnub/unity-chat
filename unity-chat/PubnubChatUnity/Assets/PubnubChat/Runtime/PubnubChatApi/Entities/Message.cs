@@ -442,7 +442,7 @@ namespace PubnubChatApi
                 return result;
             }
             MessageActions = MessageActions.Where(x => x.Type != PubnubMessageActionType.ThreadRootId).ToList();
-            result.RegisterOperation(await getThread.Result.Delete().ConfigureAwait(false));
+            result.RegisterOperation(await getThread.Result.Delete(false).ConfigureAwait(false));
             return result;
         }
 
@@ -623,7 +623,7 @@ namespace PubnubChatApi
         /// <summary>
         /// Restores a previously deleted message.
         /// <para>
-        /// Undoes the soft deletion of this message, making it visible again to all users.
+        /// Undoes the soft deletion of this message.
         /// This only works for messages that were soft deleted.
         /// </para>
         /// </summary>
@@ -674,11 +674,17 @@ namespace PubnubChatApi
         /// </example>
         /// <seealso cref="IsDeleted"/>
         /// <seealso cref="OnMessageUpdated"/>
-        public async Task<ChatOperationResult> Delete(bool soft)
+        public async Task<ChatOperationResult> Delete(bool soft = false)
         {
             var result = new ChatOperationResult("Message.Delete()", chat);
             if (soft)
             {
+                if (IsDeleted)
+                {
+                    result.Error = true;
+                    result.Exception = new PNException("Message is already soft deleted.");
+                    return result;
+                }
                 var add = await chat.PubnubInstance.AddMessageAction()
                     .MessageTimetoken(long.Parse(TimeToken)).Action(new PNMessageAction()
                     {
@@ -706,7 +712,7 @@ namespace PubnubChatApi
                     {
                         return result;
                     }
-                    var deleteThread = await getThread.Result.Delete().ConfigureAwait(false);
+                    var deleteThread = await getThread.Result.Delete(false).ConfigureAwait(false);
                     if (result.RegisterOperation(deleteThread))
                     {
                         return result;

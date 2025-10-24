@@ -826,7 +826,7 @@ namespace PubnubChatApi
         /// var result = await channel.Delete();
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> Delete(bool soft)
+        public async Task<ChatOperationResult> Delete(bool soft = false)
         {
             var result = new ChatOperationResult("User.Delete()", chat);
             if (!soft)
