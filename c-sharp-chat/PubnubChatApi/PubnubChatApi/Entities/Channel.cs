@@ -828,18 +828,11 @@ namespace PubnubChatApi
         /// </example>
         public async Task<ChatOperationResult> Delete(bool soft = false)
         {
-            var result = new ChatOperationResult("User.Delete()", chat);
-            if (!soft)
-            {
-                var hardDeleteResult = await chat.DeleteChannel(Id).ConfigureAwait(false);
-                result.RegisterOperation(hardDeleteResult);
-            }
-            else
+            var result = new ChatOperationResult("Channel.Delete()", chat);
+            if (!result.RegisterOperation(await chat.DeleteChannel(Id, soft)) && soft)
             {
                 channelData.CustomData ??= new Dictionary<string, object>();
                 channelData.CustomData["deleted"] = true;
-                var updateResult =  await UpdateChannelData(chat, Id, channelData).ConfigureAwait(false);
-                result.RegisterOperation(updateResult);
             }
             return result;
         }

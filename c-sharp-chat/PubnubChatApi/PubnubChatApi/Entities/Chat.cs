@@ -548,17 +548,34 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
+        /// <param name="soft">Bool specifying the type of deletion.</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var chat = // ...
-        /// var result = await chat.DeleteChannel("channel_id");
+        /// var result = await chat.DeleteChannel("channel_id", true);
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> DeleteChannel(string channelId)
+        public async Task<ChatOperationResult> DeleteChannel(string channelId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteChannel()", this);
-            result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
+            if (!soft)
+            {
+                result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
+            }
+            else
+            {
+                var data = await Channel.GetChannelData(this, channelId).ConfigureAwait(false);
+                if (result.RegisterOperation(data))
+                {
+                    return result;
+                }
+                var channelData = (ChatChannelData)data.Result;
+                channelData.CustomData ??= new Dictionary<string, object>();
+                channelData.CustomData["deleted"] = true;
+                var updateResult = await Channel.UpdateChannelData(this, channelId, channelData).ConfigureAwait(false);
+                result.RegisterOperation(updateResult);
+            }
             return result;
         }
 
@@ -1054,6 +1071,7 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         /// <param name="userId">The user ID.</param>
+        /// <param name="soft">Bool specifying the type of deletion.</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
@@ -1061,10 +1079,26 @@ namespace PubnubChatApi
         /// var result = await chat.DeleteUser("user_id");
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> DeleteUser(string userId)
+        public async Task<ChatOperationResult> DeleteUser(string userId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteUser()", this);
-            result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
+            if (!soft)
+            {
+                result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
+            }
+            else
+            {
+                var data = await User.GetUserData(this, userId).ConfigureAwait(false);
+                if (result.RegisterOperation(data))
+                {
+                    return result;
+                }
+                var userData = (ChatUserData)data.Result;
+                userData.CustomData ??= new Dictionary<string, object>();
+                userData.CustomData["deleted"] = true;
+                var updateResult =  await User.UpdateUserData(this, userId, userData).ConfigureAwait(false);
+                result.RegisterOperation(updateResult);
+            }
             return result;
         }
 

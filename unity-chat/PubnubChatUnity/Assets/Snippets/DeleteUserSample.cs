@@ -52,4 +52,24 @@ public class DeleteUserSample
         await chat.DeleteUser("support_agent_15");
         // snippet.end
     }
+    
+    public static async Task RestoreUserSample()
+    {
+        // snippet.restore_user_sample
+        var userResult = await chat.GetUser("support_agent_15");
+        if (userResult.Error)
+        {
+            Debug.Log("User to restore doesn't exist.");
+            return;
+        }
+        var user = userResult.Result;
+        var restoreResult = await user.Restore();
+        //This could happen because the user was not soft deleted
+        if (restoreResult.Error)
+        {
+            Debug.LogError($"An error has occured when trying to restore user: {restoreResult.Exception.Message}");
+            return;
+        }
+        // snippet.end
+    }
 }

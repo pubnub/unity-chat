@@ -52,4 +52,24 @@ public class DeleteChannelSample
         await chat.DeleteChannel("support");
         // snippet.end
     }
+    
+    public static async Task RestoreChannelSample()
+    {
+        // snippet.restore_channel_sample
+        var channelResult = await chat.GetChannel("support");
+        if (channelResult.Error)
+        {
+            Debug.Log("Channel to restore doesn't exist.");
+            return;
+        }
+        var channel = channelResult.Result;
+        var restoreResult = await channel.Restore();
+        //This could happen because the channel was not soft deleted
+        if (restoreResult.Error)
+        {
+            Debug.LogError($"An error has occured when trying to restore a channel: {restoreResult.Exception.Message}");
+            return;
+        }
+        // snippet.end
+    }
 }

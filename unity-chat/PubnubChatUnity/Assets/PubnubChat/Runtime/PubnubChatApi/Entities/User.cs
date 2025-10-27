@@ -345,17 +345,10 @@ namespace PubnubChatApi
         public async Task<ChatOperationResult> DeleteUser(bool soft = false)
         {
             var result = new ChatOperationResult("User.DeleteUser()", chat);
-            if (!soft)
-            {
-                var hardDeleteResult = await chat.DeleteUser(Id).ConfigureAwait(false);
-                result.RegisterOperation(hardDeleteResult);
-            }
-            else
+            if(!result.RegisterOperation(await chat.DeleteUser(Id, soft)) && soft)
             {
                 userData.CustomData ??= new Dictionary<string, object>();
                 userData.CustomData["deleted"] = true;
-                var updateResult =  await UpdateUserData(chat, Id, userData).ConfigureAwait(false);
-                result.RegisterOperation(updateResult);
             }
             return result;
         }
