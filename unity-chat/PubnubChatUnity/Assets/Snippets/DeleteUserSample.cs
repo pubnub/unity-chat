@@ -72,4 +72,30 @@ public class DeleteUserSample
         }
         // snippet.end
     }
+    
+    public static async Task SoftDeleteSample()
+    {
+        // snippet.user_soft_delete
+        // using User object
+        var userResult = await chat.GetUser("support-agent-15");
+        if (!userResult.Error)
+        {
+            var user = userResult.Result;
+            var softDeleteResult = await user.DeleteUser(soft: true);
+            //Could be for example because it was already soft deleted
+            if (softDeleteResult.Error)
+            {
+                Debug.LogError($"Error when trying to soft delete user: {softDeleteResult.Exception.Message}");
+            }
+        }
+
+        // or using Chat object
+        var softDeleteFromChat = await chat.DeleteUser("support-agent-15", soft: true);
+        //Same as above, could be because it was already soft deleted
+        if (softDeleteFromChat.Error)
+        {
+            Debug.LogError($"Error when trying to soft delete user: {softDeleteFromChat.Exception.Message}");
+        }
+        // snippet.end
+    }
 }
