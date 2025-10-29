@@ -1,6 +1,13 @@
 --- 
-version: v1.0.0
+version: v1.1.0
 changelog:
+  - date: 2025-10-29
+    version: v1.1.0
+    changes:
+      - type: feature
+        text: "Added the option of performing reversible soft deletion on Channel and User entities."
+      - type: feature
+        text: "Added a MutedUsersManager class that allows for muting specific user IDs on client side."
   - date: 2025-10-02
     version: v1.0.0
     changes:

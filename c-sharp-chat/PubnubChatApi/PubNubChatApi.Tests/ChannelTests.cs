@@ -66,7 +66,7 @@ public class ChannelTests
     }
 
     [Test]
-    public async Task TestDeleteChannel()
+    public async Task TestHardDeleteChannel()
     {
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
 
@@ -75,12 +75,40 @@ public class ChannelTests
         var channelExists = await chat.GetChannel(channel.Id);
         Assert.False(channelExists.Error, "Couldn't fetch created channel from chat");
 
-        await channel.Delete();
+        await channel.Delete(false);
 
         await Task.Delay(3000);
         
         var channelAfterDelete = await chat.GetChannel(channel.Id);
         Assert.True(channelAfterDelete.Error, "Fetched the supposedly-deleted channel from chat");
+    }
+    
+    [Test]
+    public async Task TestSoftDeleteAndRestoreChannel()
+    {
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+
+        await Task.Delay(3000);
+        
+        var channelExists = await chat.GetChannel(channel.Id);
+        Assert.False(channelExists.Error, "Couldn't fetch created channel from chat");
+
+        await channel.Delete(true);
+
+        await Task.Delay(3000);
+        
+        var channelAfterDelete = await chat.GetChannel(channel.Id);
+        Assert.False(channelAfterDelete.Error, "Channel should still exist after soft-delete");
+        Assert.True(channelAfterDelete.Result.IsDeleted, "Channel should be marked as soft-deleted");
+
+        await channelAfterDelete.Result.Restore();
+        Assert.False(channelAfterDelete.Result.IsDeleted, "Channel should be restored");
+        
+        await Task.Delay(3000);
+        
+        var channelAfterRestore = await chat.GetChannel(channel.Id);
+        Assert.False(channelAfterRestore.Error, "Channel should still exist after restore");
+        Assert.False(channelAfterRestore.Result.IsDeleted, "Channel fetched from server again should be marked as not-deleted after restore");
     }
     
     [Test]

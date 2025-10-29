@@ -52,4 +52,50 @@ public class DeleteChannelSample
         await chat.DeleteChannel("support");
         // snippet.end
     }
+    
+    public static async Task RestoreChannelSample()
+    {
+        // snippet.restore_channel_sample
+        var channelResult = await chat.GetChannel("support");
+        if (channelResult.Error)
+        {
+            Debug.Log("Channel to restore doesn't exist.");
+            return;
+        }
+        var channel = channelResult.Result;
+        var restoreResult = await channel.Restore();
+        //This could happen because the channel was not soft deleted
+        if (restoreResult.Error)
+        {
+            Debug.LogError($"An error has occured when trying to restore a channel: {restoreResult.Exception.Message}");
+            return;
+        }
+        // snippet.end
+    }
+
+    public static async Task SoftDeleteSample()
+    {
+        // snippet.channel_soft_delete
+        // using Channel object
+        var channelResult = await chat.GetChannel("support");
+        if (!channelResult.Error)
+        {
+            var channel = channelResult.Result;
+            var softDeleteResult = await channel.Delete(soft: true);
+            //Could be for example because it was already soft deleted
+            if (softDeleteResult.Error)
+            {
+                Debug.LogError($"Error when trying to soft delete channel: {softDeleteResult.Exception.Message}");
+            }
+        }
+
+        // or using Chat object
+        var softDeleteFromChat = await chat.DeleteChannel("support", soft: true);
+        //Same as above, could be because it was already soft deleted
+        if (softDeleteFromChat.Error)
+        {
+            Debug.LogError($"Error when trying to soft delete channel: {softDeleteFromChat.Exception.Message}");
+        }
+        // snippet.end
+    }
 }

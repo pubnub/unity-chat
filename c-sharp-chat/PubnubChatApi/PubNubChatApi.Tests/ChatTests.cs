@@ -107,7 +107,7 @@ public class ChatTests
                     directConversation.InviteesMemberships.First().UserId == convoUser.Id);
 
         //Cleanup
-        await directConversation.CreatedChannel.Delete();
+        await directConversation.CreatedChannel.Delete(false);
     }
 
     [Test]
@@ -126,7 +126,7 @@ public class ChatTests
             x.UserId == convoUser1.Id && x.ChannelId == id));
         
         //Cleanup
-        await groupConversation.CreatedChannel.Delete();
+        await groupConversation.CreatedChannel.Delete(false);
     }
 
     [Test]
@@ -172,11 +172,20 @@ public class ChatTests
     [Test]
     public async Task TestGetUnreadMessagesCounts()
     {
-        await channel.SendText("wololo");
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await testChannel.Join();
+        await testChannel.SendText("wololo");
+        await testChannel.SendText("wololo1");
+        await testChannel.SendText("wololo2");
+        await testChannel.SendText("wololo3");
 
-        await Task.Delay(3000);
+        await Task.Delay(6000);
 
-        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(limit: 50)).Any(x => x.ChannelId == channel.Id && x.Count > 0));
+        var unreads =
+            TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(filter:$"channel.id LIKE \"{testChannel.Id}\""));
+        Assert.True(unreads.Any(x => x.ChannelId == testChannel.Id && x.Count == 4));
+
+        await testChannel.Delete(false);
     }
 
     [Test]
@@ -200,7 +209,7 @@ public class ChatTests
         var counts = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
 
         markTestChannel.Leave();
-        await markTestChannel.Delete();
+        await markTestChannel.Delete(false);
         
         Assert.False(counts.Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
     }

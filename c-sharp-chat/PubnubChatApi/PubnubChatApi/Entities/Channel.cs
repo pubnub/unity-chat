@@ -66,6 +66,21 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         public string Type => channelData.Type;
+        
+        /// <summary>
+        /// Returns true if the Channel has been soft-deleted.
+        /// </summary>
+        public bool IsDeleted
+        {
+            get
+            {
+                if (CustomData == null || !CustomData.TryGetValue("deleted", out var deletedValue))
+                {
+                    return false;
+                }
+                return (bool)deletedValue;
+            }
+        }
 
         protected ChatChannelData channelData;
 
@@ -564,7 +579,8 @@ namespace PubnubChatApi
             SetListening(ref subscription, SubscriptionOptions.None, true, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
-                    if (ChatParsers.TryParseMessageResult(chat, m, out var message))
+                    if (ChatParsers.TryParseMessageResult(chat, m, out var message) 
+                        && !chat.MutedUsersManager.MutedUsers.Contains(message.UserId))
                     {
                         OnMessageReceived?.Invoke(message);
                     }
@@ -802,6 +818,7 @@ namespace PubnubChatApi
         /// Deletes the channel and removes all the messages and memberships from the channel.
         /// </para>
         /// </summary>
+        /// /// <param name="soft">Whether to perform a soft delete (true) or hard delete (false).</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
@@ -809,9 +826,50 @@ namespace PubnubChatApi
         /// var result = await channel.Delete();
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> Delete()
+        public async Task<ChatOperationResult> Delete(bool soft = false)
         {
-            return await chat.DeleteChannel(Id).ConfigureAwait(false);
+            var result = new ChatOperationResult("Channel.Delete()", chat);
+            if (!result.RegisterOperation(await chat.DeleteChannel(Id, soft)) && soft)
+            {
+                channelData.CustomData ??= new Dictionary<string, object>();
+                channelData.CustomData["deleted"] = true;
+            }
+            return result;
+        }
+        
+        /// <summary>
+        /// Restores a previously deleted channel.
+        /// <para>
+        /// Undoes the soft deletion of this channel.
+        /// This only works for channels that were soft deleted.
+        /// </para>
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var channel = // ...;
+        /// if (channel.IsDeleted) {
+        ///     var result = await channel.Restore();
+        ///     if (!result.Error) {
+        ///         // Channel has been restored
+        ///     }
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="Delete"/>
+        /// <seealso cref="IsDeleted"/>
+        public async Task<ChatOperationResult> Restore()
+        {
+            var result = new ChatOperationResult("Channel.Restore()", chat);
+            if (!IsDeleted)
+            {
+                result.Error = true;
+                result.Exception = new PNException("Can't restore a channel that wasn't deleted!");
+                return result;
+            }
+            channelData.CustomData.Remove("deleted");
+            result.RegisterOperation(await UpdateChannelData(chat, Id, channelData));
+            return result;
         }
 
         /// <summary>

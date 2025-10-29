@@ -30,6 +30,7 @@ namespace PubnubChatApi
         public event Action<ChatEvent> OnAnyEvent;
 
         public ChatAccessManager ChatAccessManager { get; }
+        public MutedUsersManager MutedUsersManager { get; }
         public PubnubChatConfig Config { get; }
         internal ExponentialRateLimiter RateLimiter { get; }
 
@@ -99,6 +100,7 @@ namespace PubnubChatApi
             ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             Config = chatConfig;
             ChatAccessManager = new ChatAccessManager(this);
+            MutedUsersManager = new MutedUsersManager(this);
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
         
@@ -108,6 +110,7 @@ namespace PubnubChatApi
             PubnubInstance = pubnub;
             ListenerFactory = listenerFactory ?? new DotNetListenerFactory();
             ChatAccessManager = new ChatAccessManager(this);
+            MutedUsersManager = new MutedUsersManager(this);
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
         
@@ -545,17 +548,34 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         /// <param name="channelId">The channel ID.</param>
+        /// <param name="soft">Bool specifying the type of deletion.</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var chat = // ...
-        /// var result = await chat.DeleteChannel("channel_id");
+        /// var result = await chat.DeleteChannel("channel_id", true);
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> DeleteChannel(string channelId)
+        public async Task<ChatOperationResult> DeleteChannel(string channelId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteChannel()", this);
-            result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
+            if (!soft)
+            {
+                result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
+            }
+            else
+            {
+                var data = await Channel.GetChannelData(this, channelId).ConfigureAwait(false);
+                if (result.RegisterOperation(data))
+                {
+                    return result;
+                }
+                var channelData = (ChatChannelData)data.Result;
+                channelData.CustomData ??= new Dictionary<string, object>();
+                channelData.CustomData["deleted"] = true;
+                var updateResult = await Channel.UpdateChannelData(this, channelId, channelData).ConfigureAwait(false);
+                result.RegisterOperation(updateResult);
+            }
             return result;
         }
 
@@ -1051,6 +1071,7 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         /// <param name="userId">The user ID.</param>
+        /// <param name="soft">Bool specifying the type of deletion.</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
@@ -1058,10 +1079,26 @@ namespace PubnubChatApi
         /// var result = await chat.DeleteUser("user_id");
         /// </code>
         /// </example>
-        public async Task<ChatOperationResult> DeleteUser(string userId)
+        public async Task<ChatOperationResult> DeleteUser(string userId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteUser()", this);
-            result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
+            if (!soft)
+            {
+                result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
+            }
+            else
+            {
+                var data = await User.GetUserData(this, userId).ConfigureAwait(false);
+                if (result.RegisterOperation(data))
+                {
+                    return result;
+                }
+                var userData = (ChatUserData)data.Result;
+                userData.CustomData ??= new Dictionary<string, object>();
+                userData.CustomData["deleted"] = true;
+                var updateResult =  await User.UpdateUserData(this, userId, userData).ConfigureAwait(false);
+                result.RegisterOperation(updateResult);
+            }
             return result;
         }
 
@@ -1585,7 +1622,8 @@ namespace PubnubChatApi
             var isMore = getHistory.Result.More != null;
             foreach (var historyItem in getHistory.Result.Messages[channelId])
             {
-                if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message))
+                if (ChatParsers.TryParseMessageFromHistory(this, channelId, historyItem, out var message) 
+                    && !MutedUsersManager.MutedUsers.Contains(message.UserId))
                 {
                     result.Result.Add(message);
                 }
@@ -1633,7 +1671,8 @@ namespace PubnubChatApi
             var events = new List<ChatEvent>();
             foreach (var message in getHistory.Result.Messages[channelId])
             {
-                if (ChatParsers.TryParseEventFromHistory(this, channelId, message, out var chatEvent))
+                if (ChatParsers.TryParseEventFromHistory(this, channelId, message, out var chatEvent) 
+                    && !MutedUsersManager.MutedUsers.Contains(chatEvent.UserId))
                 {
                     events.Add(chatEvent);
                 }
