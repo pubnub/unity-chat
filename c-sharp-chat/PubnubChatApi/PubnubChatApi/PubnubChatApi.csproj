@@ -14,7 +14,7 @@
 
     <ItemGroup>
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-      <PackageReference Include="PubnubPCL" Version="7.5.0" />
+      <PackageReference Include="PubnubPCL" Version="8.0.1" />
     </ItemGroup>
 
 </Project>
