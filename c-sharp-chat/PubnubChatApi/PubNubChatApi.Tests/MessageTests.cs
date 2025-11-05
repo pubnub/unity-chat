@@ -55,7 +55,7 @@ public class MessageTests
     {
         var manualReceiveEvent = new ManualResetEvent(false);
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation("message_data_test_channel"));
-        testChannel.Join();
+        await testChannel.Join();
         await Task.Delay(2500);
         testChannel.OnMessageReceived += async message =>
         {
@@ -83,6 +83,9 @@ public class MessageTests
 
         var received = manualReceiveEvent.WaitOne(9000);
         Assert.IsTrue(received);
+        
+        //Cleanup
+        await testChannel.Delete();
     }
 
     [Test]
