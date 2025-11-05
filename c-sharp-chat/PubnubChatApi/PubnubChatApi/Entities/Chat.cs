@@ -586,6 +586,7 @@ namespace PubnubChatApi
         internal async void StoreActivityTimeStamp()
         {
             var currentUserId = PubnubInstance.GetCurrentUserId();
+            storeActivity = true;
             while (storeActivity)
             {
                 var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);
