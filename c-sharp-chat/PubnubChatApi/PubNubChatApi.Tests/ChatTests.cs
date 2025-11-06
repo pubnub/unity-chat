@@ -194,17 +194,17 @@ public class ChatTests
         var markTestChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         await markTestChannel.Join();
         
-        await Task.Delay(3000);
+        await Task.Delay(4000);
         
         await markTestChannel.SendText("wololo", new SendTextParams(){StoreInHistory = true});
 
-        await Task.Delay(3000);
+        await Task.Delay(4000);
 
         Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts()).Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
 
         TestUtils.AssertOperation(await chat.MarkAllMessagesAsRead());
 
-        await Task.Delay(5000);
+        await Task.Delay(7000);
         
         var counts = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
 
