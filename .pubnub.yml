@@ -1,6 +1,13 @@
 --- 
-version: v1.1.0
+version: v1.1.1
 changelog:
+  - date: 2025-11-06
+    version: v1.1.1
+    changes:
+      - type: feature
+        text: "Updated Unity SDK dependency to latest version - 9.3.0."
+      - type: bug
+        text: "Fixed an issue where sometimes the Active status for User would not have expected value."
   - date: 2025-10-29
     version: v1.1.0
     changes:
