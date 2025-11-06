@@ -200,7 +200,12 @@ public class ChatTests
 
         await Task.Delay(4000);
 
-        Assert.True(TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts()).Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
+        var unread = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
+        foreach (var wrapper in unread)
+        {
+            Console.WriteLine($"{wrapper.ChannelId}:{wrapper.Count}");
+        }
+        Assert.True(unread.Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
 
         TestUtils.AssertOperation(await chat.MarkAllMessagesAsRead());
 
