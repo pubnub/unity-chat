@@ -81,7 +81,7 @@ namespace PubnubChatApi
                     return false;
                 }
                 var currentTimeStamp = ChatUtils.TimeTokenNowLong();
-                var interval = chat.Config.StoreUserActivityInterval;
+                var interval = (long)chat.Config.StoreUserActivityInterval;
                 var lastActive = Convert.ToInt64(lastActiveTimestamp);
                 return currentTimeStamp - lastActive <= interval * 1000000;
             }
