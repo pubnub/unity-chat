@@ -200,14 +200,10 @@ public class ChatTests
 
         await Task.Delay(4000);
 
-        var unread = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
-        foreach (var wrapper in unread)
-        {
-            Console.WriteLine($"{wrapper.ChannelId}:{wrapper.Count}");
-        }
+        var unread = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts(filter:$"channel.id LIKE \"{markTestChannel.Id}\""));
         Assert.True(unread.Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
 
-        TestUtils.AssertOperation(await chat.MarkAllMessagesAsRead());
+        TestUtils.AssertOperation(await chat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{markTestChannel.Id}\""));
 
         await Task.Delay(7000);
         
@@ -248,7 +244,7 @@ public class ChatTests
 
         await Task.Delay(5000);
 
-        await chat.MarkAllMessagesAsRead();
+        await chat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
         var receipt = receiptReset.WaitOne(15000);
         Assert.True(receipt);
     }
