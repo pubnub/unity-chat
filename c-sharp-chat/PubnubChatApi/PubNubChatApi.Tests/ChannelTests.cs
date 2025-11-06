@@ -119,7 +119,7 @@ public class ChannelTests
         Assert.IsNotNull(currentChatUser, "currentChatUser was null");
         
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        channel.Join();
+        await channel.Join();
 
         await Task.Delay(3000);
 
@@ -144,7 +144,7 @@ public class ChannelTests
         {
             TestUtils.AssertOperation(await message.EditMessageText("some_new_text"));
         };
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
         TestUtils.AssertOperation(await channel.SendText("wololo"));
         
@@ -163,7 +163,7 @@ public class ChannelTests
     public async Task TestGetMemberships()
     {
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("get_members_test_channel"));
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
         var memberships = TestUtils.AssertOperation(await channel.GetMemberships());
         Assert.That(memberships.Memberships.Count, Is.GreaterThanOrEqualTo(1));
@@ -173,7 +173,7 @@ public class ChannelTests
     public async Task TestStartTyping()
     {
         var channel = TestUtils.AssertOperation(await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
-        channel.Join();
+        await channel.Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
@@ -195,7 +195,7 @@ public class ChannelTests
     public async Task TestStopTyping()
     {
         var channel = TestUtils.AssertOperation(await chat.CreateDirectConversation(talkUser, "stop_typing_test_channel")).CreatedChannel;
-        channel.Join();
+        await channel.Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         await Task.Delay(2500);
@@ -220,7 +220,7 @@ public class ChannelTests
     public async Task TestStopTypingFromTimer()
     {
         var channel = TestUtils.AssertOperation(await chat.CreateDirectConversation(talkUser, "stop_typing_timeout_test_channel")).CreatedChannel;
-        channel.Join();
+        await channel.Join();
         await Task.Delay(2500);
         channel.SetListeningForTyping(true);
         
@@ -245,7 +245,7 @@ public class ChannelTests
     public async Task TestPinMessage()
     {
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("pin_message_test_channel_37"));
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
         
         var receivedManualEvent = new ManualResetEvent(false);
@@ -273,7 +273,7 @@ public class ChannelTests
     public async Task TestUnPinMessage()
     {
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("unpin_message_test_channel"));
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
         var receivedManualEvent = new ManualResetEvent(false);
         channel.OnMessageReceived += async message =>
@@ -317,7 +317,7 @@ public class ChannelTests
     public async Task TestEmitUserMention()
     {
         var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("user_mention_test_channel"));
-        channel.Join();
+        await channel.Join();
         await Task.Delay(2500);
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
@@ -336,7 +336,7 @@ public class ChannelTests
     public async Task TestChannelIsPresent()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.Join();
+        await someChannel.Join();
 
         await Task.Delay(4000);
 
@@ -349,7 +349,7 @@ public class ChannelTests
     public async Task TestChannelWhoIsPresent()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.Join();
+        await someChannel.Join();
 
         await Task.Delay(4000);
 
@@ -370,7 +370,7 @@ public class ChannelTests
             Assert.True(userIds.Contains(user.Id), "presence callback doesn't contain joined user id");
             reset.Set();
         };
-        someChannel.Join();
+        await someChannel.Join();
         var presenceReceived = reset.WaitOne(12000);
         
         Assert.True(presenceReceived, "did not receive presence callback");
@@ -389,7 +389,7 @@ public class ChannelTests
             reset.Set();
         };
         
-        someChannel.Join();
+        await someChannel.Join();
         await Task.Delay(3000);
 
         someChannel.OnMessageReceived += async message =>

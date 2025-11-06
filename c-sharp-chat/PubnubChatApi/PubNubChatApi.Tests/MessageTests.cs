@@ -21,7 +21,7 @@ public class MessageTests
         }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("message_tests_channel_2"));
         user = TestUtils.AssertOperation(await chat.GetCurrentUser());
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
     }
     
@@ -205,7 +205,7 @@ public class MessageTests
     public async Task TestPinMessage()
     {
         var pinTestChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        pinTestChannel.Join();
+        await pinTestChannel.Join();
         await Task.Delay(2500);
         pinTestChannel.SetListeningForUpdates(true);
         await Task.Delay(3000);
@@ -277,7 +277,7 @@ public class MessageTests
             {
                 message.SetListeningForUpdates(true);
                 var thread = TestUtils.AssertOperation(message.CreateThread());
-                thread.Join();
+                await thread.Join();
                 await Task.Delay(3500);
                 await thread.SendText("thread_init_text");
                 await Task.Delay(5000);

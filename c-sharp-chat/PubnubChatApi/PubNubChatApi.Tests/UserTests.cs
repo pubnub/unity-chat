@@ -142,7 +142,7 @@ public class UserTests
     public async Task TestUserWherePresent()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.Join();
+        await someChannel.Join();
 
         await Task.Delay(4000);
 
@@ -155,7 +155,7 @@ public class UserTests
     public async Task TestUserIsPresentOn()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.Join();
+        await someChannel.Join();
 
         await Task.Delay(4000);
 

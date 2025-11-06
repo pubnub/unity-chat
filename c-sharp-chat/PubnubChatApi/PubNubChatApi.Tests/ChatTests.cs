@@ -21,14 +21,14 @@ public class ChatTests
         }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("chat_tests_channel_2"));
         currentUser = TestUtils.AssertOperation(await chat.GetCurrentUser());
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        await channel.Leave();
         await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
@@ -140,7 +140,7 @@ public class ChatTests
             Assert.True(message.MessageText == "message_to_forward");
             messageForwardReceivedManualEvent.Set();
         };
-        forwardingChannel.Join();
+        await forwardingChannel.Join();
         await Task.Delay(2500);
         
         channel.OnMessageReceived += async message => { await message.Forward(forwardingChannel.Id); };
@@ -192,7 +192,7 @@ public class ChatTests
     public async Task TestMarkAllMessagesAsRead()
     {
         var markTestChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        markTestChannel.Join();
+        await markTestChannel.Join();
         
         await Task.Delay(3000);
         
@@ -208,7 +208,7 @@ public class ChatTests
         
         var counts = TestUtils.AssertOperation(await chat.GetUnreadMessagesCounts());
 
-        markTestChannel.Leave();
+        await markTestChannel.Leave();
         await markTestChannel.Delete(false);
         
         Assert.False(counts.Any(x => x.ChannelId == markTestChannel.Id && x.Count > 0));
@@ -224,7 +224,7 @@ public class ChatTests
         }));
         var otherChatChannel = TestUtils.AssertOperation(await otherChat.GetChannel(channel.Id));
 
-        otherChatChannel.Join();
+        await otherChatChannel.Join();
         await Task.Delay(2500);
         otherChatChannel.SetListeningForReadReceiptsEvents(true);
         await Task.Delay(2500);

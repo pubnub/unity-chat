@@ -23,7 +23,7 @@ public class ThreadsTests
         var randomId = Guid.NewGuid().ToString()[..10];
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation(randomId));
         user = TestUtils.AssertOperation(await chat.GetCurrentUser());
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
     }
     
@@ -45,7 +45,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = TestUtils.AssertOperation(message.CreateThread());
-            thread.Join();
+            await thread.Join();
 
             await Task.Delay(5000);
             
@@ -72,7 +72,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = TestUtils.AssertOperation(message.CreateThread());
-            thread.Join();
+            await thread.Join();
             await thread.SendText("thread init message");
 
             await Task.Delay(7000);
@@ -105,7 +105,7 @@ public class ThreadsTests
         channel.OnMessageReceived += async message =>
         {
             var thread = TestUtils.AssertOperation(message.CreateThread());
-            thread.Join();
+            await thread.Join();
             await Task.Delay(2500);
             user.SetListeningForMentionEvents(true);
             await Task.Delay(2500);
@@ -129,7 +129,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = TestUtils.AssertOperation(message.CreateThread());
-            thread.Join();
+            await thread.Join();
 
             await Task.Delay(3500);
             
@@ -169,7 +169,7 @@ public class ThreadsTests
         {
             message.SetListeningForUpdates(true);
             var thread = TestUtils.AssertOperation(message.CreateThread());
-            thread.Join();
+            await thread.Join();
             
             await Task.Delay(3000);
             

@@ -23,7 +23,7 @@ public class MessageDraftTests
         {
             Name = "MessageDraftTestingChannel"
         }));
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3000);
 
         dummyUser = await chat.GetOrCreateUser("mock_user", new ChatUserData()
