@@ -80,7 +80,7 @@ public class ModerationMessageSample
             return;
         }
         var channel = channelResult.Result;
-        channel.SetListeningForReportEvents(true);
+        channel.StreamReportEvents(true);
         channel.OnReportEvent += reportEvent => 
         {
             Debug.Log("Message reported on the support channel!");

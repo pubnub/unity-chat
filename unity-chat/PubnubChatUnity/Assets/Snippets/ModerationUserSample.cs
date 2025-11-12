@@ -244,7 +244,7 @@ public class ModerationUserSample
         }
         var user = userResult.Result;
 
-        user.SetListeningForModerationEvents(true);
+        user.StreamModerationEvents(true);
 
         user.OnModerationEvent += OnModerationEventHandler; // or use lambda
 

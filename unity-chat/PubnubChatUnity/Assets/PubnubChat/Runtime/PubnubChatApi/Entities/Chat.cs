@@ -121,6 +121,7 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="channelIds">List of channel IDs to listen to.</param>
         /// <param name="listener">The listener callback to invoke on channel updates.</param>
+        [Obsolete("Obsolete, please use the static Channel.StreamUpdatesOn() instead")]
         public async Task AddListenerToChannelsUpdate(List<string> channelIds, Action<Channel> listener)
         {
             foreach (var channelId in channelIds)
@@ -776,6 +777,7 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="userIds">List of user IDs to listen to.</param>
         /// <param name="listener">The listener callback to invoke on user updates.</param>
+        [Obsolete("Obsolete, please use the static User.StreamUpdatesOn() instead")]
         public async void AddListenerToUsersUpdate(List<string> userIds, Action<User> listener)
         {
             foreach (var userId in userIds)
@@ -1531,6 +1533,7 @@ namespace PubnubChatApi
         /// <param name="channelId">The ID of the channel containing the messages.</param>
         /// <param name="messageTimeTokens">List of message time tokens to listen to for updates.</param>
         /// <param name="listener">The listener callback to invoke on message updates.</param>
+        [Obsolete("Obsolete, please use the static Message.StreamUpdatesOn() instead")]
         public async void AddListenerToMessagesUpdate(string channelId, List<string> messageTimeTokens,
             Action<Message> listener)
         {

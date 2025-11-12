@@ -45,7 +45,7 @@ public class ReadReceiptsMessageSample
 
             // join the channel and start listening to read receipt events
             await channel.Join();
-            channel.SetListeningForReadReceiptsEvents(true);
+            channel.StreamReadReceipts(true);
 
             // subscribe to the OnReadReceiptEvent event
             channel.OnReadReceiptEvent += OnReadHandler;

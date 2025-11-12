@@ -77,7 +77,7 @@ public class TypingIndicatorSample
 
             // join the channel, start listening for typing
             await channel.Join();
-            channel.SetListeningForTyping(true);
+            channel.StreamTyping(true);
 
             // subscribe to the OnUsersTyping event
             channel.OnUsersTyping += OnUsersTypingHandler;

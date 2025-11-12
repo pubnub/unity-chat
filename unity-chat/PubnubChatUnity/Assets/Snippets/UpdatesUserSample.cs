@@ -74,7 +74,7 @@ public class UpdatesUserSample
         }
         var user = userResult.Result;
         
-        user.SetListeningForUpdates(true);
+        user.StreamUpdates(true);
       
         user.OnUserUpdated += OnUserUpdatedHandler; // or use lambda
         void OnUserUpdatedHandler(User user)
@@ -87,13 +87,21 @@ public class UpdatesUserSample
     public static async Task AddListenerToUsersUpdateExample()
     {
         // snippet.add_listener_to_users_update_example
-        List<string> users = new List<string> { "support_agent_15", "support-manager" };
-        Action<User> listener = (User user) => 
+        var users = new List<User>();
+        var getFirstUser = await chat.GetUser("support-agent-1");
+        var getSecondUser = await chat.GetUser("support-agent-2");
+        if (!getFirstUser.Error && !getSecondUser.Error)
         {
-            // Print the updated user name
+            users.Add(getFirstUser.Result);
+            users.Add(getSecondUser.Result);
+        }
+        Action<User, ChatEntityChangeType> listener = (user, changeType) => 
+        {
+            // Print the updated user name and the type of update
             Debug.Log("Updated user Name: " + user.UserName);
+            Debug.Log("Update type: " + changeType);
         };
-        chat.AddListenerToUsersUpdate(users, listener);
+        User.StreamUpdatesOn(users, listener);
         // snippet.end
     }
 }

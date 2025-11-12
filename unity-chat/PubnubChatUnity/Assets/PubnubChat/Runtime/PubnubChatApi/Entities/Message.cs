@@ -255,6 +255,38 @@ namespace PubnubChatApi
                 }
             });
         }
+        
+        /// <summary>
+        /// Adds a listener for message update events on multiple messages.
+        /// The callback will be invoked with all messages each time any one of them receives an update.
+        /// </summary>
+        /// <param name="messages">List of messages to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on message updates.</param>
+        public static void StreamUpdatesOn(List<Message> messages, Action<List<Message>> listener){
+            foreach (var message in messages)
+            {
+                message.StreamUpdates(true);
+                message.OnMessageUpdated += delegate { listener.Invoke(messages); };
+            }
+        }
+        
+        /// <summary>
+        /// <para>
+        /// Adds a listener for message update events on multiple messages.
+        /// The callback is invoked with the Message that was just updated and the type of update it experienced.
+        /// </para>
+        /// <b>WARNING</b>: Messages currently don't receive hard deletion callbacks, so only Delete(soft:true) will yield a
+        /// callback with ChatEntityChangeType "Updated"
+        /// </summary>
+        /// <param name="messages">List of messages to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on message updates.</param>
+        public static void StreamUpdatesOn(List<Message> messages, Action<Message, ChatEntityChangeType> listener){
+            foreach (var message in messages)
+            {
+                message.StreamUpdates(true);
+                message.OnMessageUpdated += delegate { listener.Invoke(message, ChatEntityChangeType.Updated); };
+            }
+        }
 
         /// <summary>
         /// Edits the text of the message.
