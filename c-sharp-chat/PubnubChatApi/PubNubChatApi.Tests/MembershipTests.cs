@@ -21,7 +21,7 @@ public class MembershipTests
         }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("membership_tests_channel"));
         user = TestUtils.AssertOperation(await chat.GetCurrentUser());
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
     }
 
@@ -112,7 +112,7 @@ public class MembershipTests
     public async Task TestLastRead()
     {
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation("last_read_test_channel_57"));
-        testChannel.Join();
+        await testChannel.Join();
 
         await Task.Delay(4000);
 
@@ -151,7 +151,7 @@ public class MembershipTests
     public async Task TestUnreadMessagesCount()
     {
         var unreadChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation($"test_channel_{Guid.NewGuid()}"));
-        unreadChannel.Join();
+        await unreadChannel.Join();
         
         await Task.Delay(3500);
         

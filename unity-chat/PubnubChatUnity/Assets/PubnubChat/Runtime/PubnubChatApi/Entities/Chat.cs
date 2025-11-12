@@ -52,15 +52,15 @@ namespace PubnubChatApi
         public static async Task<ChatOperationResult<Chat>> CreateInstance(PubnubChatConfig chatConfig, PNConfiguration pubnubConfig, ChatListenerFactory? listenerFactory = null)
         {
             var chat = new Chat(chatConfig, pubnubConfig, listenerFactory);
-            if (chatConfig.StoreUserActivityTimestamp)
-            {
-                chat.StoreActivityTimeStamp();
-            }
             var result = new ChatOperationResult<Chat>("Chat.CreateInstance()", chat){Result = chat};
             var getUser = await chat.GetCurrentUser().ConfigureAwait(false);
             if (getUser.Error)
             {
                 result.RegisterOperation(await chat.CreateUser(chat.PubnubInstance.GetCurrentUserId()).ConfigureAwait(false));
+            }
+            if (chatConfig.StoreUserActivityTimestamp)
+            {
+                chat.StoreActivityTimeStamp();
             }
             return result;
         }
@@ -81,15 +81,15 @@ namespace PubnubChatApi
         public static async Task<ChatOperationResult<Chat>> CreateInstance(PubnubChatConfig chatConfig, Pubnub pubnub, ChatListenerFactory? listenerFactory = null)
         {
             var chat = new Chat(chatConfig, pubnub, listenerFactory);
-            if (chatConfig.StoreUserActivityTimestamp)
-            {
-                chat.StoreActivityTimeStamp();
-            }
             var result = new ChatOperationResult<Chat>("Chat.CreateInstance()", chat){Result = chat};
             var getUser = await chat.GetCurrentUser().ConfigureAwait(false);
             if (getUser.Error)
             {
                 result.RegisterOperation(await chat.CreateUser(chat.PubnubInstance.GetCurrentUserId()).ConfigureAwait(false));
+            }
+            if (chatConfig.StoreUserActivityTimestamp)
+            {
+                chat.StoreActivityTimeStamp();
             }
             return result;
         }
@@ -586,6 +586,7 @@ namespace PubnubChatApi
         internal async void StoreActivityTimeStamp()
         {
             var currentUserId = PubnubInstance.GetCurrentUserId();
+            storeActivity = true;
             while (storeActivity)
             {
                 var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);

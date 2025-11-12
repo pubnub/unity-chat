@@ -21,7 +21,7 @@ public class ChatEventTests
         }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("event_tests_channel"));
         user = TestUtils.AssertOperation(await chat.GetCurrentUser());
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
     }
     

@@ -21,14 +21,14 @@ public class UserTests
         }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("user_tests_channel"));
         user = TestUtils.AssertOperation(await chat.GetCurrentUser());
-        channel.Join();
+        await channel.Join();
         await Task.Delay(3500);
     }
     
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        await channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
@@ -37,14 +37,14 @@ public class UserTests
     [Test]
     public async Task TestUserActive()
     {
-        await Task.Delay(500);
+        await Task.Delay(1500);
         Assert.True(user.Active);
     }
     
     [Test]
     public async Task TestLastUserActive()
     {
-        await Task.Delay(500);
+        await Task.Delay(1500);
         var lastActive = user.LastActiveTimeStamp;
         Assert.False(string.IsNullOrEmpty(lastActive));
         Assert.True(long.TryParse(lastActive, out var numberTimeStamp));
@@ -142,7 +142,7 @@ public class UserTests
     public async Task TestUserWherePresent()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.Join();
+        await someChannel.Join();
 
         await Task.Delay(4000);
 
@@ -155,7 +155,7 @@ public class UserTests
     public async Task TestUserIsPresentOn()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.Join();
+        await someChannel.Join();
 
         await Task.Delay(4000);
 

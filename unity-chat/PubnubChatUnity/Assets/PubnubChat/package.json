@@ -1,6 +1,6 @@
 {
   "name": "com.pubnub.pubnubchat",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "displayName": "Pubnub Chat",
   "description": "PubNub Unity Chat SDK",
   "unity": "2022.3",
@@ -25,7 +25,7 @@
     }
   ],
   "dependencies": {
-	  "com.pubnub.sdk": "9.2.0"
+	  "com.pubnub.sdk": "9.3.0"
   },
   "repository": "https://github.com/pubnub/unity-chat"
 }
