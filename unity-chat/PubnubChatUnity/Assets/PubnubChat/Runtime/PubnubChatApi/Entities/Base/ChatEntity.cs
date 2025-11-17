@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using PubnubApi;
 
@@ -32,9 +33,19 @@ namespace PubnubChatApi
             }
         }
         
-        public virtual void SetListeningForUpdates(bool listen)
+        [Obsolete("Obsolete, please use StreamUpdates() instead")]
+        public void SetListeningForUpdates(bool listen)
         {
-            SetListening(ref updateSubscription, SubscriptionOptions.None, listen, UpdateChannelId, CreateUpdateListener());
+            StreamUpdates(listen);
+        }
+        
+        /// <summary>
+        /// Sets whether to listen for update events on this entity.
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        public void StreamUpdates(bool stream)
+        {
+            SetListening(ref updateSubscription, SubscriptionOptions.None, stream, UpdateChannelId, CreateUpdateListener());
         }
         
         protected abstract SubscribeCallback CreateUpdateListener();

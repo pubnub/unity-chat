@@ -59,7 +59,7 @@ public class UpdatesMessageSample
             return;
         }
         var message = messageResult.Result.First();
-        message.SetListeningForUpdates(true);
+        message.StreamUpdates(true);
         message.OnMessageUpdated += OnMessageUpdatedHandler; // or use lambda
 
         void OnMessageUpdatedHandler(Message message)
@@ -87,25 +87,14 @@ public class UpdatesMessageSample
             return;
         }
         var messages = messagesResult.Result;
-
-        List<string> timetokens = new List<string>();
         
-        // get the timetokens
-        foreach (var message in messages)
+        // WARNING: Messages currently don't receive hard deletion callbacks, so only Delete(soft:true) will yield a
+        // callback with ChatEntityChangeType "Updated"
+        void OnMessageUpdatedHandler(Message message, ChatEntityChangeType chatEntityChangeType)
         {
-            // Get the time token of the current message
-            string timeToken = message.TimeToken;
-            
-            // Add the time token to the list
-            timetokens.Add(timeToken);
+            Debug.Log($"Message with timetoken {message.TimeToken} updated! Change type: {chatEntityChangeType}");
         }
-        
-        void OnMessageUpdatedHandler(Message message)
-        {
-            Debug.Log($"Message updated");
-        }
-
-        chat.AddListenerToMessagesUpdate(channelId: "support", messageTimeTokens: timetokens, listener: OnMessageUpdatedHandler);
+        Message.StreamUpdatesOn(messages, OnMessageUpdatedHandler);
         // snippet.end
     }
 }

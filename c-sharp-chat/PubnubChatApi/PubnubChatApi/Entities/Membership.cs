@@ -58,6 +58,25 @@ namespace PubnubChatApi
         /// </example>
         /// <seealso cref="Update"/>
         public event Action<Membership> OnMembershipUpdated;
+        
+        /// <summary>
+        /// Event that is triggered when the membership is updated.
+        /// <para>
+        /// This event is triggered when the membership is updated by the server.
+        /// Every time the membership is updated, this event is triggered.
+        /// </para>
+        /// </summary>
+        /// <value>Reference to the updated Membership and the type of update that has occured</value>
+        /// <example>
+        /// <code>
+        /// membership.OnMembershipUpdated += (membership, changeType) =>
+        /// {
+        ///    Console.WriteLine($"Membership updated! Type of change: {changeType}");
+        /// };
+        /// </code>
+        /// </example>
+        /// <seealso cref="Update"/>
+        public event Action<Membership, ChatEntityChangeType> OnUpdate;
 
         protected override string UpdateChannelId => ChannelId;
 
@@ -77,12 +96,42 @@ namespace PubnubChatApi
         {
             return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
             {
-                if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData))
+                if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
                     OnMembershipUpdated?.Invoke(this);
+                    OnUpdate?.Invoke(this, changeType);
+                    
                 }
             });
+        }
+        
+        /// <summary>
+        /// Adds a listener for membership update events on multiple memberships.
+        /// The callback will be invoked with all memberships each time any one of them receives an update.
+        /// </summary>
+        /// <param name="memberships">List of memberships to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on membership updates.</param>
+        public static void StreamUpdatesOn(List<Membership> memberships, Action<List<Membership>> listener){
+            foreach (var membership in memberships)
+            {
+                membership.StreamUpdates(true);
+                membership.OnUpdate += delegate { listener.Invoke(memberships); };
+            }
+        }
+        
+        /// <summary>
+        /// Adds a listener for membership update events on multiple memberships.
+        /// The callback is invoked with the Membership that was just updated and the type of update it experienced.
+        /// </summary>
+        /// <param name="memberships">List of memberships to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on membership updates.</param>
+        public static void StreamUpdatesOn(List<Membership> memberships, Action<Membership, ChatEntityChangeType> listener){
+            foreach (var membership in memberships)
+            {
+                membership.StreamUpdates(true);
+                membership.OnUpdate += listener;
+            }
         }
 
         /// <summary>

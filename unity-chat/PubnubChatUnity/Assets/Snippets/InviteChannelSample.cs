@@ -105,7 +105,7 @@ public class InviteChannelSample
         var user = userResult.Result;
 
         //start listening
-        user.SetListeningForInviteEvents(true);
+        user.StreamInviteEvents(true);
         //lambda event handler
         user.OnInviteEvent += (inviteEvent) => 
             {

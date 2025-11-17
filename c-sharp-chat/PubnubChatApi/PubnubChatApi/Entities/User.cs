@@ -133,6 +133,27 @@ namespace PubnubChatApi
         /// <seealso cref="Update"/>
         /// <seealso cref="User"/>
         public event Action<User> OnUserUpdated;
+        
+        /// <summary>
+        /// Event that is triggered when the user is updated.
+        /// <para>
+        /// This event is triggered when the user's data is updated.
+        /// You can subscribe to this event to get notified when the user is updated.
+        /// </para>
+        /// </summary>
+        /// <value>Reference to the updated User and the type of update that has occured</value>
+        /// <example>
+        /// <code>
+        /// // var user = // ...;
+        /// user.OnUserUpdated += (user, changeType) =>
+        /// {
+        ///    Console.WriteLine($"User {user.UserName} is updated. Change type: {changeType}");
+        /// };
+        /// </code>
+        /// </example>
+        /// <seealso cref="Update"/>
+        /// <seealso cref="User"/>
+        public event Action<User, ChatEntityChangeType> OnUpdate;
 
         private Subscription mentionsSubscription;
         private Subscription invitesSubscription;
@@ -152,12 +173,41 @@ namespace PubnubChatApi
         {
             return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
             {
-                if (ChatParsers.TryParseUserUpdate(chat, this, e, out var updatedData))
+                if (ChatParsers.TryParseUserUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
                     OnUserUpdated?.Invoke(this);
+                    OnUpdate?.Invoke(this, changeType);
                 }
             });
+        }
+        
+        /// <summary>
+        /// Adds a listener for user update events on multiple users.
+        /// The callback will be invoked with all users each time any one of them receives an update.
+        /// </summary>
+        /// <param name="users">List of users to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on user updates.</param>
+        public static void StreamUpdatesOn(List<User> users, Action<List<User>> listener){
+            foreach (var user in users)
+            {
+                user.StreamUpdates(true);
+                user.OnUpdate += delegate { listener.Invoke(users); };
+            }
+        }
+        
+        /// <summary>
+        /// Adds a listener for user update events on multiple users.
+        /// The callback is invoked with the User that was just updated and the type of update it experienced.
+        /// </summary>
+        /// <param name="users">List of users to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on user updates.</param>
+        public static void StreamUpdatesOn(List<User> users, Action<User, ChatEntityChangeType> listener){
+            foreach (var user in users)
+            {
+                user.StreamUpdates(true);
+                user.OnUpdate += listener;
+            }
         }
         
         /// <summary>
@@ -168,9 +218,23 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
         /// <seealso cref="OnMentionEvent"/>
+        [Obsolete("Obsolete, please use StreamMentionEvents() instead")]
         public void SetListeningForMentionEvents(bool listen)
         {
-            SetListening(ref mentionsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamMentionEvents(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for mention events for this user.
+        /// <para>
+        /// When enabled, the user will receive mention events when they are mentioned in messages.
+        /// </para>
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        /// <seealso cref="OnMentionEvent"/>
+        public void StreamMentionEvents(bool stream)
+        {
+            SetListening(ref mentionsSubscription, SubscriptionOptions.None, stream, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Mention, out var mentionEvent))
@@ -189,9 +253,23 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
         /// <seealso cref="OnInviteEvent"/>
+        [Obsolete("Obsolete, please use StreamInviteEvents() instead")]
         public void SetListeningForInviteEvents(bool listen)
         {
-            SetListening(ref invitesSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamInviteEvents(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for invite events for this user.
+        /// <para>
+        /// When enabled, the user will receive invite events when they are invited to channels.
+        /// </para>
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        /// <seealso cref="OnInviteEvent"/>
+        public void StreamInviteEvents(bool stream)
+        {
+            SetListening(ref invitesSubscription, SubscriptionOptions.None, stream, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Invite, out var inviteEvent))
@@ -210,9 +288,23 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
         /// <seealso cref="OnModerationEvent"/>
+        [Obsolete("Obsolete, please use StreamModerationEvents() instead")]
         public void SetListeningForModerationEvents(bool listen)
         {
-            SetListening(ref moderationSubscription, SubscriptionOptions.None, listen, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamModerationEvents(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for moderation events for this user.
+        /// <para>
+        /// When enabled, the user will receive moderation events such as bans, mutes, and other restrictions.
+        /// </para>
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        /// <seealso cref="OnModerationEvent"/>
+        public void StreamModerationEvents(bool stream)
+        {
+            SetListening(ref moderationSubscription, SubscriptionOptions.None, stream, Chat.INTERNAL_MODERATION_PREFIX+Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Moderation, out var moderationEvent))

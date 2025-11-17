@@ -82,8 +82,8 @@ public class CustomEventsSample
             SendResponseToCustomerChat(customerID, timestamp, response);
         }
 
-        // example event listener using "SetListeningForCustomEvents()" on some channel
-        channel.SetListeningForCustomEvents(true);
+        // example event listener using "StreamCustomEvents()" on some channel
+        channel.StreamCustomEvents(true);
         channel.OnCustomEvent += customEvent => 
         {
              if(customEvent.Payload.Contains("\"triggerWord\":\frustrated\""))

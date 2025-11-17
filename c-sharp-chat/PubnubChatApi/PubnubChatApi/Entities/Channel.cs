@@ -110,13 +110,12 @@ namespace PubnubChatApi
 
         /// <summary>
         /// Event that is triggered when the channel is updated.
-        ///
         /// <para>
         /// The event is triggered when the channel is updated by the user 
         /// or by any other entity.
         /// </para>
         /// </summary>
-        /// <value>The event that is triggered when the channel is updated.</value>
+        /// <value>Reference to the updated Channel.</value>
         /// <example>
         /// <code>
         /// var channel = //...
@@ -127,6 +126,25 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         public event Action<Channel> OnChannelUpdate;
+        
+        /// <summary>
+        /// Event that is triggered when the channel is updated.
+        /// <para>
+        /// The event is triggered when the channel is updated by the user 
+        /// or by any other entity.
+        /// </para>
+        /// </summary>
+        /// <value>Reference to the updated Channel and the type of update that has occured</value>
+        /// <example>
+        /// <code>
+        /// var channel = //...
+        /// channel.OnUpdate += (channel, changeType) => {
+        ///   Console.WriteLine($"Channel updated: {channel.Name}, change type: {changeType}");
+        /// };
+        /// channel.Connect();
+        /// </code>
+        /// </example>
+        public event Action<Channel, ChatEntityChangeType> OnUpdate;
 
         private Subscription presenceEventsSubscription;
         /// <summary>
@@ -169,12 +187,41 @@ namespace PubnubChatApi
         {
             return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
             {
-                if (ChatParsers.TryParseChannelUpdate(chat, this, e, out var updatedData))
+                if (ChatParsers.TryParseChannelUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
                     OnChannelUpdate?.Invoke(this);
+                    OnUpdate?.Invoke(this, changeType);
                 }
             });
+        }
+        
+        /// <summary>
+        /// Adds a listener for channel update events on multiple channels.
+        /// The callback will be invoked with all channels each time any one of them receives an update.
+        /// </summary>
+        /// <param name="channels">List of channels to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on channel updates.</param>
+        public static void StreamUpdatesOn(List<Channel> channels, Action<List<Channel>> listener){
+            foreach (var channel in channels)
+            {
+                channel.StreamUpdates(true);
+                channel.OnUpdate += delegate { listener.Invoke(channels); };
+            }
+        }
+        
+        /// <summary>
+        /// Adds a listener for channel update events on multiple channels.
+        /// The callback is invoked with the Channel that was just updated and the type of update it experienced.
+        /// </summary>
+        /// <param name="channels">List of channels to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on channel updates.</param>
+        public static void StreamUpdatesOn(List<Channel> channels, Action<Channel, ChatEntityChangeType> listener){
+            foreach (var channel in channels)
+            {
+                channel.StreamUpdates(true);
+                channel.OnUpdate += listener;
+            }
         }
 
         internal void UpdateLocalData(ChatChannelData? newData)
@@ -236,9 +283,19 @@ namespace PubnubChatApi
         /// Sets whether to listen for custom events on this channel.
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
+        [Obsolete("Obsolete, please use StreamCustomEvents() instead")]
         public void SetListeningForCustomEvents(bool listen)
         {
-            SetListening(ref customEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamCustomEvents(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for custom events on this channel.
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        public void StreamCustomEvents(bool stream)
+        {
+            SetListening(ref customEventsSubscription, SubscriptionOptions.None, stream, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Custom, out var customEvent))
@@ -253,9 +310,19 @@ namespace PubnubChatApi
         /// Sets whether to listen for report events on this channel.
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
+        [Obsolete("Obsolete, please use StreamReportEvents() instead")]
         public void SetListeningForReportEvents(bool listen)
         {
-            SetListening(ref reportEventsSubscription, SubscriptionOptions.None, listen, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamReportEvents(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for report events on this channel.
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        public void StreamReportEvents(bool stream)
+        {
+            SetListening(ref reportEventsSubscription, SubscriptionOptions.None, stream, $"{Chat.INTERNAL_MODERATION_PREFIX}_{Id}", chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Report, out var reportEvent))
@@ -270,9 +337,19 @@ namespace PubnubChatApi
         /// Sets whether to listen for read receipt events on this channel.
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
+        [Obsolete("Obsolete, please use StreamReadReceipts() instead")]
         public void SetListeningForReadReceiptsEvents(bool listen)
         {
-            SetListening(ref readReceiptsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamReadReceipts(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for read receipt events on this channel.
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        public void StreamReadReceipts(bool stream)
+        {
+            SetListening(ref readReceiptsSubscription, SubscriptionOptions.None, stream, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 async delegate(Pubnub _, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
@@ -299,9 +376,19 @@ namespace PubnubChatApi
         /// Sets whether to listen for typing events on this channel.
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
+        [Obsolete("Obsolete, please use StreamTyping() instead")]
         public void SetListeningForTyping(bool listen)
         {
-            SetListening(ref typingEventsSubscription, SubscriptionOptions.None, listen, Id, chat.ListenerFactory.ProduceListener(messageCallback:
+            StreamTyping(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for typing events on this channel.
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        public void StreamTyping(bool stream)
+        {
+            SetListening(ref typingEventsSubscription, SubscriptionOptions.None, stream, Id, chat.ListenerFactory.ProduceListener(messageCallback:
                 delegate(Pubnub pn, PNMessageResult<object> m)
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Typing, out var rawTypingEvent))
@@ -359,9 +446,19 @@ namespace PubnubChatApi
         /// Sets whether to listen for presence events on this channel.
         /// </summary>
         /// <param name="listen">True to start listening, false to stop listening.</param>
+        [Obsolete("Obsolete, please use StreamPresence() instead")]
         public void SetListeningForPresence(bool listen)
         {
-            SetListening(ref presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, listen, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
+            StreamPresence(listen);
+        }
+
+        /// <summary>
+        /// Sets whether to listen for presence events on this channel.
+        /// </summary>
+        /// <param name="stream">True to start listening, false to stop listening.</param>
+        public void StreamPresence(bool stream)
+        {
+            SetListening(ref presenceEventsSubscription, SubscriptionOptions.ReceivePresenceEvents, stream, Id, chat.ListenerFactory.ProduceListener(presenceCallback:
                 async delegate
                 {
                     var whoIs = await WhoIsPresent().ConfigureAwait(false);

@@ -86,7 +86,7 @@ public class MembershipChannelSample
                     Debug.Log($"First membership for user {user.UserName} is in channel {firstMembership.ChannelId}");
                     
                     // start listening for updates on memberships
-                    firstMembership.SetListeningForUpdates(true);
+                    firstMembership.StreamUpdates(true);
                     
                     // attach an event handler for membership updates
                     firstMembership.OnMembershipUpdated += OnMembershipUpdatedHandler;

@@ -83,13 +83,19 @@ namespace PubnubChatApi
             }
         }
 
-        internal static bool TryParseMembershipUpdate(Chat chat, Membership membership, PNObjectEventResult objectEvent, out ChatMembershipData updatedData)
+        internal static bool TryParseMembershipUpdate(Chat chat, Membership membership, PNObjectEventResult objectEvent, out ChatMembershipData updatedData, out ChatEntityChangeType changeType)
         {
             try
             {
                 var channel = objectEvent.MembershipMetadata.Channel;
                 var user = objectEvent.MembershipMetadata.Uuid;
                 var type = objectEvent.Type;
+                changeType = objectEvent.Event switch
+                {
+                    "set" => ChatEntityChangeType.Updated,
+                    "delete" => ChatEntityChangeType.Deleted,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
                 if (type == "membership" && channel == membership.ChannelId && user == membership.UserId)
                 {
                     updatedData = new ChatMembershipData()
@@ -110,16 +116,23 @@ namespace PubnubChatApi
             {
                 chat.Logger.Debug($"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into Membership update. Exception was: {e.Message}");
                 updatedData = null;
+                changeType = default;
                 return false;
             }
         }
         
-        internal static bool TryParseUserUpdate(Chat chat, User user, PNObjectEventResult objectEvent, out ChatUserData updatedData)
+        internal static bool TryParseUserUpdate(Chat chat, User user, PNObjectEventResult objectEvent, out ChatUserData updatedData, out ChatEntityChangeType changeType)
         {
             try
             {
                 var uuid = objectEvent.UuidMetadata.Uuid;
                 var type = objectEvent.Type;
+                changeType = objectEvent.Event switch
+                {
+                    "set" => ChatEntityChangeType.Updated,
+                    "delete" => ChatEntityChangeType.Deleted,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
                 if (type == "uuid" && uuid == user.Id)
                 {
                     updatedData = objectEvent.UuidMetadata;
@@ -135,16 +148,23 @@ namespace PubnubChatApi
             {
                 chat.Logger.Debug($"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into User update. Exception was: {e.Message}");
                 updatedData = null;
+                changeType = default;
                 return false;
             }
         }
         
-        internal static bool TryParseChannelUpdate(Chat chat, Channel channel, PNObjectEventResult objectEvent, out ChatChannelData updatedData)
+        internal static bool TryParseChannelUpdate(Chat chat, Channel channel, PNObjectEventResult objectEvent, out ChatChannelData updatedData, out ChatEntityChangeType changeType)
         {
             try
             {
                 var channelId = objectEvent.Channel;
                 var type = objectEvent.Type;
+                changeType = objectEvent.Event switch
+                {
+                    "set" => ChatEntityChangeType.Updated,
+                    "delete" => ChatEntityChangeType.Deleted,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
                 if (type == "channel" && channelId == channel.Id)
                 {
                     updatedData = objectEvent.ChannelMetadata;
@@ -160,6 +180,7 @@ namespace PubnubChatApi
             {
                 chat.Logger.Debug($"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into Channel update. Exception was: {e.Message}");
                 updatedData = null;
+                changeType = default;
                 return false;
             }
         }

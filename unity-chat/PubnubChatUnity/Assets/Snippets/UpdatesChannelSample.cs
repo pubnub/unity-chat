@@ -77,7 +77,7 @@ public class UpdatesChannelSample
             return;
         }
         var channel = channelResult.Result;
-        channel.SetListeningForUpdates(true);
+        channel.StreamUpdates(true);
         channel.OnChannelUpdate += OnChannelUpdateHandler; // or use lambda
 
         void OnChannelUpdateHandler(Channel channel)
@@ -90,14 +90,22 @@ public class UpdatesChannelSample
     public static async Task AddListenerToChannelsUpdateExample()
     {
         // snippet.add_listener_to_channels_update_example
-        List<string> channelIds = new List<string> { "support", "incidentManagement" };
-        Action<Channel> listener = (Channel channel) => 
+        var channels = new List<Channel>();
+        var channel1 = await chat.GetChannel("support");
+        var channel2 = await chat.GetChannel("incidentManagement");
+        if (!channel1.Error && !channel2.Error)
+        {
+            channels.Add(channel1.Result);
+            channels.Add(channel2.Result);
+        }
+        Action<Channel, ChatEntityChangeType> listener = (channel, changeType) => 
             {
-                // Print the updated channel name
+                // Print the updated channel name and the change type
                 Debug.Log("Updated Channel Name: " + channel.Name);
+                Debug.Log("Channel update type: " + changeType);
             };
 
-        await chat.AddListenerToChannelsUpdate(channelIds, listener);
+        Channel.StreamUpdatesOn(channels, listener);
         // snippet.end
     }
 }
