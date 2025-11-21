@@ -357,10 +357,10 @@ namespace PubnubChatApi
                 new()
                 {
                     Channel = channelId,
+                    Status = "pending"
                     //TODO: these too here?
                     //TODO: again, should ChatMembershipData from Create(...)Channel also be passed here?
                     /*Custom = ,
-                    Status = ,
                     Type = */
                 }
             }).ExecuteAsync().ConfigureAwait(false);
@@ -380,7 +380,10 @@ namespace PubnubChatApi
             var inviteEventPayload = $"{{\"channelType\": \"{channel.Result.Type}\", \"channelId\": {channelId}}}";
             await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload).ConfigureAwait(false);
             
-            var newMembership = new Membership(this, userId, channelId, new ChatMembershipData());
+            var newMembership = new Membership(this, userId, channelId, new ChatMembershipData()
+            {
+                Status = "pending"
+            });
             await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
 
             result.Result = newMembership;
@@ -413,7 +416,7 @@ namespace PubnubChatApi
                         PNChannelMemberField.UUID_STATUS
                     })
                 //TODO: again, should ChatMembershipData from Create(...)Channel  also be passed here?
-                .Uuids(users.Select(x => new PNChannelMember() { Custom = x.CustomData, Uuid = x.Id }).ToList())
+                .Uuids(users.Select(x => new PNChannelMember() { Custom = x.CustomData, Uuid = x.Id, Status = "pending"}).ToList())
                 .ExecuteAsync().ConfigureAwait(false);
             
             if (result.RegisterOperation(inviteResponse))

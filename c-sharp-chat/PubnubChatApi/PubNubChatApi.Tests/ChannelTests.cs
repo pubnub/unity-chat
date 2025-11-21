@@ -170,6 +170,35 @@ public class ChannelTests
     }
 
     [Test]
+    public async Task TestGetInvitees()
+    {
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await channel.Invite(user);
+        await Task.Delay(3500);
+        var invitees = TestUtils.AssertOperation(await channel.GetInvitees());
+        Assert.True(invitees.Memberships.Any(x => x.UserId == user.Id && x.ChannelId == channel.Id && x.MembershipData.Status == "pending"));
+        
+        //Cleanup
+        await channel.Delete();
+    }
+
+    [Test]
+    public async Task TestInviteAndJoin()
+    {
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await channel.Invite(user);
+        await Task.Delay(3500);
+        var invitees = TestUtils.AssertOperation(await channel.GetInvitees());
+        Assert.True(invitees.Memberships.Any(x => x.UserId == user.Id && x.ChannelId == channel.Id && x.MembershipData.Status == "pending"));
+        await channel.Join();
+        await Task.Delay(3500);
+        invitees = TestUtils.AssertOperation(await channel.GetInvitees());
+        Assert.False(invitees.Memberships.Any());
+        var members = TestUtils.AssertOperation(await channel.GetMemberships());
+        Assert.True(members.Memberships.Any(x => x.UserId == user.Id && x.ChannelId == channel.Id && x.MembershipData.Status != "pending"));
+    }
+
+    [Test]
     public async Task TestStartTyping()
     {
         var channel = TestUtils.AssertOperation(await chat.CreateDirectConversation(talkUser, "sttc")).CreatedChannel;
