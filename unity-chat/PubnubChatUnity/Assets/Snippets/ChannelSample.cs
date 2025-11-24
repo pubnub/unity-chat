@@ -48,4 +48,26 @@ public class ChannelSample
         }
         // snippet.end
     }
+    
+    public static async Task GetInviteesExample()
+    {
+        // snippet.get_invitees_example
+        // Get or create a channel
+        var channelResult = await chat.GetChannel("my_channel");
+        if (channelResult.Error)
+        {
+            Debug.LogError($"Could not fetch channel! Error: {channelResult.Exception.Message}");
+        }
+        var channel = channelResult.Result;
+        var getInvitees = await channel.GetInvitees();
+        if (getInvitees.Error)
+        {
+            Debug.LogError($"Could not fetch invitees! Error: {getInvitees.Exception.Message}");
+        }
+        foreach (var membership in getInvitees.Result.Memberships)
+        {
+            Debug.Log($"User {membership.UserId} has is invited to channel {membership.ChannelId}");
+        }
+        // snippet.end
+    }
 }

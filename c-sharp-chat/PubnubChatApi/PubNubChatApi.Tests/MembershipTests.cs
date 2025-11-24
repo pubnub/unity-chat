@@ -85,10 +85,13 @@ public class MembershipTests
     [Test]
     public async Task TestInvite()
     {
-        var testChannel = TestUtils.AssertOperation(await chat.CreateGroupConversation([user], "test_invite_group_channel")).CreatedChannel;
+        var testChannel = TestUtils.AssertOperation(await chat.CreateGroupConversation([user], Guid.NewGuid().ToString())).CreatedChannel;
         var testUser = await chat.GetOrCreateUser("test_invite_user");
         var returnedMembership = TestUtils.AssertOperation(await testChannel.Invite(testUser));
-        Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id);
+        Assert.True(returnedMembership.ChannelId == testChannel.Id && returnedMembership.UserId == testUser.Id && returnedMembership.MembershipData.Status == "pending");
+        
+        //Cleanup
+        await testChannel.Delete();
     }
 
     [Test]
@@ -106,6 +109,7 @@ public class MembershipTests
             returnedMemberships.Count == 2 &&
             returnedMemberships.Any(x => x.UserId == secondUser.Id && x.ChannelId == testChannel.Id) &&
             returnedMemberships.Any(x => x.UserId == thirdUser.Id && x.ChannelId == testChannel.Id));
+        Assert.True(returnedMemberships.All(x => x.MembershipData.Status == "pending"));
     }
 
     [Test]

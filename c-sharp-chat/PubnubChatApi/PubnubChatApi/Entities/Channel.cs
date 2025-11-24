@@ -1148,7 +1148,7 @@ namespace PubnubChatApi
         /// <param name="sort">The sort parameter.</param>
         /// <param name="limit">The maximum amount of the memberships received.</param>
         /// <param name="page">The page object for pagination.</param>
-        /// <returns>A ChatOperationResult containing the list of the <c>Membership</c> objects.</returns>
+        /// <returns>A ChatOperationResult containing a wrapper object with the list of the <c>Membership</c> objects.</returns>
         /// <example>
         /// <code>
         /// var channel = //...
@@ -1164,6 +1164,40 @@ namespace PubnubChatApi
             PNPageObject page = null)
         {
             return await chat.GetChannelMemberships(Id, filter, sort, limit, page).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Gets the list of the <c>Membership</c> objects which have a Status of "pending".
+        /// <para>
+        /// Gets the list of the <c>Membership</c> objects that represent the users that are invited 
+        /// to the channel.
+        /// </para>
+        /// </summary>
+        /// <param name="filter">The filter parameter. Note that it will always contain "status == \"pending\"" in the end request.</param>
+        /// <param name="sort">The sort parameter.</param>
+        /// <param name="limit">The maximum amount of the memberships received.</param>
+        /// <param name="page">The page object for pagination.</param>
+        /// <returns>A ChatOperationResult containing a wrapper object with the list of the <c>Membership</c> objects.</returns>
+        /// <example>
+        /// <code>
+        /// var channel = //...
+        /// var result = await channel.GetInvitees(limit: 10);
+        /// var invites = result.Result.Memberships;
+        /// foreach (var invited in invites) {
+        ///   Console.WriteLine($"Invited user: {invited.UserId}");
+        /// }
+        /// </code>
+        /// </example>
+        /// <seealso cref="Membership"/>
+        public async Task<ChatOperationResult<MembersResponseWrapper>> GetInvitees(string filter = "", string sort = "", int limit = 0,
+            PNPageObject page = null)
+        {
+            var finalFilter = "status == \"pending\"";
+            if (!string.IsNullOrEmpty(filter))
+            {
+                finalFilter = $"{filter} && {finalFilter}";
+            }
+            return await chat.GetChannelMemberships(Id, finalFilter, sort, limit, page).ConfigureAwait(false);
         }
 
         /// <summary>

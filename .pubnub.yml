@@ -1,6 +1,15 @@
 --- 
-version: v1.1.1
+version: v1.2.0
 changelog:
+  - date: 2025-11-24
+    version: v1.2.0
+    changes:
+      - type: feature
+        text: "Memberships generated from Invite methods now have Status pending and can be filtered out in GetMemberships()."
+      - type: feature
+        text: "Added new overloads for update related methods and events so that they now use ChatEntityChangeType to convey the type of update."
+      - type: improvement
+        text: "Changed SetListening(...) and AddListenerTo(...) methods to align with other Chat SDKs. New methods are use the Stream and StreamOn naming convetions."
   - date: 2025-11-06
     version: v1.1.1
     changes:
