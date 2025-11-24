@@ -1173,6 +1173,7 @@ namespace PubnubChatApi
         /// to the channel.
         /// </para>
         /// </summary>
+        /// <param name="filter">The filter parameter. Note that it will always contain "status == \"pending\"" in the end request.</param>
         /// <param name="sort">The sort parameter.</param>
         /// <param name="limit">The maximum amount of the memberships received.</param>
         /// <param name="page">The page object for pagination.</param>
@@ -1188,10 +1189,15 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         /// <seealso cref="Membership"/>
-        public async Task<ChatOperationResult<MembersResponseWrapper>> GetInvitees(string sort = "", int limit = 0,
+        public async Task<ChatOperationResult<MembersResponseWrapper>> GetInvitees(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
-            return await chat.GetChannelMemberships(Id, "status == \"pending\"", sort, limit, page).ConfigureAwait(false);
+            var finalFilter = "status == \"pending\"";
+            if (!string.IsNullOrEmpty(filter))
+            {
+                finalFilter = $"{filter} && {finalFilter}";
+            }
+            return await chat.GetChannelMemberships(Id, finalFilter, sort, limit, page).ConfigureAwait(false);
         }
 
         /// <summary>
