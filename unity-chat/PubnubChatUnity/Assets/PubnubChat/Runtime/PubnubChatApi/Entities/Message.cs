@@ -211,6 +211,10 @@ namespace PubnubChatApi
         /// <seealso cref="pubnub_chat_message_type"/>
         public PubnubChatMessageType Type { get; internal set; }
 
+        /// <summary>
+        /// Files sent within this message.
+        /// </summary>
+        public List<ChatFile> Files { get; }
 
         /// <summary>
         /// Event that is triggered when the message is updated.
@@ -234,7 +238,7 @@ namespace PubnubChatApi
 
         protected override string UpdateChannelId => ChannelId;
 
-        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta, List<MessageAction> messageActions) : base(chat, timeToken)
+        internal Message(Chat chat, string timeToken,string originalMessageText, string channelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta, List<MessageAction> messageActions, List<ChatFile> files) : base(chat, timeToken)
         {
             TimeToken = timeToken;
             OriginalMessageText = originalMessageText;
@@ -243,6 +247,7 @@ namespace PubnubChatApi
             Type = type;
             Meta = meta;
             MessageActions = messageActions;
+            Files = files;
         }
 
         protected override SubscribeCallback CreateUpdateListener()

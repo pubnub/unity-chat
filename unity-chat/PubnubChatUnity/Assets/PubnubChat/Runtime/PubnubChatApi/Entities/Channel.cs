@@ -800,6 +800,32 @@ namespace PubnubChatApi
             return await SendText(message, new SendTextParams()).ConfigureAwait(false);
         }
 
+        private async Task<ChatOperationResult<ChatFile>> SendFileForPublish(ChatInputFile inputFile)
+        {
+            var result = new ChatOperationResult<ChatFile>("Channel.SendFileForPublish()", chat);
+            var send = await chat.PubnubInstance.SendFile().Channel(Id).File(inputFile.Source).FileName(inputFile.Name)
+                .ShouldStore(false)
+                .ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(send))
+            {
+                return result;
+            }
+            var getUrl = await chat.PubnubInstance.GetFileUrl().Channel(Id).FileId(send.Result.FileId)
+                .FileName(send.Result.FileName).ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(getUrl))
+            {
+                return result;
+            }
+            result.Result = new ChatFile()
+            {
+                Id = send.Result.FileId,
+                Name = send.Result.FileName,
+                Type = inputFile.Type,
+                Url = getUrl.Result.Url
+            };
+            return result;
+        }
+
         /// <summary>
         /// Sends the text message with additional parameters.
         /// <para>
@@ -812,6 +838,7 @@ namespace PubnubChatApi
         public virtual async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
         {
             var result = new ChatOperationResult("Channel.SendText()", chat);
+            var jsonLibrary = chat.PubnubInstance.JsonPluggableLibrary;
             
             var baseInterval = Type switch
             {
@@ -829,6 +856,26 @@ namespace PubnubChatApi
                     {"text", message},
                     {"type", "text"}
                 };
+                if (sendTextParams.Files.Any())
+                {
+                    var fileTasks = sendTextParams.Files.Select(SendFileForPublish);
+                    var fileResults = await Task.WhenAll(fileTasks).ConfigureAwait(false);
+                    foreach (var fileResult in fileResults)
+                    {
+                        result.RegisterOperation(fileResult);
+                    }
+                    var failedUploads = fileResults.Where(x => x.Error).ToList();
+                    if (failedUploads.Any())
+                    {
+                        var combinedException = string.Join("\n",failedUploads.Select(x => x.Exception.Message));
+                        result.Exception = new PNException($"Message publishing aborted: {failedUploads.Count} out of {fileResults.Length} " +
+                                                           $"file uploads failed. Exceptions from file uploads: {combinedException}");
+                        result.Error = true;
+                        return result;
+                    }
+                    var chatFilesAsDictionaries = fileResults.Select(x => x.Result.ToDictionary()).ToList();
+                    messageDict["files"] = jsonLibrary.SerializeToJsonString(chatFilesAsDictionaries);
+                }
                 var meta = sendTextParams.Meta ?? new Dictionary<string, object>();
                 if (sendTextParams.QuotedMessage != null)
                 {
@@ -851,7 +898,7 @@ namespace PubnubChatApi
                     .Channel(Id)
                     .ShouldStore(sendTextParams.StoreInHistory)
                     .UsePOST(sendTextParams.SendByPost)
-                    .Message(chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(messageDict))
+                    .Message(jsonLibrary.SerializeToJsonString(messageDict))
                     .Meta(meta)
                     .ExecuteAsync().ConfigureAwait(false);
                 if (result.RegisterOperation(publishResult))
@@ -874,6 +921,8 @@ namespace PubnubChatApi
             }, exception =>
             {
                 chat.Logger.Error($"Error occured when trying to SendText(): {exception.Message}");
+                result.Error = true;
+                result.Exception = new PNException($"Encountered exception in SendText(): {exception.Message}");
                 completionSource.SetResult(true);
             });
 
@@ -1241,6 +1290,72 @@ namespace PubnubChatApi
         public async Task<ChatOperationResult<List<Membership>>> InviteMultiple(List<User> users)
         {
             return await chat.InviteMultipleToChannel(Id, users).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Retrieves a wrapper object with a of files that were sent on this channel.
+        /// </summary>
+        /// <param name="limit">Optional - number of files to return.</param>
+        /// <param name="next">Optional - String token to get the next batch of files.</param>
+        public async Task<ChatOperationResult<ChatFilesResult>> GetFiles(int limit = 0, string next = "")
+        {
+            var result = new ChatOperationResult<ChatFilesResult>("Channel.GetFiles()", chat);
+            
+            var listFilesOperation = chat.PubnubInstance.ListFiles().Channel(Id);
+            if (limit > 0)
+            {
+                listFilesOperation = listFilesOperation.Limit(limit);
+            }
+            if (!string.IsNullOrEmpty(next))
+            {
+                listFilesOperation = listFilesOperation.Next(next);
+            }
+            var listFiles = await listFilesOperation.ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(listFiles))
+            {
+                return result;
+            }
+            
+            var files = new List<ChatFile>();
+            if (listFiles.Result.FilesList != null && listFiles.Result.FilesList.Any())
+            {
+                var getUrlsTasks = listFiles.Result.FilesList.Select(x =>
+                    chat.PubnubInstance.GetFileUrl().Channel(Id).FileId(x.Id).FileName(x.Name).ExecuteAsync());
+                var getUrls = await Task.WhenAll(getUrlsTasks).ConfigureAwait(false);
+                foreach (var pnResult in getUrls)
+                {
+                    if (result.RegisterOperation(pnResult))
+                    {
+                        return result;
+                    }
+                }
+                for (int i = 0; i < listFiles.Result.FilesList.Count; i++)
+                {
+                    files.Add(new ChatFile()
+                    {
+                        Id = listFiles.Result.FilesList[i].Id,
+                        Name = listFiles.Result.FilesList[i].Name,
+                        Url = getUrls[i].Result.Url,
+                    });
+                }  
+            }
+
+            result.Result = new ChatFilesResult()
+            {
+                Files = files,
+                Next = listFiles.Result.Next,
+                Total = listFiles.Result.Count
+            };
+            return result;
+        }
+        
+        /// <summary>
+        /// Deletes a file with a specified Id and Name from this channel.
+        /// </summary>
+        public async Task<ChatOperationResult> DeleteFile(string id, string name)
+        {
+            return (await chat.PubnubInstance.DeleteFile().Channel(Id).FileId(id).FileName(name).ExecuteAsync())
+                .ToChatOperationResult("Channel.DeleteFile()", chat);
         }
     }
 }
