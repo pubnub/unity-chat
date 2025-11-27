@@ -587,6 +587,7 @@ namespace PubnubChatApi
                 }
             }
             sendTextParams.MentionedUsers = mentions;
+            sendTextParams.Files = Files;
             return await channel.SendText(Render(), sendTextParams).ConfigureAwait(false);
         }
 

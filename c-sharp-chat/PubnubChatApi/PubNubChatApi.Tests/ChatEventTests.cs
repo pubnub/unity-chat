@@ -28,7 +28,7 @@ public class ChatEventTests
     [TearDown]
     public async Task CleanUp()
     {
-        channel.Leave();
+        await channel.Leave();
         await Task.Delay(3000);
         chat.Destroy();
         await Task.Delay(3000);
