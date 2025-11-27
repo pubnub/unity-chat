@@ -810,7 +810,7 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            var getUrl = await chat.PubnubInstance.GetFileUrl().FileId(send.Result.FileId)
+            var getUrl = await chat.PubnubInstance.GetFileUrl().Channel(Id).FileId(send.Result.FileId)
                 .FileName(send.Result.FileName).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(getUrl))
             {
@@ -851,7 +851,6 @@ namespace PubnubChatApi
             TaskCompletionSource<bool> completionSource = new ();
             chat.RateLimiter.RunWithinLimits(Id, baseInterval, async () =>
             {
-                
                 var messageDict = new Dictionary<string, string>()
                 {
                     {"text", message},
@@ -870,7 +869,7 @@ namespace PubnubChatApi
                     {
                         var combinedException = string.Join("\n",failedUploads.Select(x => x.Exception.Message));
                         result.Exception = new PNException($"Message publishing aborted: {failedUploads.Count} out of {fileResults.Length} " +
-                                                           $"file uploads failed. Exceptions from file uploads:\n{combinedException}");
+                                                           $"file uploads failed. Exceptions from file uploads: {combinedException}");
                         result.Error = true;
                         return result;
                     }
@@ -922,6 +921,8 @@ namespace PubnubChatApi
             }, exception =>
             {
                 chat.Logger.Error($"Error occured when trying to SendText(): {exception.Message}");
+                result.Error = true;
+                result.Exception = new PNException($"Encountered exception in SendText(): {exception.Message}");
                 completionSource.SetResult(true);
             });
 
@@ -1315,26 +1316,28 @@ namespace PubnubChatApi
                 return result;
             }
             
-            var getUrlsTasks = listFiles.Result.FilesList.Select(x =>
-                chat.PubnubInstance.GetFileUrl().Channel(Id).FileName(x.Name).FileId(x.Id).ExecuteAsync());
-            var getUrls = await Task.WhenAll(getUrlsTasks).ConfigureAwait(false);
-            foreach (var pnResult in getUrls)
-            {
-                if (result.RegisterOperation(pnResult))
-                {
-                    return result;
-                }
-            }
-            
             var files = new List<ChatFile>();
-            for (int i = 0; i < listFiles.Result.FilesList.Count; i++)
+            if (listFiles.Result.FilesList != null && listFiles.Result.FilesList.Any())
             {
-                files.Add(new ChatFile()
+                var getUrlsTasks = listFiles.Result.FilesList.Select(x =>
+                    chat.PubnubInstance.GetFileUrl().Channel(Id).FileId(x.Id).FileName(x.Name).ExecuteAsync());
+                var getUrls = await Task.WhenAll(getUrlsTasks).ConfigureAwait(false);
+                foreach (var pnResult in getUrls)
                 {
-                    Id = listFiles.Result.FilesList[i].Id,
-                    Name = listFiles.Result.FilesList[i].Name,
-                    Url = getUrls[i].Result.Url,
-                });
+                    if (result.RegisterOperation(pnResult))
+                    {
+                        return result;
+                    }
+                }
+                for (int i = 0; i < listFiles.Result.FilesList.Count; i++)
+                {
+                    files.Add(new ChatFile()
+                    {
+                        Id = listFiles.Result.FilesList[i].Id,
+                        Name = listFiles.Result.FilesList[i].Name,
+                        Url = getUrls[i].Result.Url,
+                    });
+                }  
             }
 
             result.Result = new ChatFilesResult()

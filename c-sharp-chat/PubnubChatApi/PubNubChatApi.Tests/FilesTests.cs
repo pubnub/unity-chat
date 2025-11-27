@@ -7,6 +7,11 @@ namespace PubNubChatApi.Tests;
 [TestFixture]
 public class FilesTests
 {
+    private const string FILE_NAME = "fileupload.txt";
+    private const string FILE_LOCATION = @"fileupload.txt";
+    private const string LARGE_FILE_NAME = "file_large.png";
+    private const string LARGE_FILE_LOCATION = @"file_large.png";
+    
     private Chat chat;
     private Channel channel;
     private User user;
@@ -18,7 +23,7 @@ public class FilesTests
             new PNConfiguration(new UserId("file_tests_user"))
             {
                 PublishKey = PubnubTestsParameters.PublishKey,
-                SubscribeKey = PubnubTestsParameters.SubscribeKey
+                SubscribeKey = PubnubTestsParameters.SubscribeKey,
             }));
         channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("file_tests_channel"));
         user = TestUtils.AssertOperation(await chat.GetCurrentUser());
@@ -61,6 +66,9 @@ public class FilesTests
         //Cleanup: delete files from channel
         await ClearChannelOfFiles();
 
+        await channel.Join();
+        await Task.Delay(250);
+        
         var receivedMessageReset = new ManualResetEvent(false);
         Message receivedMessage = null;
         channel.OnMessageReceived += message =>
@@ -79,9 +87,9 @@ public class FilesTests
             [
                 new ChatInputFile()
                 {
-                    Name = "the_file",
+                    Name = FILE_NAME,
                     Type = "text",
-                    Source = "fileupload.txt"
+                    Source = FILE_LOCATION
                 }
             ]
         }));
@@ -94,7 +102,7 @@ public class FilesTests
         Assert.True(receivedMessage.Files.Count == 1,
             $"receivedMessage.Files.Count was {receivedMessage.Files.Count} instead of 1!");
         var receivedFile = receivedMessage.Files[0];
-        Assert.True(receivedFile.Name == "the_file",
+        Assert.True(receivedFile.Name == FILE_NAME,
             $"Expected file name \"the_file\" but got \"{receivedFile.Name}\"");
         Assert.True(receivedFile.Type == "text", $"Expected file type \"text\" but got \"{receivedFile.Type}\"");
         Assert.True(!string.IsNullOrEmpty(receivedFile.Id), "File ID is empty");
@@ -114,6 +122,9 @@ public class FilesTests
         //Cleanup: delete files from channel
         await ClearChannelOfFiles();
 
+        await channel.Join();
+        await Task.Delay(250);
+        
         var receivedMessageReset = new ManualResetEvent(false);
         Message receivedMessage = null;
         channel.OnMessageReceived += message =>
@@ -130,9 +141,9 @@ public class FilesTests
         messageDraft.InsertText(0, "FILE");
         messageDraft.Files.Add(new ChatInputFile()
         {
-            Name = "the_file",
+            Name = FILE_NAME,
             Type = "text",
-            Source = "fileupload.txt"
+            Source = FILE_LOCATION
         });
         
         TestUtils.AssertOperation(await messageDraft.Send());
@@ -145,7 +156,7 @@ public class FilesTests
         Assert.True(receivedMessage.Files.Count == 1,
             $"receivedMessage.Files.Count was {receivedMessage.Files.Count} instead of 1!");
         var receivedFile = receivedMessage.Files[0];
-        Assert.True(receivedFile.Name == "the_file",
+        Assert.True(receivedFile.Name == FILE_NAME,
             $"Expected file name \"the_file\" but got \"{receivedFile.Name}\"");
         Assert.True(receivedFile.Type == "text", $"Expected file type \"text\" but got \"{receivedFile.Type}\"");
         Assert.True(!string.IsNullOrEmpty(receivedFile.Id), "File ID is empty");
@@ -177,9 +188,9 @@ public class FilesTests
             [
                 new ChatInputFile()
                 {
-                    Name = "the_BIG_file",
+                    Name = LARGE_FILE_NAME,
                     Type = "image",
-                    Source = "file_large.png"
+                    Source = LARGE_FILE_LOCATION
                 }
             ]
         });

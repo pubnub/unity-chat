@@ -28,9 +28,9 @@ namespace PubnubChatApi
                 var meta = messageResult.UserMetadata ?? new Dictionary<string, object>();
 
                 var messageFiles = new List<ChatFile>();
-                if (messageDict.TryGetValue("files", out var filesObject))
+                if (messageDict.TryGetValue("files", out var filesRawString))
                 {
-                    var files = filesObject as List<object>;
+                    var files = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToListOfObject(filesRawString.ToString());
                     foreach (var file in files)
                     {
                         var fileDict =
@@ -78,9 +78,9 @@ namespace PubnubChatApi
                 var text = messageDict["text"].ToString();
 
                 var messageFiles = new List<ChatFile>();
-                if (messageDict.TryGetValue("files", out var filesObject))
+                if (messageDict.TryGetValue("files", out var filesRawString))
                 {
-                    var files = filesObject as List<object>;
+                    var files = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToListOfObject(filesRawString.ToString());
                     foreach (var file in files)
                     {
                         var fileDict =
