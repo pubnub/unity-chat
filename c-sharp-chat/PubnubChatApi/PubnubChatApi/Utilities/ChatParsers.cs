@@ -7,7 +7,8 @@ namespace PubnubChatApi
 {
     internal static class ChatParsers
     {
-        internal static bool TryParseMessageResult(Chat chat, PNMessageResult<object> messageResult, out Message message)
+        internal static bool TryParseMessageResult(Chat chat, PNMessageResult<object> messageResult,
+            out Message message)
         {
             try
             {
@@ -25,24 +26,46 @@ namespace PubnubChatApi
                 var type = PubnubChatMessageType.Text;
                 var text = messageDict["text"].ToString();
                 var meta = messageResult.UserMetadata ?? new Dictionary<string, object>();
-                
-                message = new Message(chat, messageResult.Timetoken.ToString(), text, messageResult.Channel, messageResult.Publisher, type, meta, new List<MessageAction>());
+
+                var messageFiles = new List<ChatFile>();
+                if (messageDict.TryGetValue("files", out var filesObject))
+                {
+                    var files = filesObject as List<object>;
+                    foreach (var file in files)
+                    {
+                        var fileDict =
+                            chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(file.ToString());
+                        messageFiles.Add(new ChatFile()
+                        {
+                            Name = fileDict["name"].ToString(),
+                            Id = fileDict["id"].ToString(),
+                            Url = fileDict["url"].ToString(),
+                            Type = fileDict["type"].ToString(),
+                        });
+                    }
+                }
+
+                message = new Message(chat, messageResult.Timetoken.ToString(), text, messageResult.Channel,
+                    messageResult.Publisher, type, meta, new List<MessageAction>(), messageFiles);
                 return true;
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNMessageResult with payload: {messageResult.Message} into chat Message entity. Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNMessageResult with payload: {messageResult.Message} into chat Message entity. Exception was: {e.Message}");
                 message = null;
                 return false;
             }
         }
-        
-        internal static bool TryParseMessageFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem, out Message message)
+
+        internal static bool TryParseMessageFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem,
+            out Message message)
         {
             try
             {
                 var messageDict =
-                    chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(historyItem.Entry.ToString());
+                    chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(
+                        historyItem.Entry.ToString());
 
                 if (!messageDict.TryGetValue("type", out var typeValue) || typeValue.ToString() != "text")
                 {
@@ -53,7 +76,25 @@ namespace PubnubChatApi
                 //TODO: later more types I guess?
                 var type = PubnubChatMessageType.Text;
                 var text = messageDict["text"].ToString();
-                
+
+                var messageFiles = new List<ChatFile>();
+                if (messageDict.TryGetValue("files", out var filesObject))
+                {
+                    var files = filesObject as List<object>;
+                    foreach (var file in files)
+                    {
+                        var fileDict =
+                            chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(file.ToString());
+                        messageFiles.Add(new ChatFile()
+                        {
+                            Name = fileDict["name"].ToString(),
+                            Id = fileDict["id"].ToString(),
+                            Url = fileDict["url"].ToString(),
+                            Type = fileDict["type"].ToString(),
+                        });
+                    }
+                }
+
                 var actions = new List<MessageAction>();
                 if (historyItem.ActionItems != null)
                 {
@@ -72,18 +113,22 @@ namespace PubnubChatApi
                         }
                     }
                 }
-                message = new Message(chat, historyItem.Timetoken.ToString(), text, channelId, historyItem.Uuid, type, historyItem.Meta, actions);
+
+                message = new Message(chat, historyItem.Timetoken.ToString(), text, channelId, historyItem.Uuid, type,
+                    historyItem.Meta, actions, messageFiles);
                 return true;
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNHistoryItemResult with payload: {historyItem.Entry} into chat Message entity. Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNHistoryItemResult with payload: {historyItem.Entry} into chat Message entity. Exception was: {e.Message}");
                 message = null;
                 return false;
             }
         }
 
-        internal static bool TryParseMembershipUpdate(Chat chat, Membership membership, PNObjectEventResult objectEvent, out ChatMembershipData updatedData, out ChatEntityChangeType changeType)
+        internal static bool TryParseMembershipUpdate(Chat chat, Membership membership, PNObjectEventResult objectEvent,
+            out ChatMembershipData updatedData, out ChatEntityChangeType changeType)
         {
             try
             {
@@ -114,14 +159,16 @@ namespace PubnubChatApi
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into Membership update. Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into Membership update. Exception was: {e.Message}");
                 updatedData = null;
                 changeType = default;
                 return false;
             }
         }
-        
-        internal static bool TryParseUserUpdate(Chat chat, User user, PNObjectEventResult objectEvent, out ChatUserData updatedData, out ChatEntityChangeType changeType)
+
+        internal static bool TryParseUserUpdate(Chat chat, User user, PNObjectEventResult objectEvent,
+            out ChatUserData updatedData, out ChatEntityChangeType changeType)
         {
             try
             {
@@ -146,14 +193,16 @@ namespace PubnubChatApi
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into User update. Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into User update. Exception was: {e.Message}");
                 updatedData = null;
                 changeType = default;
                 return false;
             }
         }
-        
-        internal static bool TryParseChannelUpdate(Chat chat, Channel channel, PNObjectEventResult objectEvent, out ChatChannelData updatedData, out ChatEntityChangeType changeType)
+
+        internal static bool TryParseChannelUpdate(Chat chat, Channel channel, PNObjectEventResult objectEvent,
+            out ChatChannelData updatedData, out ChatEntityChangeType changeType)
         {
             try
             {
@@ -178,18 +227,20 @@ namespace PubnubChatApi
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into Channel update. Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNObjectEventResult of type: {objectEvent.Event} into Channel update. Exception was: {e.Message}");
                 updatedData = null;
                 changeType = default;
                 return false;
             }
         }
-        
+
         internal static bool TryParseMessageUpdate(Chat chat, Message message, PNMessageActionEventResult actionEvent)
         {
             try
             {
-                if (actionEvent.MessageTimetoken.ToString() == message.TimeToken && actionEvent.Uuid == message.UserId && actionEvent.Channel == message.ChannelId)
+                if (actionEvent.MessageTimetoken.ToString() == message.TimeToken &&
+                    actionEvent.Uuid == message.UserId && actionEvent.Channel == message.ChannelId)
                 {
                     if (actionEvent.Event != "removed")
                     {
@@ -198,6 +249,7 @@ namespace PubnubChatApi
                         {
                             return true;
                         }
+
                         message.MessageActions.Add(new MessageAction()
                         {
                             TimeToken = actionEvent.ActionTimetoken.ToString(),
@@ -212,6 +264,7 @@ namespace PubnubChatApi
                         dict.Remove(actionEvent.ActionTimetoken.ToString());
                         message.MessageActions = dict.Values.ToList();
                     }
+
                     return true;
                 }
                 else
@@ -221,12 +274,14 @@ namespace PubnubChatApi
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNMessageActionEventResult into Message update. Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNMessageActionEventResult into Message update. Exception was: {e.Message}");
                 return false;
             }
         }
 
-        internal static bool TryParseEvent(Chat chat, PNMessageResult<object> messageResult, PubnubChatEventType eventType, out ChatEvent chatEvent)
+        internal static bool TryParseEvent(Chat chat, PNMessageResult<object> messageResult,
+            PubnubChatEventType eventType, out ChatEvent chatEvent)
         {
             try
             {
@@ -238,17 +293,20 @@ namespace PubnubChatApi
                     chatEvent = default;
                     return false;
                 }
+
                 var receivedEventType = ChatEnumConverters.StringToEventType(typeString.ToString());
                 if (receivedEventType != eventType)
                 {
                     chatEvent = default;
                     return false;
                 }
+
                 if (chat.MutedUsersManager.MutedUsers.Contains(messageResult.Publisher))
                 {
                     chatEvent = default;
                     return false;
                 }
+
                 chatEvent = new ChatEvent()
                 {
                     TimeToken = messageResult.Timetoken.ToString(),
@@ -261,23 +319,27 @@ namespace PubnubChatApi
             }
             catch (Exception e)
             {
-                chat.Logger.Debug($"Failed to parse PNMessageResult into ChatEvent of type \"{eventType}\". Exception was: {e.Message}");
+                chat.Logger.Debug(
+                    $"Failed to parse PNMessageResult into ChatEvent of type \"{eventType}\". Exception was: {e.Message}");
                 chatEvent = default;
                 return false;
             }
         }
-        
-        internal static bool TryParseEventFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem, out ChatEvent chatEvent)
+
+        internal static bool TryParseEventFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem,
+            out ChatEvent chatEvent)
         {
             try
             {
                 var jsonDict =
-                    chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(historyItem.Entry.ToString());
+                    chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(
+                        historyItem.Entry.ToString());
                 if (!jsonDict.TryGetValue("type", out var typeString))
                 {
                     chatEvent = default;
                     return false;
                 }
+
                 var receivedEventType = ChatEnumConverters.StringToEventType(typeString.ToString());
                 chatEvent = new ChatEvent()
                 {

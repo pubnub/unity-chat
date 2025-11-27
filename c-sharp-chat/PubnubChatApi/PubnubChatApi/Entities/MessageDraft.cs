@@ -105,7 +105,15 @@ namespace PubnubChatApi
         /// </summary>
         public List<MessageElement> MessageElements => GetMessageElements();
 
+        /// <summary>
+        /// Defines whether this MessageDraft should search for suggestions after it's content is updated.
+        /// </summary>
         public bool ShouldSearchForSuggestions { get; set; }
+        
+        /// <summary>
+        /// Can be used to attach files to send with this MessageDraft.
+        /// </summary>
+        public List<ChatInputFile> Files { get; set; } = new();
         
         private Channel channel;
         private Chat chat;

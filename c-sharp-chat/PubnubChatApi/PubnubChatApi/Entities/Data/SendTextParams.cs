@@ -9,5 +9,6 @@ namespace PubnubChatApi
         public Dictionary<string, object> Meta = new();
         public Dictionary<int, MentionedUser> MentionedUsers = new();
         public Message QuotedMessage = null;
+        public List<ChatInputFile> Files = new();
     }
 }
