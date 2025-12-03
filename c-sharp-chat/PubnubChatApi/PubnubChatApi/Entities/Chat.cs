@@ -1716,6 +1716,100 @@ namespace PubnubChatApi
 
         #endregion
 
+        #region Push
+        
+        /// <summary>
+        /// Retrieves the Push Notifications config from the main Chat config.
+        /// Alternatively you can also use Config.PushNotifications
+        /// </summary>
+        public PubnubChatConfig.PushNotificationsConfig GetCommonPushOptions => Config.PushNotifications;
+        
+        /// <summary>
+        /// Registers a list of channels to receive push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> RegisterPushChannels(List<string> channelIds)
+        {
+            var pushSettings = GetCommonPushOptions;
+            return (await PubnubInstance.AddPushNotificationsOnChannels()
+                    .Channels(channelIds.ToArray())
+                    .PushType(pushSettings.DeviceGateway)
+                    .DeviceId(pushSettings.DeviceToken)
+                    .Topic(pushSettings.APNSTopic)
+                    .Environment(pushSettings.APNSEnvironment)
+                    .ExecuteAsync()
+                    .ConfigureAwait(false))
+                .ToChatOperationResult("Chat.RegisterPushChannels()", this);
+        }
+        
+        /// <summary>
+        /// Un-registers a list of channels from receiving push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> UnRegisterPushChannels(List<string> channelIds)
+        {
+            var pushSettings = GetCommonPushOptions;
+            return (await PubnubInstance.RemovePushNotificationsFromChannels()
+                    .Channels(channelIds.ToArray())
+                    .PushType(pushSettings.DeviceGateway)
+                    .DeviceId(pushSettings.DeviceToken)
+                    .Topic(pushSettings.APNSTopic)
+                    .Environment(pushSettings.APNSEnvironment)
+                    .ExecuteAsync()
+                    .ConfigureAwait(false))
+                .ToChatOperationResult("Chat.RegisterPushChannels()", this);
+        }
+        
+        /// <summary>
+        /// Un-registers all channels from receiving push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> UnRegisterAllPushChannels()
+        {
+            var pushSettings = GetCommonPushOptions;
+            return (await PubnubInstance.RemoveAllPushNotificationsFromDeviceWithPushToken()
+                    .PushType(pushSettings.DeviceGateway)
+                    .DeviceId(pushSettings.DeviceToken)
+                    .Topic(pushSettings.APNSTopic)
+                    .Environment(pushSettings.APNSEnvironment)
+                    .ExecuteAsync()
+                    .ConfigureAwait(false))
+                .ToChatOperationResult("Chat.RegisterPushChannels()", this);
+        }
+        
+        /// <summary>
+        /// Returns the IDs of all currently registered push channels.
+        /// </summary>
+        public async Task<ChatOperationResult<List<string>>> GetPushChannels()
+        {
+            var result = new ChatOperationResult<List<string>>("Chat.GetPushChannels()", this);
+            var pushSettings = GetCommonPushOptions;
+            PNResult<PNPushListProvisionsResult> audit;
+            if (pushSettings.DeviceGateway == PNPushType.FCM)
+            {
+                audit = await PubnubInstance.AuditPushChannelProvisions()
+                    .PushType(pushSettings.DeviceGateway)
+                    .DeviceId(pushSettings.DeviceToken)
+                    .ExecuteAsync()
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                audit = await PubnubInstance.AuditPushChannelProvisions()
+                    .PushType(pushSettings.DeviceGateway)
+                    .DeviceId(pushSettings.DeviceToken)
+                    .Topic(pushSettings.APNSTopic)
+                    .Environment(pushSettings.APNSEnvironment)
+                    .ExecuteAsync()
+                    .ConfigureAwait(false);
+            }
+            if (result.RegisterOperation(audit))
+            {
+                return result;
+            }
+            result.Result = audit.Result.Channels;
+            return result;
+        }
+        
+        #endregion
+        
         /// <summary>
         /// Destroys the chat instance and cleans up resources.
         /// <para>
