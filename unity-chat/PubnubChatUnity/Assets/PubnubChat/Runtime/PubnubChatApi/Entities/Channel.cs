@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using PubnubApi;
+using Environment = PubnubApi.Environment;
 
 namespace PubnubChatApi
 {
@@ -856,6 +857,15 @@ namespace PubnubChatApi
                     {"text", message},
                     {"type", "text"}
                 };
+                if (chat.Config.PushNotifications is { SendPushes : true})
+                {
+                    var pushPayload = await GetPushPayload(message, sendTextParams.CustomPushData ?? new Dictionary<string, string>());
+                    foreach (var kvp in pushPayload)
+                    {
+                        var pushJson = jsonLibrary.SerializeToJsonString(kvp.Value);
+                        messageDict[kvp.Key] = pushJson;
+                    }
+                }
                 if (sendTextParams.Files.Any())
                 {
                     var fileTasks = sendTextParams.Files.Select(SendFileForPublish);
@@ -1157,6 +1167,8 @@ namespace PubnubChatApi
         /// Gets all the users that are present in the channel.
         /// </para>
         /// </summary>
+        /// <param name="limit">Limit number of users details to be returned. Default and max value is 1000.</param>
+        /// <param name="offset">Use this parameter to provide starting position of results for pagination purpose. Default value is 0.</param>
         /// <returns>A ChatOperationResult containing the list of users present in the channel.</returns>
         /// <example>
         /// <code>
@@ -1169,11 +1181,15 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         /// <seealso cref="IsUserPresent"/>
-        public async Task<ChatOperationResult<List<string>>> WhoIsPresent()
+        public async Task<ChatOperationResult<List<string>>> WhoIsPresent(int limit = 1000, int offset = 0)
         {
+            if (limit > 1000)
+            {
+                limit = 1000;
+            }
             var result = new ChatOperationResult<List<string>>("Channel.WhoIsPresent()", chat) { Result = new List<string>() };
             var response = await chat.PubnubInstance.HereNow().Channels(new[] { Id }).IncludeState(true)
-                .IncludeUUIDs(true).ExecuteAsync().ConfigureAwait(false);
+                .IncludeUUIDs(true).Limit(limit).Offset(offset).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(response))
             {
                 return result;
@@ -1356,6 +1372,71 @@ namespace PubnubChatApi
         {
             return (await chat.PubnubInstance.DeleteFile().Channel(Id).FileId(id).FileName(name).ExecuteAsync())
                 .ToChatOperationResult("Channel.DeleteFile()", chat);
+        }
+        
+        private async Task<Dictionary<string, object>> GetPushPayload(string text, Dictionary<string, string> customPushData)
+        {
+            var pushConfig = chat.Config.PushNotifications;
+            if (pushConfig == null || pushConfig.SendPushes == false)
+            {
+                return new Dictionary<string, object>();
+            }
+            var title = chat.PubnubInstance.GetCurrentUserId().ToString();
+            var currentUser = await chat.GetCurrentUser();
+            if (!currentUser.Error && !string.IsNullOrEmpty(currentUser.Result.UserName))
+            {
+                title = currentUser.Result.UserName;
+            }
+            var customData = new Dictionary<string, object>();
+            foreach (var entry in customPushData)
+            {
+                customData.Add(entry.Key, entry.Value);
+            }
+            if (!string.IsNullOrEmpty(Name))
+            {
+                customData["subtitle"] = Name;    
+            }
+
+            var finalCustom = new Dictionary<PNPushType, Dictionary<string, object>>()
+            {
+                { PNPushType.FCM, customData }
+            };
+            var pushBuilder = new MobilePushHelper().PushTypeSupport(new[] { PNPushType.APNS2, PNPushType.FCM })
+                .Title(title).Sound("default").Body(text);
+            
+            var apnsTopic = pushConfig.APNSTopic;
+            if (!string.IsNullOrEmpty(apnsTopic))
+            {
+                var apnsEnv = pushConfig.APNSEnvironment;
+                pushBuilder.Apns2Data(new List<Apns2Data>()
+                {
+                    new Apns2Data()
+                    {
+                        targets = new List<PushTarget>()
+                            { new PushTarget() { topic = apnsTopic, environment = (Environment)apnsEnv } },
+                    }
+                });
+                finalCustom.Add(PNPushType.APNS2, customData);
+            }
+            pushBuilder.Custom(finalCustom);
+
+            return pushBuilder.GetPayload();
+        }
+
+        /// <summary>
+        /// Registers this channel to receive push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> RegisterForPush()
+        {
+            return await chat.RegisterPushChannels(new List<string>() { Id }).ConfigureAwait(false);
+        }
+        
+        /// <summary>
+        /// Un-Registers this channel from receiving push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> UnRegisterFromPush()
+        {
+            return await chat.UnRegisterPushChannels(new List<string>() { Id }).ConfigureAwait(false);
         }
     }
 }

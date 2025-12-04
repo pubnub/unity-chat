@@ -10,5 +10,6 @@ namespace PubnubChatApi
         public Dictionary<int, MentionedUser> MentionedUsers = new();
         public Message QuotedMessage = null;
         public List<ChatInputFile> Files = new();
+        public Dictionary<string, string> CustomPushData = new();
     }
 }
