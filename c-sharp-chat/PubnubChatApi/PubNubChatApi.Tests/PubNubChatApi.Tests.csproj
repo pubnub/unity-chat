@@ -25,4 +25,13 @@
       <ProjectReference Include="..\PubnubChatApi\PubnubChatApi.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="file_large.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="fileupload.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

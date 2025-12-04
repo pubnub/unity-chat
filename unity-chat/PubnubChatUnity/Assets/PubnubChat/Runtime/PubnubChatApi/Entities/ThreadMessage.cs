@@ -13,8 +13,8 @@ namespace PubnubChatApi
 
         internal ThreadMessage(Chat chat, string timeToken, string originalMessageText, string channelId,
             string parentChannelId, string userId, PubnubChatMessageType type, Dictionary<string, object> meta,
-            List<MessageAction> messageActions) : base(chat, timeToken, originalMessageText, channelId, userId, type,
-            meta, messageActions)
+            List<MessageAction> messageActions, List<ChatFile> files) : base(chat, timeToken, originalMessageText, channelId, userId, type,
+            meta, messageActions, files)
         {
             ParentChannelId = parentChannelId;
         }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using PubnubApi;
+using Environment = PubnubApi.Environment;
 
 namespace PubnubChatApi
 {
@@ -800,6 +801,32 @@ namespace PubnubChatApi
             return await SendText(message, new SendTextParams()).ConfigureAwait(false);
         }
 
+        private async Task<ChatOperationResult<ChatFile>> SendFileForPublish(ChatInputFile inputFile)
+        {
+            var result = new ChatOperationResult<ChatFile>("Channel.SendFileForPublish()", chat);
+            var send = await chat.PubnubInstance.SendFile().Channel(Id).File(inputFile.Source).FileName(inputFile.Name)
+                .ShouldStore(false)
+                .ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(send))
+            {
+                return result;
+            }
+            var getUrl = await chat.PubnubInstance.GetFileUrl().Channel(Id).FileId(send.Result.FileId)
+                .FileName(send.Result.FileName).ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(getUrl))
+            {
+                return result;
+            }
+            result.Result = new ChatFile()
+            {
+                Id = send.Result.FileId,
+                Name = send.Result.FileName,
+                Type = inputFile.Type,
+                Url = getUrl.Result.Url
+            };
+            return result;
+        }
+
         /// <summary>
         /// Sends the text message with additional parameters.
         /// <para>
@@ -812,6 +839,7 @@ namespace PubnubChatApi
         public virtual async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
         {
             var result = new ChatOperationResult("Channel.SendText()", chat);
+            var jsonLibrary = chat.PubnubInstance.JsonPluggableLibrary;
             
             var baseInterval = Type switch
             {
@@ -829,6 +857,35 @@ namespace PubnubChatApi
                     {"text", message},
                     {"type", "text"}
                 };
+                if (chat.Config.PushNotifications is { SendPushes : true})
+                {
+                    var pushPayload = await GetPushPayload(message, sendTextParams.CustomPushData ?? new Dictionary<string, string>());
+                    foreach (var kvp in pushPayload)
+                    {
+                        var pushJson = jsonLibrary.SerializeToJsonString(kvp.Value);
+                        messageDict[kvp.Key] = pushJson;
+                    }
+                }
+                if (sendTextParams.Files.Any())
+                {
+                    var fileTasks = sendTextParams.Files.Select(SendFileForPublish);
+                    var fileResults = await Task.WhenAll(fileTasks).ConfigureAwait(false);
+                    foreach (var fileResult in fileResults)
+                    {
+                        result.RegisterOperation(fileResult);
+                    }
+                    var failedUploads = fileResults.Where(x => x.Error).ToList();
+                    if (failedUploads.Any())
+                    {
+                        var combinedException = string.Join("\n",failedUploads.Select(x => x.Exception.Message));
+                        result.Exception = new PNException($"Message publishing aborted: {failedUploads.Count} out of {fileResults.Length} " +
+                                                           $"file uploads failed. Exceptions from file uploads: {combinedException}");
+                        result.Error = true;
+                        return result;
+                    }
+                    var chatFilesAsDictionaries = fileResults.Select(x => x.Result.ToDictionary()).ToList();
+                    messageDict["files"] = jsonLibrary.SerializeToJsonString(chatFilesAsDictionaries);
+                }
                 var meta = sendTextParams.Meta ?? new Dictionary<string, object>();
                 if (sendTextParams.QuotedMessage != null)
                 {
@@ -851,7 +908,7 @@ namespace PubnubChatApi
                     .Channel(Id)
                     .ShouldStore(sendTextParams.StoreInHistory)
                     .UsePOST(sendTextParams.SendByPost)
-                    .Message(chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(messageDict))
+                    .Message(jsonLibrary.SerializeToJsonString(messageDict))
                     .Meta(meta)
                     .ExecuteAsync().ConfigureAwait(false);
                 if (result.RegisterOperation(publishResult))
@@ -874,6 +931,8 @@ namespace PubnubChatApi
             }, exception =>
             {
                 chat.Logger.Error($"Error occured when trying to SendText(): {exception.Message}");
+                result.Error = true;
+                result.Exception = new PNException($"Encountered exception in SendText(): {exception.Message}");
                 completionSource.SetResult(true);
             });
 
@@ -1108,6 +1167,8 @@ namespace PubnubChatApi
         /// Gets all the users that are present in the channel.
         /// </para>
         /// </summary>
+        /// <param name="limit">Limit number of users details to be returned. Default and max value is 1000.</param>
+        /// <param name="offset">Use this parameter to provide starting position of results for pagination purpose. Default value is 0.</param>
         /// <returns>A ChatOperationResult containing the list of users present in the channel.</returns>
         /// <example>
         /// <code>
@@ -1120,11 +1181,15 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         /// <seealso cref="IsUserPresent"/>
-        public async Task<ChatOperationResult<List<string>>> WhoIsPresent()
+        public async Task<ChatOperationResult<List<string>>> WhoIsPresent(int limit = 1000, int offset = 0)
         {
+            if (limit > 1000)
+            {
+                limit = 1000;
+            }
             var result = new ChatOperationResult<List<string>>("Channel.WhoIsPresent()", chat) { Result = new List<string>() };
             var response = await chat.PubnubInstance.HereNow().Channels(new[] { Id }).IncludeState(true)
-                .IncludeUUIDs(true).ExecuteAsync().ConfigureAwait(false);
+                .IncludeUUIDs(true).Limit(limit).Offset(offset).ExecuteAsync().ConfigureAwait(false);
             if (result.RegisterOperation(response))
             {
                 return result;
@@ -1241,6 +1306,137 @@ namespace PubnubChatApi
         public async Task<ChatOperationResult<List<Membership>>> InviteMultiple(List<User> users)
         {
             return await chat.InviteMultipleToChannel(Id, users).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Retrieves a wrapper object with a of files that were sent on this channel.
+        /// </summary>
+        /// <param name="limit">Optional - number of files to return.</param>
+        /// <param name="next">Optional - String token to get the next batch of files.</param>
+        public async Task<ChatOperationResult<ChatFilesResult>> GetFiles(int limit = 0, string next = "")
+        {
+            var result = new ChatOperationResult<ChatFilesResult>("Channel.GetFiles()", chat);
+            
+            var listFilesOperation = chat.PubnubInstance.ListFiles().Channel(Id);
+            if (limit > 0)
+            {
+                listFilesOperation = listFilesOperation.Limit(limit);
+            }
+            if (!string.IsNullOrEmpty(next))
+            {
+                listFilesOperation = listFilesOperation.Next(next);
+            }
+            var listFiles = await listFilesOperation.ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(listFiles))
+            {
+                return result;
+            }
+            
+            var files = new List<ChatFile>();
+            if (listFiles.Result.FilesList != null && listFiles.Result.FilesList.Any())
+            {
+                var getUrlsTasks = listFiles.Result.FilesList.Select(x =>
+                    chat.PubnubInstance.GetFileUrl().Channel(Id).FileId(x.Id).FileName(x.Name).ExecuteAsync());
+                var getUrls = await Task.WhenAll(getUrlsTasks).ConfigureAwait(false);
+                foreach (var pnResult in getUrls)
+                {
+                    if (result.RegisterOperation(pnResult))
+                    {
+                        return result;
+                    }
+                }
+                for (int i = 0; i < listFiles.Result.FilesList.Count; i++)
+                {
+                    files.Add(new ChatFile()
+                    {
+                        Id = listFiles.Result.FilesList[i].Id,
+                        Name = listFiles.Result.FilesList[i].Name,
+                        Url = getUrls[i].Result.Url,
+                    });
+                }  
+            }
+
+            result.Result = new ChatFilesResult()
+            {
+                Files = files,
+                Next = listFiles.Result.Next,
+                Total = listFiles.Result.Count
+            };
+            return result;
+        }
+        
+        /// <summary>
+        /// Deletes a file with a specified Id and Name from this channel.
+        /// </summary>
+        public async Task<ChatOperationResult> DeleteFile(string id, string name)
+        {
+            return (await chat.PubnubInstance.DeleteFile().Channel(Id).FileId(id).FileName(name).ExecuteAsync())
+                .ToChatOperationResult("Channel.DeleteFile()", chat);
+        }
+        
+        private async Task<Dictionary<string, object>> GetPushPayload(string text, Dictionary<string, string> customPushData)
+        {
+            var pushConfig = chat.Config.PushNotifications;
+            if (pushConfig == null || pushConfig.SendPushes == false)
+            {
+                return new Dictionary<string, object>();
+            }
+            var title = chat.PubnubInstance.GetCurrentUserId().ToString();
+            var currentUser = await chat.GetCurrentUser();
+            if (!currentUser.Error && !string.IsNullOrEmpty(currentUser.Result.UserName))
+            {
+                title = currentUser.Result.UserName;
+            }
+            var customData = new Dictionary<string, object>();
+            foreach (var entry in customPushData)
+            {
+                customData.Add(entry.Key, entry.Value);
+            }
+            if (!string.IsNullOrEmpty(Name))
+            {
+                customData["subtitle"] = Name;    
+            }
+
+            var finalCustom = new Dictionary<PNPushType, Dictionary<string, object>>()
+            {
+                { PNPushType.FCM, customData }
+            };
+            var pushBuilder = new MobilePushHelper().PushTypeSupport(new[] { PNPushType.APNS2, PNPushType.FCM })
+                .Title(title).Sound("default").Body(text);
+            
+            var apnsTopic = pushConfig.APNSTopic;
+            if (!string.IsNullOrEmpty(apnsTopic))
+            {
+                var apnsEnv = pushConfig.APNSEnvironment;
+                pushBuilder.Apns2Data(new List<Apns2Data>()
+                {
+                    new Apns2Data()
+                    {
+                        targets = new List<PushTarget>()
+                            { new PushTarget() { topic = apnsTopic, environment = (Environment)apnsEnv } },
+                    }
+                });
+                finalCustom.Add(PNPushType.APNS2, customData);
+            }
+            pushBuilder.Custom(finalCustom);
+
+            return pushBuilder.GetPayload();
+        }
+
+        /// <summary>
+        /// Registers this channel to receive push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> RegisterForPush()
+        {
+            return await chat.RegisterPushChannels(new List<string>() { Id }).ConfigureAwait(false);
+        }
+        
+        /// <summary>
+        /// Un-Registers this channel from receiving push notifications.
+        /// </summary>
+        public async Task<ChatOperationResult> UnRegisterFromPush()
+        {
+            return await chat.UnRegisterPushChannels(new List<string>() { Id }).ConfigureAwait(false);
         }
     }
 }

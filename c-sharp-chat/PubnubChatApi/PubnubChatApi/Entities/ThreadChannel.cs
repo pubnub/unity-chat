@@ -92,7 +92,7 @@ namespace PubnubChatApi
             {
                 result.Result.Add(new ThreadMessage(chat, message.TimeToken, message.OriginalMessageText,
                     message.ChannelId, ParentChannelId, message.UserId, PubnubChatMessageType.Text, message.Meta,
-                    message.MessageActions));
+                    message.MessageActions, message.Files));
             }
 
             return result;

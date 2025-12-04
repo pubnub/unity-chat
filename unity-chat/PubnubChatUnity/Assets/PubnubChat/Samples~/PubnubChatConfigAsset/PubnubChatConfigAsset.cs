@@ -13,6 +13,7 @@ namespace PubnubChatApi
         [field: SerializeField] public bool StoreUserActivityTimestamp { get; private set; }
         [field: SerializeField] public int StoreUserActivityInterval { get; private set; } = 60000;
         [field: SerializeField] public bool SyncMutedUsers { get; private set; } = false;
+        [field: SerializeField] public PubnubChatConfig.PushNotificationsConfig PushNotifications { get; private set; } = new ();
 
         public static implicit operator PubnubChatConfig(PubnubChatConfigAsset asset)
         {
@@ -22,7 +23,8 @@ namespace PubnubChatApi
                 rateLimitPerChannel: asset.RateLimitPerChannel,
                 storeUserActivityInterval: asset.StoreUserActivityInterval,
                 storeUserActivityTimestamp: asset.StoreUserActivityTimestamp,
-                syncMutedUsers: asset.SyncMutedUsers);
+                syncMutedUsers: asset.SyncMutedUsers,
+                pushNotifications: asset.PushNotifications);
         }
     }
 }
