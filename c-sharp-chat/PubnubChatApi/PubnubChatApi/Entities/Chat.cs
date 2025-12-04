@@ -1781,25 +1781,13 @@ namespace PubnubChatApi
         {
             var result = new ChatOperationResult<List<string>>("Chat.GetPushChannels()", this);
             var pushSettings = GetCommonPushOptions;
-            PNResult<PNPushListProvisionsResult> audit;
-            if (pushSettings.DeviceGateway == PNPushType.FCM)
-            {
-                audit = await PubnubInstance.AuditPushChannelProvisions()
-                    .PushType(pushSettings.DeviceGateway)
-                    .DeviceId(pushSettings.DeviceToken)
-                    .ExecuteAsync()
-                    .ConfigureAwait(false);
-            }
-            else
-            {
-                audit = await PubnubInstance.AuditPushChannelProvisions()
-                    .PushType(pushSettings.DeviceGateway)
-                    .DeviceId(pushSettings.DeviceToken)
-                    .Topic(pushSettings.APNSTopic)
-                    .Environment(pushSettings.APNSEnvironment)
-                    .ExecuteAsync()
-                    .ConfigureAwait(false);
-            }
+            var audit = await PubnubInstance.AuditPushChannelProvisions()
+                .PushType(pushSettings.DeviceGateway)
+                .DeviceId(pushSettings.DeviceToken)
+                .Topic(pushSettings.APNSTopic)
+                .Environment(pushSettings.APNSEnvironment)
+                .ExecuteAsync()
+                .ConfigureAwait(false);
             if (result.RegisterOperation(audit))
             {
                 return result;

@@ -18,9 +18,9 @@ public class PushTests
             new PubnubChatConfig(pushNotifications: new PubnubChatConfig.PushNotificationsConfig()
             {
                 APNSEnvironment = PushEnvironment.Development,
-                APNSTopic = "some_topic",
-                DeviceGateway = PNPushType.APNS2,
-                DeviceToken = "some_token",
+                APNSTopic = "someTopic",
+                DeviceGateway = PNPushType.FCM,
+                DeviceToken = "sometoken",
                 SendPushes = true
             }),
             new PNConfiguration(new UserId("push_tests_user"))
