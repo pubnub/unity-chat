@@ -1,6 +1,13 @@
 --- 
-version: v1.2.0
+version: v1.3.0
 changelog:
+  - date: 2025-12-08
+    version: v1.3.0
+    changes:
+      - type: feature
+        text: "Integrated Pubnub files support into Chat functionality - messages sent via MessageDraft or directly from Channel.SendText() can now have file attachments."
+      - type: feature
+        text: "Integrated Pubnub push notifications support into Chat - PubnubChatConfig now has a PushNotifications section and Channel entities can be registered to receive push notifications."
   - date: 2025-11-24
     version: v1.2.0
     changes:
