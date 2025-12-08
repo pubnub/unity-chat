@@ -5,7 +5,7 @@ namespace PubnubChatApi
 {
     public class UnityChatPNSDKSource : IPNSDKSource
     {
-        private const string build = "1.2.0";
+        private const string build = "1.3.0";
 
         private string GetPlatformString()
         {
