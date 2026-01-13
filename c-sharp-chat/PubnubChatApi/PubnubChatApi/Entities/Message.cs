@@ -294,6 +294,28 @@ namespace PubnubChatApi
         }
 
         /// <summary>
+        /// Returns reactions added to this message formatted into a list of MessageReaction objects.
+        /// </summary>
+        public List<MessageReaction> MessageReactions()
+        {
+            var rawReactions = Reactions;
+            var rawReactionsByType = rawReactions.GroupBy(x => x.Value)
+                .ToDictionary(x => x.Key, y => y.Select(z => z).ToList());
+            var reactions = new List<MessageReaction>();
+            foreach (var kvp in rawReactionsByType)
+            {
+                var userIds = kvp.Value.Select(x => x.UserId).ToList();
+                reactions.Add(new MessageReaction()
+                {
+                    Type = kvp.Key,
+                    IsMine = userIds.Contains(chat.PubnubInstance.GetCurrentUserId()),
+                    UserIds = userIds
+                });
+            }
+            return reactions;
+        }
+
+        /// <summary>
         /// Edits the text of the message.
         /// <para>
         /// This method edits the text of the message.

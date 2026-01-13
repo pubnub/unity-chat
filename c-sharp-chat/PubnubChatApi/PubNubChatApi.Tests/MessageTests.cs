@@ -247,6 +247,30 @@ public class MessageTests
         var reacted = manualReset.WaitOne(10000);
         Assert.True(reacted);
     }
+    
+    [Test]
+    public async Task TestNewMessageReactions()
+    {
+        var manualReset = new ManualResetEvent(false);
+        channel.OnMessageReceived += async message =>
+        {
+            await message.ToggleReaction("happy");
+
+            await Task.Delay(3000);
+
+            var has = message.HasUserReaction("happy");
+            Assert.True(has);
+            var newReactions = message.MessageReactions();
+            Assert.True(newReactions.Count == 1 
+                        && newReactions.Any(
+                            x => x is { Type: "happy", IsMine: true, UserIds.Count: 1 } 
+                                && x.UserIds.Contains(chat.PubnubInstance.GetCurrentUserId())));
+            manualReset.Set();
+        };
+        await channel.SendText("a_message");
+        var reacted = manualReset.WaitOne(10000);
+        Assert.True(reacted);
+    }
 
     [Test]
     public async Task TestMessageReport()
