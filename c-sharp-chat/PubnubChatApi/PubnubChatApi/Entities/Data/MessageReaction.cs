@@ -10,7 +10,7 @@ namespace PubnubChatApi
         /// <summary>
         /// Type of reaction, e.g. an emoji
         /// </summary>
-        public string Type { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
         /// <summary>
         /// Whether the reaction was also made by the current user
         /// </summary>
@@ -19,5 +19,9 @@ namespace PubnubChatApi
         /// All the users who gave this reaction
         /// </summary>
         public List<string> UserIds {get; set;} = new();
+        /// <summary>
+        /// Amount of reactions - equal to the count of UserIDs.
+        /// </summary>
+        public int Count => UserIds.Count;
     }
 }

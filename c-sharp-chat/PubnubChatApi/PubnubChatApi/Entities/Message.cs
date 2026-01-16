@@ -307,7 +307,7 @@ namespace PubnubChatApi
                 var userIds = kvp.Value.Select(x => x.UserId).ToList();
                 reactions.Add(new MessageReaction()
                 {
-                    Type = kvp.Key,
+                    Value = kvp.Key,
                     IsMine = userIds.Contains(chat.PubnubInstance.GetCurrentUserId()),
                     UserIds = userIds
                 });

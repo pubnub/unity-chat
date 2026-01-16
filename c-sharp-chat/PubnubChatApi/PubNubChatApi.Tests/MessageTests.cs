@@ -263,7 +263,7 @@ public class MessageTests
             var newReactions = message.MessageReactions();
             Assert.True(newReactions.Count == 1 
                         && newReactions.Any(
-                            x => x is { Type: "happy", IsMine: true, UserIds.Count: 1 } 
+                            x => x is { Value: "happy", IsMine: true, UserIds.Count: 1 } 
                                 && x.UserIds.Contains(chat.PubnubInstance.GetCurrentUserId())));
             manualReset.Set();
         };

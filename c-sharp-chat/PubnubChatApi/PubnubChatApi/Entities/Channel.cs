@@ -1232,6 +1232,39 @@ namespace PubnubChatApi
         }
 
         /// <summary>
+        /// Checks whether a User with the provided ID is a member of this Channel.
+        /// </summary>
+        public async Task<ChatOperationResult<bool>> HasMember(string userId)
+        {
+            var result = new ChatOperationResult<bool>("Channel.HasMember()", chat);
+            var getMembers = await chat.GetChannelMemberships(Id, filter:$"uuid.id == \"{userId}\"").ConfigureAwait(false);
+            if (result.RegisterOperation(getMembers))
+            {
+                return result;
+            }
+            result.Result = getMembers.Result.Memberships?.Count != 0;
+            return result;
+        }
+        
+        /// <summary>
+        /// Tries to fetch the Membership in this Channel for a provided userId.
+        /// </summary>
+        public async Task<ChatOperationResult<Membership>> GetMember(string userId)
+        {
+            var result = new ChatOperationResult<Membership>("Channel.GetMember()", chat);
+            var getMembers = await chat.GetChannelMemberships(Id, filter:$"uuid.id == \"{userId}\"").ConfigureAwait(false);
+            if (result.RegisterOperation(getMembers))
+            {
+                return result;
+            }
+            if (getMembers.Result.Memberships?[0] != null)
+            {
+                result.Result = getMembers.Result.Memberships[0];
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Gets the list of the <c>Membership</c> objects which have a Status of "pending".
         /// <para>
         /// Gets the list of the <c>Membership</c> objects that represent the users that are invited 
