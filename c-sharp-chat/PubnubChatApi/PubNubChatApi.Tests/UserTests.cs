@@ -163,4 +163,20 @@ public class UserTests
         
         Assert.True(isOn, "user.IsPresentOn() doesn't return true for most recently joined channel!");
     }
+    
+    [Test]
+    public async Task TestUserIsAndGetMember()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var isMember = TestUtils.AssertOperation(await user.IsMemberOn(someChannel.Id));
+        Assert.True(isMember, "user.IsMemberOn() doesn't return true for most recently joined channel!");
+
+        var getMembership = TestUtils.AssertOperation(await user.GetMembership(someChannel.Id));
+        Assert.True(getMembership.ChannelId == someChannel.Id, "Wrong GetMembership() channel id");
+        Assert.True(getMembership.UserId == user.Id, "Wrong GetMembership() user id");
+    }
 }

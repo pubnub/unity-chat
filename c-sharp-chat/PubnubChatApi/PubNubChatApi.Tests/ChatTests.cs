@@ -231,13 +231,9 @@ public class ChatTests
         await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);
-        otherChatChannel.OnReadReceiptEvent += readReceipts =>
+        otherChatChannel.OnReadReceiptEvent += readReceipt =>
         {
-            if (readReceipts.Count == 0)
-            {
-                return;
-            }
-            Assert.True(readReceipts.Values.Any(x => x != null && x.Contains(currentUser.Id)));
+            Assert.True(readReceipt.UserId == currentUser.Id);
             receiptReset.Set();
         };
         await otherChatChannel.SendText("READ MEEEE");

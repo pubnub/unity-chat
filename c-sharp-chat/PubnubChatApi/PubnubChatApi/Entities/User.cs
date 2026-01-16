@@ -751,7 +751,7 @@ namespace PubnubChatApi
         public async Task<ChatOperationResult<bool>> IsMemberOn(string channelId)
         {
             var result = new ChatOperationResult<bool>("User.IsMemberOn()", chat);
-            var getMembers = await chat.GetUserMemberships(Id, filter:$"channel == \"{channelId}\"").ConfigureAwait(false);
+            var getMembers = await chat.GetUserMemberships(Id, filter:$"channel.id == \"{channelId}\"").ConfigureAwait(false);
             if (result.RegisterOperation(getMembers))
             {
                 return result;
@@ -766,7 +766,7 @@ namespace PubnubChatApi
         public async Task<ChatOperationResult<Membership>> GetMembership(string channelId)
         {
             var result = new ChatOperationResult<Membership>("User.GetMembership()", chat);
-            var getMembers = await chat.GetUserMemberships(Id, filter:$"channel == \"{channelId}\"").ConfigureAwait(false);
+            var getMembers = await chat.GetUserMemberships(Id, filter:$"channel.id == \"{channelId}\"").ConfigureAwait(false);
             if (result.RegisterOperation(getMembers))
             {
                 return result;

@@ -375,6 +375,23 @@ public class ChannelTests
     }
     
     [Test]
+    public async Task TestChannelHasAndGetMember()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var hasMember = TestUtils.AssertOperation(await someChannel.HasMember(user.Id));
+        Assert.True(hasMember, "someChannel.HasMember() doesn't return true for most recently joined channel!");
+
+        var getMember = TestUtils.AssertOperation(await someChannel.GetMember(user.Id));
+        Assert.True(getMember.ChannelId == someChannel.Id, "Wrong GetMember() channel id");
+        Assert.True(getMember.UserId == user.Id, "Wrong GetMember() user id");
+        
+    }
+    
+    [Test]
     public async Task TestChannelWhoIsPresent()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
@@ -403,6 +420,37 @@ public class ChannelTests
         var presenceReceived = reset.WaitOne(12000);
         
         Assert.True(presenceReceived, "did not receive presence callback");
+    }
+    
+    [Test]
+    public async Task TestFetchReadReceipts()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await someChannel.Join();
+        await Task.Delay(2500);
+
+        var reset = new ManualResetEvent(false);
+        Message readMessage = null;
+        someChannel.OnMessageReceived += message =>
+        {
+            if (message.MessageText == "READ MEEEE")
+            {
+                readMessage = message;
+                reset.Set();
+            }
+        };
+        await someChannel.SendText("READ MEEEE");
+        
+        var gotMessage = reset.WaitOne(20000);
+        Assert.True(gotMessage, "Never received message callback.");
+
+        var membership = TestUtils.AssertOperation(await user.GetMembership(someChannel.Id));
+        TestUtils.AssertOperation(await membership.SetLastReadMessage(readMessage));
+        await Task.Delay(8000);
+
+        var receipts = TestUtils.AssertOperation(await someChannel.GetReadReceipts());
+        
+        Assert.True(receipts.Any(x => x.Key == readMessage.TimeToken && x.Value.Contains(user.Id)));
     }
     
     [Test]
