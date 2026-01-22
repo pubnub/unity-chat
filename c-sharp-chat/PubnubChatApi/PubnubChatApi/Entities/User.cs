@@ -771,7 +771,7 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            if (getMembers.Result.Memberships?[0] != null)
+            if (getMembers.Result.Memberships is { Count: > 0 })
             {
                 result.Result = getMembers.Result.Memberships[0];
             }

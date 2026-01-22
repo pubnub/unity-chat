@@ -67,6 +67,32 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         public string Type => channelData.Type;
+
+        /// <summary>
+        /// Returns whether this channel emits read receipt events when setting last read message.
+        /// You can set this value by calling Update() with an instance of ChatChannelData with
+        /// EmitReadReceiptEvents set to true/false.
+        /// If no value is provided in ChatChannelData the default behaviour is specified inside
+        /// PubnubChatConfig under EmitReadReceiptEvents
+        /// </summary>
+        public bool EmitsReadReceiptEvents {
+            get
+            {
+                var emit = channelData.EmitReadReceiptEvents;
+                if (emit == null)
+                {
+                    if (chat.Config?.EmitReadReceiptEvents == null)
+                    {
+                        return false;
+                    }
+                    return chat.Config.EmitReadReceiptEvents.TryGetValue(Type, out var configValue) && configValue;
+                }
+                else
+                {
+                    return emit.Value;
+                }
+            }
+        }
         
         /// <summary>
         /// Returns true if the Channel has been soft-deleted.
@@ -1269,7 +1295,7 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            if (getMembers.Result.Memberships?[0] != null)
+            if (getMembers.Result.Memberships is { Count: > 0 })
             {
                 result.Result = getMembers.Result.Memberships[0];
             }

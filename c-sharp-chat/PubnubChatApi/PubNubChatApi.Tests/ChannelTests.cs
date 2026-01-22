@@ -431,15 +431,16 @@ public class ChannelTests
 
         var reset = new ManualResetEvent(false);
         Message readMessage = null;
+        var messageValue = "READ MEEEE";
         someChannel.OnMessageReceived += message =>
         {
-            if (message.MessageText == "READ MEEEE")
+            if (message.MessageText == messageValue)
             {
                 readMessage = message;
                 reset.Set();
             }
         };
-        await someChannel.SendText("READ MEEEE");
+        await someChannel.SendText(messageValue);
         
         var gotMessage = reset.WaitOne(20000);
         Assert.True(gotMessage, "Never received message callback.");

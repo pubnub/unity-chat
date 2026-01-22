@@ -20,6 +20,7 @@ namespace PubnubChatApi
     public class Chat
     {
         internal const string INTERNAL_MODERATION_PREFIX = "PUBNUB_INTERNAL_MODERATION";
+        internal const string INTERNAL_DATA_PREFIX = "PN_INTERNAL_";
         internal const string MESSAGE_THREAD_ID_PREFIX = "PUBNUB_INTERNAL_THREAD";
         
         public Pubnub PubnubInstance { get; }
@@ -302,10 +303,10 @@ namespace PubnubChatApi
         /// <param name="inviteesMembershipData">Optional invitees membership data for the conversation.</param>
         /// <returns>A ChatOperationResult containing the created channel wrapper with channel and membership information.</returns>
         public async Task<ChatOperationResult<CreatedChannelWrapper>> CreateDirectConversation(User user, string channelId = "",
-            ChatChannelData? channelData = null, ChatMembershipData? hostMembershipData = null, List<ChatMembershipData>? inviteesMembershipData = null)
+            ChatChannelData? channelData = null, ChatMembershipData? hostMembershipData = null, ChatMembershipData? inviteeMembershipData = null)
         {
             return await CreateConversation("direct", new List<User>() { user }, channelId, channelData,
-                hostMembershipData, inviteesMembershipData).ConfigureAwait(false);
+                hostMembershipData, inviteeMembershipData == null ? null : new List<ChatMembershipData>(){inviteeMembershipData}).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -318,10 +319,10 @@ namespace PubnubChatApi
         /// <param name="inviteeMembershipData">Optional invitee membership data for the conversation.</param>
         /// <returns>A ChatOperationResult containing the created channel wrapper with channel and membership information.</returns>
         public async Task<ChatOperationResult<CreatedChannelWrapper>> CreateGroupConversation(List<User> users, string channelId = "",
-            ChatChannelData? channelData = null, ChatMembershipData? hostMembershipData = null, ChatMembershipData? inviteeMembershipData = null)
+            ChatChannelData? channelData = null, ChatMembershipData? hostMembershipData = null, List<ChatMembershipData>? inviteesMembershipData = null)
         {
             return await CreateConversation("group", users, channelId, channelData,
-                hostMembershipData, inviteeMembershipData == null ? null : new List<ChatMembershipData>(){inviteeMembershipData}).ConfigureAwait(false);
+                hostMembershipData, inviteesMembershipData).ConfigureAwait(false);
         }
 
         /// <summary>
