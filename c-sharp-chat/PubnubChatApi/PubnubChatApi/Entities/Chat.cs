@@ -267,7 +267,7 @@ namespace PubnubChatApi
                 return result;
             }
             
-            var hostMembership = new Membership(this, currentUserId, channelId, hostMembershipData);
+            var hostMembership = new Membership(this, currentUserId, channelId, hostMembershipData, updated.Result);
             result.Result.HostMembership = hostMembership;
             
             var channel = new Channel(this, channelId, channelData);
@@ -373,20 +373,21 @@ namespace PubnubChatApi
                 return result;
             }
             
-            var newMataData = setMemberships.Result.Memberships?.FirstOrDefault(x => x.ChannelMetadata.Channel == channelId)?
+            var newMetaData = setMemberships.Result.Memberships?.FirstOrDefault(x => x.ChannelMetadata.Channel == channelId)?
                 .ChannelMetadata;
-            if (newMataData != null)
+            if (newMetaData != null)
             {
-                channel.Result.UpdateLocalData(newMataData);
+                channel.Result.UpdateLocalData(newMetaData);
             }
 
             var inviteEventPayload = $"{{\"channelType\": \"{channel.Result.Type}\", \"channelId\": {channelId}}}";
             await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload).ConfigureAwait(false);
-            
+
+            var channelData = newMetaData ?? new ChatChannelData();
             var newMembership = new Membership(this, userId, channelId, new ChatMembershipData()
             {
                 Status = "pending"
-            });
+            }, channelData);
             await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
 
             result.Result = newMembership;
@@ -459,7 +460,7 @@ namespace PubnubChatApi
                 {
                     continue;
                 }
-                var newMembership = new Membership(this, userId, channelId, channelMember);
+                var newMembership = new Membership(this, userId, channelId, channelMember, channel.Result.ChannelData);
                 await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
                 result.Result.Add(newMembership);
                 
@@ -1211,7 +1212,7 @@ namespace PubnubChatApi
                     CustomData = membershipResult.Custom,
                     Status = membershipResult.Status,
                     Type = membershipResult.Type
-                }));
+                }, membershipResult.ChannelMetadata));
             }
             result.Result = new MembersResponseWrapper()
             {
@@ -1285,6 +1286,11 @@ namespace PubnubChatApi
             {
                 return result;
             }
+            var getChannel = await GetChannel(channelId).ConfigureAwait(false);
+            if (result.RegisterOperation(getChannel))
+            {
+                return result;
+            }
 
             var memberships = new List<Membership>();
             foreach (var channelMemberResult in getResult.Result.ChannelMembers)
@@ -1294,7 +1300,7 @@ namespace PubnubChatApi
                     CustomData = channelMemberResult.Custom,
                     Status = channelMemberResult.Status,
                     Type = channelMemberResult.Type
-                }));
+                }, getChannel.Result.ChannelData));
             }
             result.Result = new MembersResponseWrapper()
             {
@@ -1400,8 +1406,11 @@ namespace PubnubChatApi
             }
             foreach (var membership in memberships)
             {
-                await EmitEvent(PubnubChatEventType.Receipt, membership.ChannelId,
-                    $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false);
+                if (membership.EmitReadReceiptEvents)
+                {
+                    await EmitEvent(PubnubChatEventType.Receipt, membership.ChannelId,
+                        $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false);
+                }
             }
             result.Result = new MarkMessagesAsReadWrapper()
             {

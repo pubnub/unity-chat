@@ -13,13 +13,21 @@ public class ChatTests
     [SetUp]
     public async Task Setup()
     {
-        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), 
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(
+            new PubnubChatConfig(
+                storeUserActivityTimestamp: true, 
+                emitReadReceiptEvents:new Dictionary<string, bool>()
+                    {
+                        {"public", true},
+                        {"group", true},
+                        {"direct", true},
+                    }), 
             new PNConfiguration(new UserId("chats_tests_user_fresh_3"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
         }));
-        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("chat_tests_channel_2"));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         currentUser = TestUtils.AssertOperation(await chat.GetCurrentUser());
         await channel.Join();
         await Task.Delay(3500);
@@ -29,6 +37,8 @@ public class ChatTests
     public async Task CleanUp()
     {
         await channel.Leave();
+        await Task.Delay(1000);
+        await channel.Delete();
         await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
@@ -243,6 +253,123 @@ public class ChatTests
         await chat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
         var receipt = receiptReset.WaitOne(15000);
         Assert.True(receipt);
+    }
+    
+    [Test]
+    public async Task TestDisableReadReceiptsInChatConfig()
+    {
+        var otherUserId = "other_chat_user";
+        var otherChat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(
+                storeUserActivityTimestamp: true, 
+                emitReadReceiptEvents: new Dictionary<string, bool>()
+                {
+                    {"public", false}
+                }), 
+            new PNConfiguration(new UserId(otherUserId))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        }));
+        var otherChatChannel = TestUtils.AssertOperation(await otherChat.GetChannel(channel.Id));
+        await otherChatChannel.Join();
+        await Task.Delay(2500);
+        
+        channel.StreamReadReceipts(true);
+        await Task.Delay(2500);
+
+        var receiptReset = new ManualResetEvent(false);
+        channel.OnReadReceiptEvent += readReceipt =>
+        {
+            Assert.True(readReceipt.UserId == otherUserId);
+            receiptReset.Set();
+        };
+        await channel.SendText("READ MEEEE");
+
+        await Task.Delay(5000);
+
+        await otherChat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
+        var receipt = receiptReset.WaitOne(15000);
+        Assert.False(receipt, "Received read receipt even with config set not to send events");
+    }
+    
+    [Test]
+    public async Task TestEnableReadReceiptsInChannelInstance()
+    {
+        var otherUserId = "other_chat_user";
+        var otherChat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(
+                storeUserActivityTimestamp: true, 
+                emitReadReceiptEvents: new Dictionary<string, bool>()
+                {
+                    {"public", false}
+                }), 
+            new PNConfiguration(new UserId(otherUserId))
+            {
+                PublishKey = PubnubTestsParameters.PublishKey,
+                SubscribeKey = PubnubTestsParameters.SubscribeKey
+            }));
+        var otherChatChannel = TestUtils.AssertOperation(await otherChat.GetChannel(channel.Id));
+        TestUtils.AssertOperation(await otherChatChannel.Update(new ChatChannelData()
+            { EmitReadReceiptEvents = true }));
+        await Task.Delay(2500);
+        await otherChatChannel.Join();
+        await Task.Delay(2500);
+        
+        channel.StreamReadReceipts(true);
+        await Task.Delay(2500);
+
+        var receiptReset = new ManualResetEvent(false);
+        channel.OnReadReceiptEvent += readReceipt =>
+        {
+            Assert.True(readReceipt.UserId == otherUserId);
+            receiptReset.Set();
+        };
+        await channel.SendText("READ MEEEE");
+
+        await Task.Delay(5000);
+
+        await otherChat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
+        var receipt = receiptReset.WaitOne(15000);
+        Assert.True(receipt, "Didn't receive read receipt even with channel instance set to emit them");
+    }
+    
+    [Test]
+    public async Task TestDisableReadReceiptsInChannelInstance()
+    {
+        var otherUserId = "other_chat_user";
+        var otherChat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(
+                storeUserActivityTimestamp: true, 
+                emitReadReceiptEvents: new Dictionary<string, bool>()
+                {
+                    {"public", true}
+                }), 
+            new PNConfiguration(new UserId(otherUserId))
+            {
+                PublishKey = PubnubTestsParameters.PublishKey,
+                SubscribeKey = PubnubTestsParameters.SubscribeKey
+            }));
+        var otherChatChannel = TestUtils.AssertOperation(await otherChat.GetChannel(channel.Id));
+        TestUtils.AssertOperation(await otherChatChannel.Update(new ChatChannelData()
+            { EmitReadReceiptEvents = false }));
+        await Task.Delay(2500);
+        await otherChatChannel.Join();
+        await Task.Delay(2500);
+        
+        channel.StreamReadReceipts(true);
+        await Task.Delay(2500);
+
+        var receiptReset = new ManualResetEvent(false);
+        channel.OnReadReceiptEvent += readReceipt =>
+        {
+            Assert.True(readReceipt.UserId == otherUserId);
+            receiptReset.Set();
+        };
+        await channel.SendText("READ MEEEE");
+
+        await Task.Delay(5000);
+
+        await otherChat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
+        var receipt = receiptReset.WaitOne(15000);
+        Assert.False(receipt, "Received read receipt even with channel instance set not to send events");
     }
 
     [Test]

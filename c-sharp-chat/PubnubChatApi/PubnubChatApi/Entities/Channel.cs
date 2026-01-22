@@ -110,6 +110,7 @@ namespace PubnubChatApi
         }
 
         protected ChatChannelData channelData;
+        internal ChatChannelData ChannelData => channelData;
 
         protected Subscription? subscription;
         
@@ -773,7 +774,7 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
+            var joinMembership = new Membership(chat, currentUserId, Id, membershipData, channelData);
             var setLast = await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
             if (result.RegisterOperation(setLast))
             {

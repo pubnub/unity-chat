@@ -81,37 +81,34 @@ namespace PubnubChatApi
         protected override string UpdateChannelId => ChannelId;
 
         //TODO: currently this is only set in constructor so it doesn't react to channel type changes
-        private bool emitReadReceiptEvents;
+        internal bool EmitReadReceiptEvents { get; private set; }
 
-        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(chat, userId+channelId)
+        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData, ChatChannelData channelData) : base(chat, userId+channelId)
         {
             UserId = userId;
             ChannelId = channelId;
             UpdateLocalData(membershipData);
-            SetReadReceiptEventsEmission();
+            SetReadReceiptEventsEmission(channelData);
         }
 
-        private async void SetReadReceiptEventsEmission()
+        private async void SetReadReceiptEventsEmission(ChatChannelData channelData)
         {
-            var getChannelData = await Channel.GetChannelData(chat, ChannelId).ConfigureAwait(false);
-            if (getChannelData.Status.Error || getChannelData.Result == null)
-            {
-                //For now just ignoring in that case
-                return;
-            }
-            var channelData = (ChatChannelData)getChannelData.Result;
             //Per-channel-instance value set
             if (channelData.EmitReadReceiptEvents != null)
             {
-                emitReadReceiptEvents = channelData.EmitReadReceiptEvents.Value;
+                EmitReadReceiptEvents = channelData.EmitReadReceiptEvents.Value;
             }
             //Using the per-channel-type value from config
             else
             {
                 var channelType = channelData.Type;
+                if (string.IsNullOrEmpty(channelType) || chat.Config.EmitReadReceiptEvents == null)
+                {
+                    return;
+                }
                 if (chat.Config.EmitReadReceiptEvents.TryGetValue(channelType, out var emit))
                 {
-                    emitReadReceiptEvents = emit;
+                    EmitReadReceiptEvents = emit;
                 }
             }
         }
@@ -263,7 +260,7 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            if (emitReadReceiptEvents)
+            if (EmitReadReceiptEvents)
             {
                 result.RegisterOperation(await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId,
                     $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false));

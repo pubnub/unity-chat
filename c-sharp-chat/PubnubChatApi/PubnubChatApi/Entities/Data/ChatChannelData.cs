@@ -27,13 +27,24 @@ namespace PubnubChatApi
         {
             get
             {
-                if (!CustomData.TryGetValue(RECEIPTS_FLAG, out var value))
+                if (CustomData == null || !CustomData.TryGetValue(RECEIPTS_FLAG, out var value))
                 {
                     return null;
                 }
                 return (bool)value;
             }
-            set => CustomData[RECEIPTS_FLAG] = true;
+            set
+            {
+                if (value != null)
+                {
+                    CustomData ??= new Dictionary<string, object>();
+                    CustomData[RECEIPTS_FLAG] = value.Value;
+                }
+                else
+                {
+                    CustomData.Remove(RECEIPTS_FLAG);
+                }
+            }
         }
 
         public static implicit operator ChatChannelData(PNChannelMetadataResult metadataResult)
@@ -42,7 +53,7 @@ namespace PubnubChatApi
             {
                 Name = metadataResult.Name,
                 Description = metadataResult.Description,
-                CustomData = metadataResult.Custom,
+                CustomData = metadataResult.Custom ?? new Dictionary<string, object>(),
                 Status = metadataResult.Status,
                 Updated = metadataResult.Updated,
                 Type = metadataResult.Type

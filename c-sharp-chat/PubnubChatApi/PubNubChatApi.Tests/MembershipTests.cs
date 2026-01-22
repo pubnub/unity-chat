@@ -115,7 +115,7 @@ public class MembershipTests
     [Test]
     public async Task TestLastRead()
     {
-        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation("last_read_test_channel_57"));
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         await testChannel.Join();
 
         await Task.Delay(4000);
@@ -149,6 +149,9 @@ public class MembershipTests
 
         var received = messageReceivedManual.WaitOne(90000);
         Assert.True(received);
+        
+        //Cleanup
+        await testChannel.Delete();
     }
 
     [Test]

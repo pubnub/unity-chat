@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using PubnubChatApi;
 using UnityEngine;
 
@@ -6,6 +8,13 @@ namespace PubnubChatApi
     [CreateAssetMenu(fileName = "PubnubChatConfigAsset", menuName = "PubNub/PubNub Chat Config Asset")]
     public class PubnubChatConfigAsset : ScriptableObject
     {
+        [System.Serializable]
+        public struct EmitReadReceiptSetting
+        {
+            public string ChannelType;
+            public bool EmitEvent;
+        }
+        
         [field: SerializeField] public int TypingTimeout { get; private set; } = 5000;
         [field: SerializeField] public int TypingTimeoutDifference { get; private set; } = 1000;
         [field: SerializeField] public int RateLimitFactor { get; private set; }
@@ -14,6 +23,14 @@ namespace PubnubChatApi
         [field: SerializeField] public int StoreUserActivityInterval { get; private set; } = 60000;
         [field: SerializeField] public bool SyncMutedUsers { get; private set; } = false;
         [field: SerializeField] public PubnubChatConfig.PushNotificationsConfig PushNotifications { get; private set; } = new ();
+
+        [field: SerializeField]
+        public List<EmitReadReceiptSetting> EmitReadReceiptEvents { get; private set; } = new()
+        {
+            new EmitReadReceiptSetting() { ChannelType = "public", EmitEvent = false },
+            new EmitReadReceiptSetting() { ChannelType = "group", EmitEvent = true },
+            new EmitReadReceiptSetting() { ChannelType = "direct", EmitEvent = true },
+        };
 
         public static implicit operator PubnubChatConfig(PubnubChatConfigAsset asset)
         {
@@ -24,7 +41,8 @@ namespace PubnubChatApi
                 storeUserActivityInterval: asset.StoreUserActivityInterval,
                 storeUserActivityTimestamp: asset.StoreUserActivityTimestamp,
                 syncMutedUsers: asset.SyncMutedUsers,
-                pushNotifications: asset.PushNotifications);
+                pushNotifications: asset.PushNotifications,
+                emitReadReceiptEvents: asset.EmitReadReceiptEvents?.ToDictionary(x => x.ChannelType, y=> y.EmitEvent));
         }
     }
 }

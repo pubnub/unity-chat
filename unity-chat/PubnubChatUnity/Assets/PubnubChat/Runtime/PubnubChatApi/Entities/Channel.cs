@@ -67,6 +67,32 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         public string Type => channelData.Type;
+
+        /// <summary>
+        /// Returns whether this channel emits read receipt events when setting last read message.
+        /// You can set this value by calling Update() with an instance of ChatChannelData with
+        /// EmitReadReceiptEvents set to true/false.
+        /// If no value is provided in ChatChannelData the default behaviour is specified inside
+        /// PubnubChatConfig under EmitReadReceiptEvents
+        /// </summary>
+        public bool EmitsReadReceiptEvents {
+            get
+            {
+                var emit = channelData.EmitReadReceiptEvents;
+                if (emit == null)
+                {
+                    if (chat.Config?.EmitReadReceiptEvents == null)
+                    {
+                        return false;
+                    }
+                    return chat.Config.EmitReadReceiptEvents.TryGetValue(Type, out var configValue) && configValue;
+                }
+                else
+                {
+                    return emit.Value;
+                }
+            }
+        }
         
         /// <summary>
         /// Returns true if the Channel has been soft-deleted.
@@ -84,6 +110,7 @@ namespace PubnubChatApi
         }
 
         protected ChatChannelData channelData;
+        internal ChatChannelData ChannelData => channelData;
 
         protected Subscription? subscription;
         
@@ -171,7 +198,7 @@ namespace PubnubChatApi
         private Subscription typingEventsSubscription;
         public event Action<List<string>> OnUsersTyping;
         private Subscription readReceiptsSubscription;
-        public event Action<Dictionary<string, List<string>>> OnReadReceiptEvent;
+        public event Action<(string MessageTimetoken, string UserId)> OnReadReceiptEvent;
         private Subscription reportEventsSubscription;
         public event Action<ChatEvent> OnReportEvent;
         private Subscription customEventsSubscription;
@@ -355,22 +382,34 @@ namespace PubnubChatApi
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
                     {
-                        var getMembers = await chat.GetChannelMemberships(Id).ConfigureAwait(false);
-                        if (getMembers.Error)
-                        {
-                            return;
-                        }
-                        var members = getMembers.Result;
-                        var outputDict = members.Memberships  
-                            .GroupBy(membership => membership.LastReadMessageTimeToken)
-                            .ToDictionary(  
-                                g => g.Key,
-                                g => g.Select(membership => membership.UserId).ToList() ?? new List<string>()
-                            ) ?? new Dictionary<string, List<string>>();  
-                        OnReadReceiptEvent?.Invoke(outputDict);
+                        OnReadReceiptEvent?.Invoke((readEvent.Payload, readEvent.UserId));
                         chat.BroadcastAnyEvent(readEvent);
                     }
                 }));
+        }
+
+        /// <summary>
+        /// Retrieves the current state of read receipts on this channel.
+        /// Each key in the output dictionary is a timetoken, and the value is a list of users
+        /// who have it set as their last read one.
+        /// </summary>
+        public async Task<ChatOperationResult<Dictionary<string, List<string>>>> GetReadReceipts()
+        {
+            var result = new ChatOperationResult<Dictionary<string, List<string>>>("Channel.FetchReadReceipts()", chat);
+            var getMembers = await chat.GetChannelMemberships(Id).ConfigureAwait(false);
+            if (result.RegisterOperation(getMembers))
+            {
+                return result;
+            }
+            var members = getMembers.Result;
+            var outputDict = members.Memberships  
+                .GroupBy(membership => membership.LastReadMessageTimeToken)
+                .ToDictionary(  
+                    g => g.Key,
+                    g => g.Select(membership => membership.UserId).ToList() ?? new List<string>()
+                ) ?? new Dictionary<string, List<string>>();
+            result.Result = outputDict;
+            return result;
         }
 
         /// <summary>
@@ -735,7 +774,7 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            var joinMembership = new Membership(chat, currentUserId, Id, membershipData);
+            var joinMembership = new Membership(chat, currentUserId, Id, membershipData, channelData);
             var setLast = await joinMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
             if (result.RegisterOperation(setLast))
             {
@@ -1229,6 +1268,39 @@ namespace PubnubChatApi
             PNPageObject page = null)
         {
             return await chat.GetChannelMemberships(Id, filter, sort, limit, page).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Checks whether a User with the provided ID is a member of this Channel.
+        /// </summary>
+        public async Task<ChatOperationResult<bool>> HasMember(string userId)
+        {
+            var result = new ChatOperationResult<bool>("Channel.HasMember()", chat);
+            var getMembers = await chat.GetChannelMemberships(Id, filter:$"uuid.id == \"{userId}\"").ConfigureAwait(false);
+            if (result.RegisterOperation(getMembers))
+            {
+                return result;
+            }
+            result.Result = getMembers.Result.Memberships?.Count != 0;
+            return result;
+        }
+        
+        /// <summary>
+        /// Tries to fetch the Membership in this Channel for a provided userId.
+        /// </summary>
+        public async Task<ChatOperationResult<Membership>> GetMember(string userId)
+        {
+            var result = new ChatOperationResult<Membership>("Channel.GetMember()", chat);
+            var getMembers = await chat.GetChannelMemberships(Id, filter:$"uuid.id == \"{userId}\"").ConfigureAwait(false);
+            if (result.RegisterOperation(getMembers))
+            {
+                return result;
+            }
+            if (getMembers.Result.Memberships is { Count: > 0 })
+            {
+                result.Result = getMembers.Result.Memberships[0];
+            }
+            return result;
         }
 
         /// <summary>

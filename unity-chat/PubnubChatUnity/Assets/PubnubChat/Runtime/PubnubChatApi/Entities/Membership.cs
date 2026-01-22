@@ -80,11 +80,37 @@ namespace PubnubChatApi
 
         protected override string UpdateChannelId => ChannelId;
 
-        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(chat, userId+channelId)
+        //TODO: currently this is only set in constructor so it doesn't react to channel type changes
+        internal bool EmitReadReceiptEvents { get; private set; }
+
+        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData, ChatChannelData channelData) : base(chat, userId+channelId)
         {
             UserId = userId;
             ChannelId = channelId;
             UpdateLocalData(membershipData);
+            SetReadReceiptEventsEmission(channelData);
+        }
+
+        private async void SetReadReceiptEventsEmission(ChatChannelData channelData)
+        {
+            //Per-channel-instance value set
+            if (channelData.EmitReadReceiptEvents != null)
+            {
+                EmitReadReceiptEvents = channelData.EmitReadReceiptEvents.Value;
+            }
+            //Using the per-channel-type value from config
+            else
+            {
+                var channelType = channelData.Type;
+                if (string.IsNullOrEmpty(channelType) || chat.Config.EmitReadReceiptEvents == null)
+                {
+                    return;
+                }
+                if (chat.Config.EmitReadReceiptEvents.TryGetValue(channelType, out var emit))
+                {
+                    EmitReadReceiptEvents = emit;
+                }
+            }
         }
 
         internal void UpdateLocalData(ChatMembershipData newData)
@@ -101,7 +127,6 @@ namespace PubnubChatApi
                     UpdateLocalData(updatedData);
                     OnMembershipUpdated?.Invoke(this);
                     OnUpdate?.Invoke(this, changeType);
-                    
                 }
             });
         }
@@ -235,8 +260,11 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            result.RegisterOperation(await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId,
-                $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false));
+            if (EmitReadReceiptEvents)
+            {
+                result.RegisterOperation(await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId,
+                    $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false));
+            }
             return result;
         }
         

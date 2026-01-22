@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PubnubApi;
 
 namespace PubnubChatApi
@@ -31,10 +32,12 @@ namespace PubnubChatApi
         public int StoreUserActivityInterval { get; }
         public bool SyncMutedUsers { get; }
         public PushNotificationsConfig PushNotifications { get; }
+        public Dictionary<string,bool> EmitReadReceiptEvents { get; }
         
         public PubnubChatConfig(int typingTimeout = 5000, int typingTimeoutDifference = 1000, int rateLimitFactor = 2,
             RateLimitPerChannel rateLimitPerChannel = null, bool storeUserActivityTimestamp = false,
-            int storeUserActivityInterval = 60000, bool syncMutedUsers = false, PushNotificationsConfig pushNotifications = null)
+            int storeUserActivityInterval = 60000, bool syncMutedUsers = false, PushNotificationsConfig pushNotifications = null, 
+            Dictionary<string, bool>? emitReadReceiptEvents = null)
         {
             RateLimitsPerChannel = rateLimitPerChannel ?? new RateLimitPerChannel();
             RateLimitFactor = rateLimitFactor;
@@ -44,6 +47,12 @@ namespace PubnubChatApi
             TypingTimeoutDifference = typingTimeoutDifference;
             SyncMutedUsers = syncMutedUsers;
             PushNotifications = pushNotifications ?? new PushNotificationsConfig();
+            EmitReadReceiptEvents = emitReadReceiptEvents ?? new Dictionary<string, bool>()
+            {
+                {"public", false},
+                {"group", true},
+                {"direct", true},
+            };
         }
     }
 }
