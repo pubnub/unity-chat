@@ -60,6 +60,49 @@ public class MembershipChannelSample
         // snippet.end
     }
     
+    public static async Task GetMembershipExample()
+    {
+        // snippet.get_membership_example
+        var userResult = await chat.GetUser("support_agent_15");
+        if (userResult.Error)
+        {
+            Debug.Log("User not found.");
+            return;
+        }
+        var user = userResult.Result;
+        Debug.Log($"Found user with name {user.UserName}");
+        
+        // Check for and then get the memberships of the user
+        var isMember = await user.IsMemberOn("some_channel");
+        if (!isMember.Error && isMember.Result)
+        {
+            // If you call this method and they aren't a member then the operation result will contain an error message
+            var getMember = await user.GetMembership("some_channel");
+        }
+        // snippet.end
+    }
+    
+    public static async Task GetMembershipFromChannelExample()
+    {
+        // snippet.get_membership_channel_example
+        var getChannel = await chat.GetChannel("some_channel");
+        if (getChannel.Error)
+        {
+            Debug.Log("Channel not found.");
+            return;
+        }
+        var channel = getChannel.Result;
+        
+        // Check for and then get the memberships of the user
+        var hasMember = await channel.HasMember("some_user");
+        if (!hasMember.Error && hasMember.Result)
+        {
+            // If you call this method and they aren't a member then the operation result will contain an error message
+            var getMember = await channel.GetMember("some_user");
+        }
+        // snippet.end
+    }
+    
     public static async Task GetMembershipUpdatesExample()
     {
         // snippet.get_membership_updates_example

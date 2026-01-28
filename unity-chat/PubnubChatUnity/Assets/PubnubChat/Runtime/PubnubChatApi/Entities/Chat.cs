@@ -20,7 +20,6 @@ namespace PubnubChatApi
     public class Chat
     {
         internal const string INTERNAL_MODERATION_PREFIX = "PUBNUB_INTERNAL_MODERATION";
-        internal const string INTERNAL_DATA_PREFIX = "PN_INTERNAL_";
         internal const string MESSAGE_THREAD_ID_PREFIX = "PUBNUB_INTERNAL_THREAD";
         
         public Pubnub PubnubInstance { get; }

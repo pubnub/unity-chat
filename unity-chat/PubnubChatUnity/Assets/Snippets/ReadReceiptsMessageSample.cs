@@ -95,21 +95,4 @@ public class ReadReceiptsMessageSample
         var chat = createChat.Result;
         // snippet.end
     }
-    
-    public static async Task ReadReceiptsInstanceExample()
-    {
-        // snippet.read_receipts_instance_example
-        var getChannel = await chat.GetChannel("some_channel");
-        if (getChannel.Error)
-        {
-            Debug.LogError($"Error when trying to get channel: {getChannel.Exception.Message}");
-            return;
-        }
-        var channel = getChannel.Result;
-
-        // this means that even if PubnubChatConfig has emitting read receipt events set to false
-        // for this type of channel, this instance will emit them
-        await channel.Update(new ChatChannelData() { EmitReadReceiptEvents = true });
-        // snippet.end
-    }
 }
