@@ -67,32 +67,6 @@ namespace PubnubChatApi
         /// </para>
         /// </summary>
         public string Type => channelData.Type;
-
-        /// <summary>
-        /// Returns whether this channel emits read receipt events when setting last read message.
-        /// You can set this value by calling Update() with an instance of ChatChannelData with
-        /// EmitReadReceiptEvents set to true/false.
-        /// If no value is provided in ChatChannelData the default behaviour is specified inside
-        /// PubnubChatConfig under EmitReadReceiptEvents
-        /// </summary>
-        public bool EmitsReadReceiptEvents {
-            get
-            {
-                var emit = channelData.EmitReadReceiptEvents;
-                if (emit == null)
-                {
-                    if (chat.Config?.EmitReadReceiptEvents == null)
-                    {
-                        return false;
-                    }
-                    return chat.Config.EmitReadReceiptEvents.TryGetValue(Type, out var configValue) && configValue;
-                }
-                else
-                {
-                    return emit.Value;
-                }
-            }
-        }
         
         /// <summary>
         /// Returns true if the Channel has been soft-deleted.
@@ -390,24 +364,19 @@ namespace PubnubChatApi
 
         /// <summary>
         /// Retrieves the current state of read receipts on this channel.
-        /// Each key in the output dictionary is a timetoken, and the value is a list of users
-        /// who have it set as their last read one.
+        /// Each key in the output dictionary is a user ID, and the value is their last read timetoken.
         /// </summary>
-        public async Task<ChatOperationResult<Dictionary<string, List<string>>>> GetReadReceipts()
+        public async Task<ChatOperationResult<Dictionary<string, string>>> GetReadReceipts(string filter = "", string sort = "", int limit = 0,
+            PNPageObject page = null)
         {
-            var result = new ChatOperationResult<Dictionary<string, List<string>>>("Channel.FetchReadReceipts()", chat);
-            var getMembers = await chat.GetChannelMemberships(Id).ConfigureAwait(false);
+            var result = new ChatOperationResult<Dictionary<string, string>>("Channel.GetReadReceipts()", chat);
+            var getMembers = await chat.GetChannelMemberships(Id, filter, sort, limit, page).ConfigureAwait(false);
             if (result.RegisterOperation(getMembers))
             {
                 return result;
             }
             var members = getMembers.Result;
-            var outputDict = members.Memberships  
-                .GroupBy(membership => membership.LastReadMessageTimeToken)
-                .ToDictionary(  
-                    g => g.Key,
-                    g => g.Select(membership => membership.UserId).ToList() ?? new List<string>()
-                ) ?? new Dictionary<string, List<string>>();
+            var outputDict = members.Memberships.ToDictionary(x => x.UserId, y => y.LastReadMessageTimeToken);
             result.Result = outputDict;
             return result;
         }

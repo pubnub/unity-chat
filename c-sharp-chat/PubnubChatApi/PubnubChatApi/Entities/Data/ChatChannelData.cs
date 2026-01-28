@@ -14,38 +14,12 @@ namespace PubnubChatApi
     /// </remarks>
     public class ChatChannelData
     {
-        internal static string RECEIPTS_FLAG => $"{Chat.INTERNAL_DATA_PREFIX}{"EmitReadReceipts"}";
-        
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public Dictionary<string, object> CustomData { get; set; } = new ();
         public string Updated { get; internal set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        
-        public bool? EmitReadReceiptEvents
-        {
-            get
-            {
-                if (CustomData == null || !CustomData.TryGetValue(RECEIPTS_FLAG, out var value))
-                {
-                    return null;
-                }
-                return (bool)value;
-            }
-            set
-            {
-                if (value != null)
-                {
-                    CustomData ??= new Dictionary<string, object>();
-                    CustomData[RECEIPTS_FLAG] = value.Value;
-                }
-                else
-                {
-                    CustomData.Remove(RECEIPTS_FLAG);
-                }
-            }
-        }
 
         public static implicit operator ChatChannelData(PNChannelMetadataResult metadataResult)
         {

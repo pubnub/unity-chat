@@ -91,25 +91,16 @@ namespace PubnubChatApi
             SetReadReceiptEventsEmission(channelData);
         }
 
-        private async void SetReadReceiptEventsEmission(ChatChannelData channelData)
+        private void SetReadReceiptEventsEmission(ChatChannelData channelData)
         {
-            //Per-channel-instance value set
-            if (channelData.EmitReadReceiptEvents != null)
+            var channelType = channelData.Type;
+            if (string.IsNullOrEmpty(channelType) || chat.Config.EmitReadReceiptEvents == null)
             {
-                EmitReadReceiptEvents = channelData.EmitReadReceiptEvents.Value;
+                return;
             }
-            //Using the per-channel-type value from config
-            else
+            if (chat.Config.EmitReadReceiptEvents.TryGetValue(channelType, out var emit))
             {
-                var channelType = channelData.Type;
-                if (string.IsNullOrEmpty(channelType) || chat.Config.EmitReadReceiptEvents == null)
-                {
-                    return;
-                }
-                if (chat.Config.EmitReadReceiptEvents.TryGetValue(channelType, out var emit))
-                {
-                    EmitReadReceiptEvents = emit;
-                }
+                EmitReadReceiptEvents = emit;
             }
         }
 
