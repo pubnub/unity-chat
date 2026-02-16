@@ -99,9 +99,7 @@ namespace PubnubChatApi
             }
         }
         
-        /// <summary>
-        /// Returns true if the User has been soft-deleted.
-        /// </summary>
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public bool IsDeleted
         {
             get
@@ -418,22 +416,8 @@ namespace PubnubChatApi
             UpdateLocalData(getUserData.Result);
             return result;
         }
-
-        /// <summary>
-        /// Deletes the user.
-        /// <para>
-        /// This method deletes the user from the chat.
-        /// It will remove the user from all the channels and delete the user's data.
-        /// </para>
-        /// </summary>
-        /// <param name="soft">Whether to perform a soft delete (true) or hard delete (false).</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var user = // ...;
-        /// await user.DeleteUser();
-        /// </code>
-        /// </example>
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> DeleteUser(bool soft = false)
         {
             var result = new ChatOperationResult("User.DeleteUser()", chat);
@@ -446,26 +430,27 @@ namespace PubnubChatApi
         }
         
         /// <summary>
-        /// Restores a previously deleted user.
+        /// Deletes the user.
         /// <para>
-        /// Undoes the soft deletion of this user.
-        /// This only works for users that were soft deleted.
+        /// This method deletes the user from the chat.
+        /// It will remove the user from all the channels and delete the user's data.
         /// </para>
         /// </summary>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// if (user.IsDeleted) {
-        ///     var result = await user.Restore();
-        ///     if (!result.Error) {
-        ///         // User has been restored
-        ///     }
-        /// }
+        /// await user.DeleteUser();
         /// </code>
         /// </example>
-        /// <seealso cref="DeleteUser"/>
-        /// <seealso cref="IsDeleted"/>
+        public async Task<ChatOperationResult> Delete()
+        {
+            var result = new ChatOperationResult("User.Delete()", chat);
+            result.RegisterOperation(await chat.DeleteUser(Id));
+            return result;
+        }
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> Restore()
         {
             var result = new ChatOperationResult("User.Restore()", chat);

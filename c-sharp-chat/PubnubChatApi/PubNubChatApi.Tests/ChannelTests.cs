@@ -451,7 +451,7 @@ public class ChannelTests
 
         var receipts = TestUtils.AssertOperation(await someChannel.GetReadReceipts());
         
-        Assert.True(receipts.Any(x => x.Key == readMessage.TimeToken && x.Value == user.Id));
+        Assert.True(receipts.Any(x => x.LastReadTimeToken == readMessage.TimeToken && x.UserId == user.Id));
     }
     
     [Test]

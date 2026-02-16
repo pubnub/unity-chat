@@ -42,6 +42,21 @@ public class MembershipTests
         var memberships = TestUtils.AssertOperation(await user.GetMemberships());
         Assert.True(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
+    
+    [Test]
+    public async Task TestDeleteMemberships()
+    {
+        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var membership = allMemberships.Memberships.FirstOrDefault(x => x.ChannelId == channel.Id && x.UserId == user.Id);
+        if (membership == null)
+        {
+            Assert.Fail("Did not find specified membership!");
+            return;
+        }
+        TestUtils.AssertOperation(await membership.Delete());
+        var memberships = TestUtils.AssertOperation(await user.GetMemberships());
+        Assert.False(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
+    }
 
     [Test]
     public async Task TestUpdateMemberships()

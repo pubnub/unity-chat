@@ -289,6 +289,16 @@ namespace PubnubChatApi
         }
 
         /// <summary>
+        /// Hard deletes this membership from App Context.
+        /// </summary>
+        /// <returns>A ChatOperationResult with the result of the operation</returns>
+        public async Task<ChatOperationResult> Delete()
+        {
+            return (await chat.PubnubInstance.RemoveMemberships().Channels(new List<string>() { ChannelId })
+                .Uuid(UserId).ExecuteAsync().ConfigureAwait(false)).ToChatOperationResult("Membership.Delete()", chat);
+        }
+
+        /// <summary>
         /// Refreshes the membership data from the server.
         /// <para>
         /// Fetches the latest membership information from the server and updates the local data.

@@ -68,9 +68,7 @@ namespace PubnubChatApi
         /// </summary>
         public string Type => channelData.Type;
         
-        /// <summary>
-        /// Returns true if the Channel has been soft-deleted.
-        /// </summary>
+        [Obsolete("Soft deletion for Channels has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the channel's custom data.")]
         public bool IsDeleted
         {
             get
@@ -172,7 +170,7 @@ namespace PubnubChatApi
         private Subscription typingEventsSubscription;
         public event Action<List<string>> OnUsersTyping;
         private Subscription readReceiptsSubscription;
-        public event Action<(string MessageTimetoken, string UserId)> OnReadReceiptEvent;
+        public event Action<ReadReceipt> OnReadReceiptEvent;
         private Subscription reportEventsSubscription;
         public event Action<ChatEvent> OnReportEvent;
         private Subscription customEventsSubscription;
@@ -356,7 +354,11 @@ namespace PubnubChatApi
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Receipt, out var readEvent))
                     {
-                        OnReadReceiptEvent?.Invoke((readEvent.Payload, readEvent.UserId));
+                        OnReadReceiptEvent?.Invoke(new ReadReceipt()
+                        {
+                            UserId = readEvent.UserId,
+                            LastReadTimeToken = readEvent.Payload
+                        });
                         chat.BroadcastAnyEvent(readEvent);
                     }
                 }));
@@ -366,18 +368,22 @@ namespace PubnubChatApi
         /// Retrieves the current state of read receipts on this channel.
         /// Each key in the output dictionary is a user ID, and the value is their last read timetoken.
         /// </summary>
-        public async Task<ChatOperationResult<Dictionary<string, string>>> GetReadReceipts(string filter = "", string sort = "", int limit = 0,
+        public async Task<ChatOperationResult<List<ReadReceipt>>> GetReadReceipts(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
-            var result = new ChatOperationResult<Dictionary<string, string>>("Channel.GetReadReceipts()", chat);
+            var result = new ChatOperationResult<List<ReadReceipt>>("Channel.GetReadReceipts()", chat);
             var getMembers = await chat.GetChannelMemberships(Id, filter, sort, limit, page).ConfigureAwait(false);
             if (result.RegisterOperation(getMembers))
             {
                 return result;
             }
             var members = getMembers.Result;
-            var outputDict = members.Memberships.ToDictionary(x => x.UserId, y => y.LastReadMessageTimeToken);
-            result.Result = outputDict;
+            var outputList = members.Memberships.Select(x => new ReadReceipt()
+            {
+                UserId = x.UserId,
+                LastReadTimeToken = x.LastReadMessageTimeToken
+            }).ToList();
+            result.Result = outputList;
             return result;
         }
 
@@ -489,9 +495,14 @@ namespace PubnubChatApi
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         public async Task<ChatOperationResult> ForwardMessage(Message message)
         {
+            var meta = new Dictionary<string, object>(message.Meta)
+            {
+                ["originalPublisher"] = message.UserId,
+                ["originalChannelId"] = message.ChannelId
+            };
             return await SendText(message.MessageText, new SendTextParams()
             {
-                Meta = message.Meta
+                Meta = meta
             }).ConfigureAwait(false);
         }
 
@@ -976,20 +987,7 @@ namespace PubnubChatApi
             return await chat.UpdateChannel(Id, updatedData).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Deletes the channel.
-        /// <para>
-        /// Deletes the channel and removes all the messages and memberships from the channel.
-        /// </para>
-        /// </summary>
-        /// /// <param name="soft">Whether to perform a soft delete (true) or hard delete (false).</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var channel = //...
-        /// var result = await channel.Delete();
-        /// </code>
-        /// </example>
+        [Obsolete("Soft deletion for Channels has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the channel's custom data.")]
         public async Task<ChatOperationResult> Delete(bool soft = false)
         {
             var result = new ChatOperationResult("Channel.Delete()", chat);
@@ -1002,26 +1000,26 @@ namespace PubnubChatApi
         }
         
         /// <summary>
-        /// Restores a previously deleted channel.
+        /// Deletes the channel.
         /// <para>
-        /// Undoes the soft deletion of this channel.
-        /// This only works for channels that were soft deleted.
+        /// Deletes the channel and removes all the messages and memberships from the channel.
         /// </para>
         /// </summary>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
-        /// var channel = // ...;
-        /// if (channel.IsDeleted) {
-        ///     var result = await channel.Restore();
-        ///     if (!result.Error) {
-        ///         // Channel has been restored
-        ///     }
-        /// }
+        /// var channel = //...
+        /// var result = await channel.Delete();
         /// </code>
         /// </example>
-        /// <seealso cref="Delete"/>
-        /// <seealso cref="IsDeleted"/>
+        public async Task<ChatOperationResult> Delete()
+        {
+            var result = new ChatOperationResult("Channel.Delete()", chat);
+            result.RegisterOperation(await chat.DeleteChannel(Id));
+            return result;
+        }
+        
+        [Obsolete("Soft deletion for Channels has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the channel's custom data.")]
         public async Task<ChatOperationResult> Restore()
         {
             var result = new ChatOperationResult("Channel.Restore()", chat);

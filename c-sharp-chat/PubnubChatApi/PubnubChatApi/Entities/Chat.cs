@@ -573,21 +573,7 @@ namespace PubnubChatApi
             return result;
         }
 
-        /// <summary>
-        /// Deletes the channel with the provided channel ID.
-        /// <para>
-        /// The channel is deleted with all the messages and users.
-        /// </para>
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="soft">Bool specifying the type of deletion.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// var result = await chat.DeleteChannel("channel_id", true);
-        /// </code>
-        /// </example>
+        [Obsolete("Soft deletion for Channels has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the channel's custom data.")]
         public async Task<ChatOperationResult> DeleteChannel(string channelId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteChannel()", this);
@@ -608,6 +594,27 @@ namespace PubnubChatApi
                 var updateResult = await Channel.UpdateChannelData(this, channelId, channelData).ConfigureAwait(false);
                 result.RegisterOperation(updateResult);
             }
+            return result;
+        }
+        
+        /// <summary>
+        /// Deletes the channel with the provided channel ID.
+        /// <para>
+        /// The channel is deleted with all the messages and users.
+        /// </para>
+        /// </summary>
+        /// <param name="channelId">The channel ID.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var chat = // ...
+        /// var result = await chat.DeleteChannel("channel_id");
+        /// </code>
+        /// </example>
+        public async Task<ChatOperationResult> DeleteChannel(string channelId)
+        {
+            var result = new ChatOperationResult("Chat.DeleteChannel()", this);
+            result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
             return result;
         }
 
@@ -1097,22 +1104,8 @@ namespace PubnubChatApi
         {
             return (await User.UpdateUserData(this, userId, updatedData).ConfigureAwait(false)).ToChatOperationResult("Chat.UpdateUser()", this);
         }
-
-        /// <summary>
-        /// Deletes the user with the provided user ID.
-        /// <para>
-        /// The user is deleted with all the messages and channels.
-        /// </para>
-        /// </summary>
-        /// <param name="userId">The user ID.</param>
-        /// <param name="soft">Bool specifying the type of deletion.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// var result = await chat.DeleteUser("user_id");
-        /// </code>
-        /// </example>
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> DeleteUser(string userId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteUser()", this);
@@ -1133,6 +1126,27 @@ namespace PubnubChatApi
                 var updateResult =  await User.UpdateUserData(this, userId, userData).ConfigureAwait(false);
                 result.RegisterOperation(updateResult);
             }
+            return result;
+        }
+        
+        /// <summary>
+        /// Deletes the user with the provided user ID.
+        /// <para>
+        /// The user is deleted with all the messages and channels.
+        /// </para>
+        /// </summary>
+        /// <param name="userId">The user ID.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var chat = // ...
+        /// var result = await chat.DeleteUser("user_id");
+        /// </code>
+        /// </example>
+        public async Task<ChatOperationResult> DeleteUser(string userId)
+        {
+            var result = new ChatOperationResult("Chat.DeleteUser()", this);
+            result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
             return result;
         }
 
