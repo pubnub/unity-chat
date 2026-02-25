@@ -79,7 +79,7 @@ public class ChatTests
     public async Task TestGetEventHistory()
     {
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        await chat.EmitEvent(PubnubChatEventType.Custom, testChannel.Id, "{\"test\":\"some_nonsense\"}");
+        await testChannel.EmitCustomEvent("{\"test\":\"some_nonsense\"}");
 
         await Task.Delay(5000);
 
@@ -159,24 +159,6 @@ public class ChatTests
 
         var forwarded = messageForwardReceivedManualEvent.WaitOne(6000);
         Assert.True(forwarded);
-    }
-
-    [Test]
-    public async Task TestEmitEvent()
-    {
-        var reportManualEvent = new ManualResetEvent(false);
-        channel.OnCustomEvent += customEvent =>
-        {
-            Assert.True(customEvent.Payload.Contains("test"));
-            Assert.True(customEvent.Payload.Contains("some_nonsense"));
-            reportManualEvent.Set();
-        };
-        channel.SetListeningForCustomEvents(true);
-        await Task.Delay(2500);
-        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
-
-        var eventReceived = reportManualEvent.WaitOne(8000);
-        Assert.True(eventReceived);
     }
 
     [Test]

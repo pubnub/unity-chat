@@ -506,15 +506,8 @@ namespace PubnubChatApi
                 Meta = meta
             }).ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Emits a user mention event for this channel.
-        /// </summary>
-        /// <param name="userId">The ID of the user being mentioned.</param>
-        /// <param name="timeToken">The time token of the message containing the mention.</param>
-        /// <param name="text">The text of the mention.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        public virtual async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
+        
+        protected virtual async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
         {
             var jsonDict = new Dictionary<string, string>()
             {
@@ -524,6 +517,19 @@ namespace PubnubChatApi
             };
             return await chat.EmitEvent(PubnubChatEventType.Mention, userId,
                 chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(jsonDict)).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Emits a custom event on this channel.
+        /// </summary>
+        /// <param name="payload">The JSON payload of the event.</param>
+        /// <param name="storeInHistory">Whether the event should be stored in history and be listed in GetEventsHistory()</param>
+        /// <param name="type">Optional - custom message type.</param>
+        /// <returns>ChatOperationResult with the result of the operation.</returns>
+        public async Task<ChatOperationResult> EmitCustomEvent(string payload, bool storeInHistory = true,
+            string? type = null)
+        {
+            return await chat.EmitEvent(PubnubChatEventType.Custom, Id, payload, type, storeInHistory);
         }
 
         /// <summary>
@@ -706,9 +712,8 @@ namespace PubnubChatApi
         }
         
         /// <summary>
-        /// Joins the channel.
+        /// Joins the channel by creating a membership for the current user, and connects to it.
         /// <para>
-        /// Joins the channel and starts receiving messages.
         /// After joining, the <see cref="OnMessageReceived"/> event is triggered when a message is received.
         /// Additionally, there is a possibility to add additional parameters to the join request.
         /// It also adds the membership to the channel.
@@ -727,6 +732,7 @@ namespace PubnubChatApi
         /// <seealso cref="OnMessageReceived"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
+        [Obsolete("Please use JoinChannel() to create a Membership and Connect() to start listening for messages instead")]
         public async Task<ChatOperationResult> Join(ChatMembershipData? membershipData = null)
         {
             var result = new ChatOperationResult("Channel.Join()", chat);
@@ -762,6 +768,44 @@ namespace PubnubChatApi
                 return result;
             }
             Connect();
+            return result;
+        }
+
+        /// <summary>
+        /// Joins the channel by creating a membership for the current user.
+        /// </summary>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <seealso cref="Connect"/>
+        /// <seealso cref="Disconnect"/>
+        public async Task<ChatOperationResult<Membership>> JoinChannel(ChatMembershipData? membershipData = null)
+        {
+            var result = new ChatOperationResult<Membership>("Channel.JoinChannel()", chat);
+            membershipData ??= new ChatMembershipData();
+            var currentUserId = chat.PubnubInstance.GetCurrentUserId();
+            var setMembership = await chat.PubnubInstance.SetMemberships().Uuid(currentUserId)
+                .Channels(new List<PNMembership>()
+                {
+                    new PNMembership()
+                    {
+                        Channel = Id,
+                        Custom = membershipData.CustomData,
+                        Status = membershipData.Status,
+                        Type = membershipData.Type
+                    }
+                })
+                .Include(new []
+                {
+                    PNMembershipField.TYPE,
+                    PNMembershipField.CUSTOM,
+                    PNMembershipField.STATUS,
+                    PNMembershipField.CHANNEL,
+                    PNMembershipField.CHANNEL_CUSTOM
+                }).ExecuteAsync().ConfigureAwait(false);
+            if (result.RegisterOperation(setMembership))
+            {
+                return result;
+            }
+            result.Result = new Membership(chat, currentUserId, Id, membershipData, channelData);
             return result;
         }
 

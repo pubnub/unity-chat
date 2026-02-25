@@ -98,7 +98,7 @@ namespace PubnubChatApi
             return result;
         }
 
-        public override async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
+        protected override async Task<ChatOperationResult> EmitUserMention(string userId, string timeToken, string text)
         {
             var jsonDict = new Dictionary<string, string>()
             {

@@ -353,12 +353,48 @@ public class ChannelTests
         await Task.Delay(3000);
         user.OnMentioned += mentionEvent =>
         {
-            Assert.True(mentionEvent.MessageTimetoken == "99999999999999999");
+            Assert.True(mentionEvent.MentionedByUserId == user.Id);
+            Assert.True(mentionEvent.ChannelId == channel.Id);
             receivedManualEvent.Set();
         };
-        await channel.EmitUserMention(user.Id, "99999999999999999", "heyyy");
+        await channel.SendText("heyyy",
+            new SendTextParams()
+            {
+                MentionedUsers = new Dictionary<int, MentionedUser>()
+                {
+                    { 
+                        0, 
+                        new MentionedUser()
+                        {
+                            Id = user.Id, 
+                            Name = user.UserName
+                        } 
+                    }
+                }
+            });
         var received = receivedManualEvent.WaitOne(7000);
         Assert.True(received);
+    }
+    
+    [Test]
+    public async Task TestEmitCustomEvent()
+    {
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("channel_custom_event_test"));
+        await channel.Join();
+        await Task.Delay(2500);
+        var reportManualEvent = new ManualResetEvent(false);
+        channel.OnCustomEvent += customEvent =>
+        {
+            Assert.True(customEvent.Payload.Contains("test"));
+            Assert.True(customEvent.Payload.Contains("some_nonsense"));
+            reportManualEvent.Set();
+        };
+        channel.SetListeningForCustomEvents(true);
+        await Task.Delay(2500);
+        await channel.EmitCustomEvent("{\"test\":\"some_nonsense\"}");
+
+        var eventReceived = reportManualEvent.WaitOne(8000);
+        Assert.True(eventReceived);
     }
     
     [Test]

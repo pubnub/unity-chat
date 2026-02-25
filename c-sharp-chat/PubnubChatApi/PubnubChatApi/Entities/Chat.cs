@@ -629,13 +629,13 @@ namespace PubnubChatApi
             while (storeActivity)
             {
                 var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);
-                var data = (ChatUserData)getResult.Result;
                 if (getResult.Status.Error)
                 {
                     Logger.Error($"Error when trying to store user activity timestamp: {getResult.Status.ErrorData}");
                     await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
                     continue;
                 }
+                var data = (ChatUserData)getResult.Result;
                 data.CustomData ??= new Dictionary<string, object>();
                 data.CustomData["lastActiveTimestamp"] = ChatUtils.TimeTokenNow();
                 var setData = await User.UpdateUserData(this, currentUserId, data).ConfigureAwait(false);
@@ -1719,7 +1719,7 @@ namespace PubnubChatApi
             var getHistory = await PubnubInstance.FetchHistory().Channels(new[] { channelId })
                 .Start(long.Parse(startTimeToken)).End(long.Parse(endTimeToken)).MaximumPerChannel(count)
                 .ExecuteAsync().ConfigureAwait(false);
-            if (result.RegisterOperation(getHistory) || !getHistory.Result.Messages.ContainsKey(channelId))
+            if (result.RegisterOperation(getHistory) || getHistory.Result.Messages == null || !getHistory.Result.Messages.ContainsKey(channelId))
             {
                 return result;
             }
@@ -1742,23 +1742,23 @@ namespace PubnubChatApi
             return result;
         }
         
-        /// <summary>
-        /// Emits a chat event on the specified channel.
-        /// </summary>
-        /// <param name="type">The type of event to emit.</param>
-        /// <param name="channelId">The channel ID where to emit the event.</param>
-        /// <param name="jsonPayload">The JSON payload of the event.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        public async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload)
+        internal async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload, string? messageType = null, bool storeInHistory = true)
         {
             var result = new ChatOperationResult("Chat.EmitEvent()", this);
             jsonPayload = jsonPayload.Remove(0, 1);
             jsonPayload = jsonPayload.Remove(jsonPayload.Length - 1);
             var fullPayload = $"{{{jsonPayload}, \"type\": \"{ChatEnumConverters.ChatEventTypeToString(type)}\"}}";
             var emitOperation = PubnubInstance.Publish().Channel(channelId).Message(fullPayload);
+            if (messageType != null)
+            {
+                emitOperation.CustomMessageType(messageType);
+            }
             if (type is PubnubChatEventType.Receipt or PubnubChatEventType.Typing)
             {
                 emitOperation.ShouldStore(false);
+            }else if (type is PubnubChatEventType.Custom)
+            {
+                emitOperation.ShouldStore(storeInHistory);
             }
             result.RegisterOperation(await emitOperation.ExecuteAsync().ConfigureAwait(false));
             return result;

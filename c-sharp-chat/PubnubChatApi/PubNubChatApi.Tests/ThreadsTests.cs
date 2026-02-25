@@ -111,12 +111,25 @@ public class ThreadsTests
             await Task.Delay(2500);
             user.OnMentioned += mentionEvent =>
             {
-                Assert.True(mentionEvent.MessageTimetoken == "99999999999999999");
                 Assert.True(mentionEvent.ChannelId == thread.Id);
                 Assert.True(mentionEvent.ParentChannelId == channel.Id);
                 mentionedReset.Set();
             };
-            await thread.EmitUserMention(user.Id, "99999999999999999", "heyyy");
+            await thread.SendText("heyyy",
+                new SendTextParams()
+                {
+                    MentionedUsers = new Dictionary<int, MentionedUser>()
+                    {
+                        { 
+                            0, 
+                            new MentionedUser()
+                            {
+                                Id = user.Id, 
+                                Name = user.UserName
+                            } 
+                        }
+                    }
+                });
         };
         await channel.SendText("thread_start_message");
         var read = mentionedReset.WaitOne(10000);

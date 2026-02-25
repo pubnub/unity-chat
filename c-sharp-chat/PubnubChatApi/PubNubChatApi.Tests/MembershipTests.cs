@@ -159,7 +159,7 @@ public class MembershipTests
 
         await Task.Delay(4000);
 
-        var membership = TestUtils.AssertOperation(await user.GetMemberships(limit: 20)).Memberships
+        var membership = TestUtils.AssertOperation(await user.GetMemberships(limit: 20, filter:$"channel.id == \"{testChannel.Id}\"")).Memberships
             .FirstOrDefault(x => x.ChannelId == testChannel.Id);
         if (membership == null)
         {
