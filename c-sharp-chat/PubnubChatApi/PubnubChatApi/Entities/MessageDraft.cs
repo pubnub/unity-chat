@@ -74,12 +74,6 @@ namespace PubnubChatApi
     
     public class MessageDraft
     {
-        private class DraftCallbackDataHelper
-        {
-            public List<MessageElement> MessageElements;
-            public List<SuggestedMention> SuggestedMentions;
-        }
-        
         // Static regex patterns for mention detection
         private static readonly Regex UserMentionRegex = new Regex(@"((?=\s?)@[a-zA-Z0-9_]+)", RegexOptions.Compiled);
         private static readonly Regex ChannelReferenceRegex = new Regex(@"((?=\s?)#[a-zA-Z0-9_]+)", RegexOptions.Compiled);

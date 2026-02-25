@@ -107,11 +107,13 @@ public class ThreadsTests
             var thread = TestUtils.AssertOperation(message.CreateThread());
             await thread.Join();
             await Task.Delay(2500);
-            user.SetListeningForMentionEvents(true);
+            user.StreamMentionEvents(true);
             await Task.Delay(2500);
-            user.OnMentionEvent += mentionEvent =>
+            user.OnMentioned += mentionEvent =>
             {
-                Assert.True(mentionEvent.Payload.Contains("heyyy"));
+                Assert.True(mentionEvent.MessageTimetoken == "99999999999999999");
+                Assert.True(mentionEvent.ChannelId == thread.Id);
+                Assert.True(mentionEvent.ParentChannelId == channel.Id);
                 mentionedReset.Set();
             };
             await thread.EmitUserMention(user.Id, "99999999999999999", "heyyy");

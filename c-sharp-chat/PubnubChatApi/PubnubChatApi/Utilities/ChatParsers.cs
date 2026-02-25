@@ -326,6 +326,107 @@ namespace PubnubChatApi
             }
         }
 
+        internal static bool TryParseReportEvent(Chat chat, ChatEvent rawEvent, out MessageReport messageReport)
+        {
+            try
+            {
+                var payload = rawEvent.Payload;
+                var payloadDictionary = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(payload);
+                messageReport = new MessageReport()
+                {
+                    Reason = payloadDictionary["reason"].ToString(),
+                    Text = payloadDictionary["text"].ToString(),
+                    ReportedMessageChannelId = payloadDictionary["reportedMessageChannelId"].ToString(),
+                    ReportedUserId = payloadDictionary["reportedUserId"].ToString(),
+                    //AutoModerationId = payloadDictionary["autoModerationId"].ToString(), //??
+                };
+                return true;
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Debug(
+                    $"Failed to parse ChatEvent into Report. Exception was: {e.Message}");
+                messageReport = default;
+                return false;
+            }
+        }
+        
+        internal static bool TryParseMentionEvent(Chat chat, ChatEvent rawEvent, out Mention mention)
+        {
+            try
+            {
+                var payload = rawEvent.Payload;
+                var payloadDictionary = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(payload);
+                mention = new Mention()
+                {
+                    MessageTimetoken = payloadDictionary["messageTimetoken"].ToString(),
+                    ChannelId = payloadDictionary["channel"].ToString(),
+                    MentionedByUserId = rawEvent.UserId,
+                    ParentChannelId = payloadDictionary.TryGetValue("parentChannel", out var parentChannelId) ? parentChannelId.ToString() : null,
+                };
+                return true;
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Debug(
+                    $"Failed to parse ChatEvent into Mention. Exception was: {e.Message}");
+                mention = default;
+                return false;
+            }
+        }
+        
+        internal static bool TryParseInviteEvent(Chat chat, ChatEvent rawEvent, out Invite invite)
+        {
+            try
+            {
+                var payload = rawEvent.Payload;
+                var payloadDictionary = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(payload);
+                invite = new Invite()
+                {
+                    ChannelId = payloadDictionary["channelId"].ToString(),
+                    ChannelType = payloadDictionary["channelType"].ToString(),
+                    InvitedByUserId = rawEvent.UserId,
+                    Timetoken = rawEvent.TimeToken
+                };
+                return true;
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Debug(
+                    $"Failed to parse ChatEvent into Invite. Exception was: {e.Message}");
+                invite = default;
+                return false;
+            }
+        }
+        
+        internal static bool TryParseUserModerationEvent(Chat chat, ChatEvent rawEvent, out ChannelRestriction restriction)
+        {
+            try
+            {
+                var payload = rawEvent.Payload;
+                var payloadDictionary = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(payload);
+                var banned = payloadDictionary.TryGetValue("ban", out var banValue) && banValue != null &&
+                             !string.IsNullOrEmpty(banValue.ToString());
+                var muted = payloadDictionary.TryGetValue("mute", out var muteValue) && muteValue != null &&
+                             !string.IsNullOrEmpty(muteValue.ToString());
+                restriction = new ChannelRestriction()
+                {
+                    Ban = banned,
+                    Mute = muted,
+                    Reason = payloadDictionary["reason"].ToString(),
+                    ChannelId = payloadDictionary["channelId"].ToString()
+                };
+                return true;
+            }
+            catch (Exception e)
+            {
+                chat.Logger.Debug(
+                    $"Failed to parse ChatEvent into ChannelRestriction. Exception was: {e.Message}");
+                restriction = default;
+                return false;
+            }
+        }
+
         internal static bool TryParseEventFromHistory(Chat chat, string channelId, PNHistoryItemResult historyItem,
             out ChatEvent chatEvent)
         {

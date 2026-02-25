@@ -57,6 +57,30 @@ public class MembershipTests
         var memberships = TestUtils.AssertOperation(await user.GetMemberships());
         Assert.False(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
+    
+    [Test]
+    public async Task TestDeletionCallback()
+    {
+        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var membership = allMemberships.Memberships.FirstOrDefault(x => x.ChannelId == channel.Id && x.UserId == user.Id);
+        if (membership == null)
+        {
+            Assert.Fail("Did not find specified membership!");
+            return;
+        }
+        membership.StreamUpdates(true);
+        await Task.Delay(2500);
+
+        var deletionReset = new ManualResetEvent(false);
+        membership.OnDeleted += () =>
+        {
+            deletionReset.Set();
+        };
+        TestUtils.AssertOperation(await membership.Delete());
+
+        var deleted = deletionReset.WaitOne(15000);
+        Assert.True(deleted, "Didn't receive OnDeleted callback!");
+    }
 
     [Test]
     public async Task TestUpdateMemberships()
@@ -80,7 +104,7 @@ public class MembershipTests
         };
 
         var manualUpdatedEvent = new ManualResetEvent(false);
-        testMembership.OnMembershipUpdated += membership =>
+        testMembership.OnUpdated += membership =>
         {
             Assert.True(membership.MembershipData.Type == testMembership.MembershipData.Type);
             Assert.True(membership.MembershipData.Status == testMembership.MembershipData.Status);

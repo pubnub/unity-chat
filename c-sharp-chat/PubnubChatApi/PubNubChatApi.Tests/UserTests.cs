@@ -60,7 +60,7 @@ public class UserTests
         testUser.SetListeningForUpdates(true);
         await Task.Delay(3000);
         var newRandomUserName = Guid.NewGuid().ToString();
-        testUser.OnUserUpdated += updatedUser =>
+        testUser.OnUpdated += updatedUser =>
         {
             Assert.True(updatedUser.UserName == newRandomUserName);
             Assert.True(updatedUser.CustomData.TryGetValue("some_key", out var value) && value.ToString() == "some_value");
@@ -149,6 +149,24 @@ public class UserTests
         var where = TestUtils.AssertOperation(await user.WherePresent());
         
         Assert.Contains(someChannel.Id, where, "user.WherePresent() doesn't have most recently joined channel!");
+    }
+    
+    [Test]
+    public async Task TestDeletionCallback()
+    {
+        var someUser = TestUtils.AssertOperation(await chat.CreateUser(Guid.NewGuid().ToString()));
+        someUser.StreamUpdates(true);
+
+        await Task.Delay(2500);
+
+        var deleteReset = new ManualResetEvent(false);
+        someUser.OnDeleted += () =>
+        {
+            deleteReset.Set();
+        };
+        TestUtils.AssertOperation(await someUser.Delete());
+        var deleted = deleteReset.WaitOne(15000);
+        Assert.True(deleted, "Didn't receive OnDeleted callback!");
     }
     
     [Test]

@@ -90,7 +90,6 @@ namespace PubnubChatApi
 
         /// <summary>
         /// Event that is triggered when a message is received.
-        ///
         /// <para>
         /// The event is triggered when a message is received in the channel 
         /// when the channel is connected.
@@ -110,6 +109,7 @@ namespace PubnubChatApi
 
         /// <summary>
         /// Event that is triggered when the channel is updated.
+        /// Call StreamUpdates(true) to enable this callback.
         /// <para>
         /// The event is triggered when the channel is updated by the user 
         /// or by any other entity.
@@ -119,37 +119,24 @@ namespace PubnubChatApi
         /// <example>
         /// <code>
         /// var channel = //...
-        /// channel.OnChannelUpdate += (channel) => {
+        /// channel.OnUpdated += (channel) => {
         ///   Console.WriteLine($"Channel updated: {channel.Name}");
         /// };
         /// channel.Connect();
         /// </code>
         /// </example>
-        public event Action<Channel> OnChannelUpdate;
-        
+        public event Action<Channel> OnUpdated;
+
         /// <summary>
-        /// Event that is triggered when the channel is updated.
-        /// <para>
-        /// The event is triggered when the channel is updated by the user 
-        /// or by any other entity.
-        /// </para>
+        /// Is invoked when the entity is hard-deleted from App Context.
+        /// Call StreamUpdates(true) to enable this callback.
         /// </summary>
-        /// <value>Reference to the updated Channel and the type of update that has occured</value>
-        /// <example>
-        /// <code>
-        /// var channel = //...
-        /// channel.OnUpdate += (channel, changeType) => {
-        ///   Console.WriteLine($"Channel updated: {channel.Name}, change type: {changeType}");
-        /// };
-        /// channel.Connect();
-        /// </code>
-        /// </example>
-        public event Action<Channel, ChatEntityChangeType> OnUpdate;
+        public event Action OnDeleted;
 
         private Subscription presenceEventsSubscription;
         /// <summary>
         /// Event that is triggered when any presence update occurs.
-        ///
+        /// Call StreamPresence(true) to enable this callback.
         /// <para>
         /// Presence update occurs when a user joins or leaves the channel.
         /// </para>
@@ -168,12 +155,31 @@ namespace PubnubChatApi
         public event Action<List<string>> OnPresenceUpdate;
 
         private Subscription typingEventsSubscription;
+        /// <summary>
+        /// Is invoked when the list of currently typing users is changed.
+        /// Call StreamTyping(true) to enable this callback.
+        /// </summary>
         public event Action<List<string>> OnUsersTyping;
+        
         private Subscription readReceiptsSubscription;
+        /// <summary>
+        /// Is invoked when a message has been marked as read by a user.
+        /// Call StreamReadReceipts(true) to enable this callback.
+        /// </summary>
         public event Action<ReadReceipt> OnReadReceiptEvent;
+        
         private Subscription reportEventsSubscription;
-        public event Action<ChatEvent> OnReportEvent;
+        /// <summary>
+        /// Invoked whenever a message on this channel has been reported.
+        /// Call StreamReportEvents(true) to enable this callback.
+        /// </summary>
+        public event Action<MessageReport> OnMessageReported;
+        
         private Subscription customEventsSubscription;
+        /// <summary>
+        /// Invoked whenever custom event is received.
+        /// Call StreamCustomEvents(true) to enable this callback.
+        /// </summary>
         public event Action<ChatEvent> OnCustomEvent;
 
         protected override string UpdateChannelId => Id;
@@ -190,8 +196,14 @@ namespace PubnubChatApi
                 if (ChatParsers.TryParseChannelUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
-                    OnChannelUpdate?.Invoke(this);
-                    OnUpdate?.Invoke(this, changeType);
+                    if (changeType == ChatEntityChangeType.Deleted)
+                    {
+                        OnDeleted?.Invoke();
+                    }
+                    else
+                    {
+                        OnUpdated?.Invoke(this);
+                    }
                 }
             });
         }
@@ -206,21 +218,7 @@ namespace PubnubChatApi
             foreach (var channel in channels)
             {
                 channel.StreamUpdates(true);
-                channel.OnUpdate += delegate { listener.Invoke(channels); };
-            }
-        }
-        
-        /// <summary>
-        /// Adds a listener for channel update events on multiple channels.
-        /// The callback is invoked with the Channel that was just updated and the type of update it experienced.
-        /// </summary>
-        /// <param name="channels">List of channels to listen to.</param>
-        /// <param name="listener">The listener callback to invoke on channel updates.</param>
-        public static void StreamUpdatesOn(List<Channel> channels, Action<Channel, ChatEntityChangeType> listener){
-            foreach (var channel in channels)
-            {
-                channel.StreamUpdates(true);
-                channel.OnUpdate += listener;
+                channel.OnUpdated += delegate { listener.Invoke(channels); };
             }
         }
 
@@ -327,7 +325,10 @@ namespace PubnubChatApi
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Report, out var reportEvent))
                     {
-                        OnReportEvent?.Invoke(reportEvent);
+                        if (ChatParsers.TryParseReportEvent(chat, reportEvent, out var parsedReport))
+                        {
+                            OnMessageReported?.Invoke(parsedReport);
+                        }
                         chat.BroadcastAnyEvent(reportEvent);
                     }
                 }));
@@ -980,7 +981,7 @@ namespace PubnubChatApi
         /// });
         /// </code>
         /// </example>
-        /// <seealso cref="OnChannelUpdate"/>
+        /// <seealso cref="OnUpdated"/>
         /// <seealso cref="ChatChannelData"/>
         public async Task<ChatOperationResult> Update(ChatChannelData updatedData)
         {

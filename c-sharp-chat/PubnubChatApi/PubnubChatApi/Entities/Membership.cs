@@ -57,26 +57,13 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         /// <seealso cref="Update"/>
-        public event Action<Membership> OnMembershipUpdated;
-        
+        public event Action<Membership> OnUpdated;
+
         /// <summary>
-        /// Event that is triggered when the membership is updated.
-        /// <para>
-        /// This event is triggered when the membership is updated by the server.
-        /// Every time the membership is updated, this event is triggered.
-        /// </para>
+        /// Is invoked when the entity is hard-deleted from App Context.
+        /// Call StreamUpdates(true) to enable this callback.
         /// </summary>
-        /// <value>Reference to the updated Membership and the type of update that has occured</value>
-        /// <example>
-        /// <code>
-        /// membership.OnMembershipUpdated += (membership, changeType) =>
-        /// {
-        ///    Console.WriteLine($"Membership updated! Type of change: {changeType}");
-        /// };
-        /// </code>
-        /// </example>
-        /// <seealso cref="Update"/>
-        public event Action<Membership, ChatEntityChangeType> OnUpdate;
+        public event Action OnDeleted;
 
         protected override string UpdateChannelId => ChannelId;
 
@@ -116,8 +103,14 @@ namespace PubnubChatApi
                 if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
-                    OnMembershipUpdated?.Invoke(this);
-                    OnUpdate?.Invoke(this, changeType);
+                    if (changeType == ChatEntityChangeType.Deleted)
+                    {
+                        OnDeleted?.Invoke();
+                    }
+                    else
+                    {
+                        OnUpdated?.Invoke(this);
+                    }
                 }
             });
         }
@@ -132,21 +125,7 @@ namespace PubnubChatApi
             foreach (var membership in memberships)
             {
                 membership.StreamUpdates(true);
-                membership.OnUpdate += delegate { listener.Invoke(memberships); };
-            }
-        }
-        
-        /// <summary>
-        /// Adds a listener for membership update events on multiple memberships.
-        /// The callback is invoked with the Membership that was just updated and the type of update it experienced.
-        /// </summary>
-        /// <param name="memberships">List of memberships to listen to.</param>
-        /// <param name="listener">The listener callback to invoke on membership updates.</param>
-        public static void StreamUpdatesOn(List<Membership> memberships, Action<Membership, ChatEntityChangeType> listener){
-            foreach (var membership in memberships)
-            {
-                membership.StreamUpdates(true);
-                membership.OnUpdate += listener;
+                membership.OnUpdated += delegate { listener.Invoke(memberships); };
             }
         }
 
@@ -159,7 +138,7 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="membershipData">The ChatMembershipData object to update the membership with.</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <seealso cref="OnMembershipUpdated"/>
+        /// <seealso cref="OnUpdated"/>
         public async Task<ChatOperationResult> Update(ChatMembershipData membershipData)
         {
             var result = (await UpdateMembershipData(membershipData).ConfigureAwait(false)).ToChatOperationResult("Membership.Update()", chat);

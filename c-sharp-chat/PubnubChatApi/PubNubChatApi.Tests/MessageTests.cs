@@ -278,9 +278,9 @@ public class MessageTests
         var reportManualEvent = new ManualResetEvent(false);
         channel.SetListeningForReportEvents(true);
         await Task.Delay(3000);
-        channel.OnReportEvent += reportEvent =>
+        channel.OnMessageReported += reportEvent =>
         {
-            Assert.True(reportEvent.Payload.Contains("bad_message"));
+            Assert.True(reportEvent.Reason == "bad_message");
             reportManualEvent.Set();
         };
         channel.OnMessageReceived += async message => { await message.Report("bad_message"); };

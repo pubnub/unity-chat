@@ -51,7 +51,7 @@ public class ChannelTests
             Status = "yes",
             Type = "sometype"
         };
-        channel.OnChannelUpdate += updatedChannel =>
+        channel.OnUpdated += updatedChannel =>
         {
             Assert.True(updatedChannel.Description == updatedData.Description, "updatedChannel.Description != updatedData.ChannelDescription");
             Assert.True(updatedChannel.CustomData.TryGetValue("key", out var value) && value.ToString() == "value", "updatedChannel.CustomDataJson != updatedData.ChannelCustomDataJson");
@@ -351,9 +351,9 @@ public class ChannelTests
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
         await Task.Delay(3000);
-        user.OnMentionEvent += mentionEvent =>
+        user.OnMentioned += mentionEvent =>
         {
-            Assert.True(mentionEvent.Payload.Contains("heyyy"));
+            Assert.True(mentionEvent.MessageTimetoken == "99999999999999999");
             receivedManualEvent.Set();
         };
         await channel.EmitUserMention(user.Id, "99999999999999999", "heyyy");
@@ -421,7 +421,25 @@ public class ChannelTests
         
         Assert.True(presenceReceived, "did not receive presence callback");
     }
-    
+
+    [Test]
+    public async Task TestDeletionCallback()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        someChannel.StreamUpdates(true);
+
+        await Task.Delay(2500);
+
+        var deleteReset = new ManualResetEvent(false);
+        someChannel.OnDeleted += () =>
+        {
+            deleteReset.Set();
+        };
+        TestUtils.AssertOperation(await someChannel.Delete());
+        var deleted = deleteReset.WaitOne(15000);
+        Assert.True(deleted, "Didn't receive OnDeleted callback!");
+    }
+
     [Test]
     public async Task TestFetchReadReceipts()
     {
@@ -460,10 +478,9 @@ public class ChannelTests
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         someChannel.SetListeningForReportEvents(true);
         var reset = new ManualResetEvent(false);
-        someChannel.OnReportEvent += reportEvent =>
+        someChannel.OnMessageReported += reportEvent =>
         {
-            var data = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(reportEvent.Payload);
-            Assert.True(data.TryGetValue("reason", out var reason) && reason.ToString() == "some_reason", "incorrect report reason received");
+            Assert.True(reportEvent.Reason == "some_reason", "incorrect report reason received");
             reset.Set();
         };
         

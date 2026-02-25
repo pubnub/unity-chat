@@ -129,7 +129,7 @@ namespace PubnubChatApi
                 var getResult = await GetChannel(channelId).ConfigureAwait(false);
                 if (!getResult.Error)
                 {
-                    getResult.Result.OnChannelUpdate += listener;
+                    getResult.Result.OnUpdated += listener;
                 }
             }
         }
@@ -823,7 +823,7 @@ namespace PubnubChatApi
                 var getUser = await GetUser(userId).ConfigureAwait(false);
                 if (!getUser.Error)
                 {
-                    getUser.Result.OnUserUpdated += listener;
+                    getUser.Result.OnUpdated += listener;
                 }
             }
         }
