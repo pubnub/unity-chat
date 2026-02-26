@@ -359,6 +359,7 @@ namespace PubnubChatApi
                 var payloadDictionary = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(payload);
                 mention = new Mention()
                 {
+                    Text = payloadDictionary["text"].ToString(),
                     MessageTimetoken = payloadDictionary["messageTimetoken"].ToString(),
                     ChannelId = payloadDictionary["channel"].ToString(),
                     MentionedByUserId = rawEvent.UserId,

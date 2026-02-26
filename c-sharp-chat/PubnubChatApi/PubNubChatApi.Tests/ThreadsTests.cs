@@ -111,6 +111,7 @@ public class ThreadsTests
             await Task.Delay(2500);
             user.OnMentioned += mentionEvent =>
             {
+                Assert.True(mentionEvent.Text == "heyyy");
                 Assert.True(mentionEvent.ChannelId == thread.Id);
                 Assert.True(mentionEvent.ParentChannelId == channel.Id);
                 mentionedReset.Set();

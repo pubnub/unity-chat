@@ -353,6 +353,7 @@ public class ChannelTests
         await Task.Delay(3000);
         user.OnMentioned += mentionEvent =>
         {
+            Assert.True(mentionEvent.Text == "heyyy");
             Assert.True(mentionEvent.MentionedByUserId == user.Id);
             Assert.True(mentionEvent.ChannelId == channel.Id);
             receivedManualEvent.Set();
