@@ -1595,7 +1595,7 @@ namespace PubnubChatApi
                 var getMessage = await GetMessage(channelId, messageTimeToken).ConfigureAwait(false);
                 if (!getMessage.Error)
                 {
-                    getMessage.Result.OnMessageUpdated += listener;
+                    getMessage.Result.OnUpdated += listener;
                 }
             }
         }

@@ -246,11 +246,12 @@ public class ModerationUserSample
 
         user.StreamModerationEvents(true);
 
-        user.OnModerationEvent += OnModerationEventHandler; // or use lambda
+        user.OnRestrictionChanged += OnModerationEventHandler; // or use lambda
 
-        void OnModerationEventHandler(ChatEvent moderationEvent)
+        void OnModerationEventHandler(ChannelRestriction restriction)
         {
-            Debug.Log($"Moderation event received, payload: {moderationEvent.Payload}");
+            Debug.Log($"New restriction status for {restriction.ChannelId} received, " +
+                      $"ban: {restriction.Ban}, mute: {restriction.Mute}, reason: {restriction.Reason}");
         }
         // snippet.end
     }

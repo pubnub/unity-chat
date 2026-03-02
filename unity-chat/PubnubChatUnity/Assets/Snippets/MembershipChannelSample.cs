@@ -132,7 +132,7 @@ public class MembershipChannelSample
                     firstMembership.StreamUpdates(true);
                     
                     // attach an event handler for membership updates
-                    firstMembership.OnMembershipUpdated += OnMembershipUpdatedHandler;
+                    firstMembership.OnUpdated += OnMembershipUpdatedHandler;
 
                     // example event handler for membership updates
                     void OnMembershipUpdatedHandler(Membership updatedMembership)

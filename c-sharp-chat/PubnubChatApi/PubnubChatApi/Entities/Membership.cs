@@ -128,6 +128,20 @@ namespace PubnubChatApi
                 membership.OnUpdated += delegate { listener.Invoke(memberships); };
             }
         }
+        
+        /// <summary>
+        /// Adds a listener for membership update events on multiple memberships.
+        /// The callback will be invoked with the membership from the list that received an update.
+        /// </summary>
+        /// <param name="memberships">List of memberships to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on membership updates.</param>
+        public static void StreamUpdatesOn(List<Membership> memberships, Action<Membership> listener){
+            foreach (var membership in memberships)
+            {
+                membership.StreamUpdates(true);
+                membership.OnUpdated += listener;
+            }
+        }
 
         /// <summary>
         /// Updates the membership with a ChatMembershipData object.

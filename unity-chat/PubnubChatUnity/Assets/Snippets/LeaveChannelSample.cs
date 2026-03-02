@@ -44,15 +44,16 @@ public class LeaveChannelSample
         }
         var channel = channelResult.Result;
 
+        // note that this callback will only start firing if we call Connect() first
         channel.OnMessageReceived += OnMessageReceivedHandler; // or use lambda
         void OnMessageReceivedHandler(Message message)
         {
             Debug.Log($"Message received: {message.MessageText}");
         }
-        // join the channel and add metadata to the newly created membership
-        await channel.Join();
+        // join the channel to add metadata to the newly created membership
+        await channel.JoinChannel();
         // and leave
-        await channel.Leave();
+        await channel.LeaveChannel();
         // snippet.end
     }
 }

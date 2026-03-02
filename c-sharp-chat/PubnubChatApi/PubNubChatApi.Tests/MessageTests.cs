@@ -118,7 +118,7 @@ public class MessageTests
             message.SetListeningForUpdates(true);
             await Task.Delay(2000);
             
-            message.OnMessageUpdated += updatedMessage =>
+            message.OnUpdated += updatedMessage =>
             {
                 manualUpdatedEvent.Set();
                 Assert.True(updatedMessage.MessageText == "new-text");
@@ -140,7 +140,7 @@ public class MessageTests
         {
             message.SetListeningForUpdates(true);
             await Task.Delay(2000);
-            message.OnMessageUpdated += updatedMessage =>
+            message.OnUpdated += updatedMessage =>
             {
                 originalTextAfterUpdate = updatedMessage.OriginalMessageText;
                 manualUpdatedEvent.Set();

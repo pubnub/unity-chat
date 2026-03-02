@@ -81,7 +81,7 @@ public class ModerationMessageSample
         }
         var channel = channelResult.Result;
         channel.StreamReportEvents(true);
-        channel.OnReportEvent += reportEvent => 
+        channel.OnMessageReported += reportEvent => 
         {
             Debug.Log("Message reported on the support channel!");
         };

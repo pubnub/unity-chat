@@ -202,6 +202,20 @@ namespace PubnubChatApi
         }
         
         /// <summary>
+        /// Adds a listener for user update events on multiple users.
+        /// The callback will be invoked with the user from the list that received an update.
+        /// </summary>
+        /// <param name="users">List of users to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on user updates.</param>
+        public static void StreamUpdatesOn(List<User> users, Action<User> listener){
+            foreach (var user in users)
+            {
+                user.StreamUpdates(true);
+                user.OnUpdated += listener;
+            }
+        }
+        
+        /// <summary>
         /// Sets whether to listen for mention events for this user.
         /// <para>
         /// When enabled, the user will receive mention events when they are mentioned in messages.
@@ -442,7 +456,7 @@ namespace PubnubChatApi
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// await user.DeleteUser();
+        /// await user.Delete();
         /// </code>
         /// </example>
         public async Task<ChatOperationResult> Delete()

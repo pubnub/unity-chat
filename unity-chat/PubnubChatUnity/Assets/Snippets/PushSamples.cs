@@ -41,7 +41,7 @@ public class PushSamples
         // snippet.end
     }
 
-    public static async Task GetPushConfig()
+    public static void GetPushConfig()
     {
         // snippet.push_config
         var pushConfig1 = chat.Config.PushNotifications;

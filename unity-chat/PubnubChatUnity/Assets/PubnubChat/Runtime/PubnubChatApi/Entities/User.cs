@@ -99,9 +99,7 @@ namespace PubnubChatApi
             }
         }
         
-        /// <summary>
-        /// Returns true if the User has been soft-deleted.
-        /// </summary>
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public bool IsDeleted
         {
             get
@@ -116,6 +114,7 @@ namespace PubnubChatApi
         
         /// <summary>
         /// Event that is triggered when the user is updated.
+        /// Call StreamUpdates(true) to enable this callback.
         /// <para>
         /// This event is triggered when the user's data is updated.
         /// You can subscribe to this event to get notified when the user is updated.
@@ -124,7 +123,7 @@ namespace PubnubChatApi
         /// <example>
         /// <code>
         /// // var user = // ...;
-        /// user.OnUserUpdated += (user) =>
+        /// user.OnUpdated += (user) =>
         /// {
         ///    Console.WriteLine($"User {user.UserName} is updated.");
         /// };
@@ -132,35 +131,35 @@ namespace PubnubChatApi
         /// </example>
         /// <seealso cref="Update"/>
         /// <seealso cref="User"/>
-        public event Action<User> OnUserUpdated;
-        
+        public event Action<User> OnUpdated;
+
         /// <summary>
-        /// Event that is triggered when the user is updated.
-        /// <para>
-        /// This event is triggered when the user's data is updated.
-        /// You can subscribe to this event to get notified when the user is updated.
-        /// </para>
+        /// Is invoked when the entity is hard-deleted from App Context.
+        /// Call StreamUpdates(true) to enable this callback.
         /// </summary>
-        /// <value>Reference to the updated User and the type of update that has occured</value>
-        /// <example>
-        /// <code>
-        /// // var user = // ...;
-        /// user.OnUserUpdated += (user, changeType) =>
-        /// {
-        ///    Console.WriteLine($"User {user.UserName} is updated. Change type: {changeType}");
-        /// };
-        /// </code>
-        /// </example>
-        /// <seealso cref="Update"/>
-        /// <seealso cref="User"/>
-        public event Action<User, ChatEntityChangeType> OnUpdate;
+        public event Action OnDeleted;
 
         private Subscription mentionsSubscription;
         private Subscription invitesSubscription;
         private Subscription moderationSubscription;
-        public event Action<ChatEvent> OnMentionEvent;
-        public event Action<ChatEvent> OnInviteEvent;
-        public event Action<ChatEvent> OnModerationEvent;
+
+        /// <summary>
+        /// Is invoked when this user has been mentioned (@username)
+        /// Call StreamMentionEvents(true) to enable this callback.
+        /// </summary>
+        public event Action<Mention> OnMentioned;
+
+        /// <summary>
+        /// Is invoked when this user has been invited to a channel.
+        /// Call StreamInviteEvents(true) to enable this callback.
+        /// </summary>
+        public event Action<Invite> OnInvited;
+
+        /// <summary>
+        /// Invoked when a moderation restriction for this user has been changed.
+        /// Call StreamModerationEvents(true) to enable this callback.
+        /// </summary>
+        public event Action<ChannelRestriction> OnRestrictionChanged;
 
         protected override string UpdateChannelId => Id;
 
@@ -176,8 +175,14 @@ namespace PubnubChatApi
                 if (ChatParsers.TryParseUserUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
-                    OnUserUpdated?.Invoke(this);
-                    OnUpdate?.Invoke(this, changeType);
+                    if (changeType == ChatEntityChangeType.Deleted)
+                    {
+                        OnDeleted?.Invoke();
+                    }
+                    else
+                    {
+                        OnUpdated?.Invoke(this);
+                    }
                 }
             });
         }
@@ -192,21 +197,21 @@ namespace PubnubChatApi
             foreach (var user in users)
             {
                 user.StreamUpdates(true);
-                user.OnUpdate += delegate { listener.Invoke(users); };
+                user.OnUpdated += delegate { listener.Invoke(users); };
             }
         }
         
         /// <summary>
         /// Adds a listener for user update events on multiple users.
-        /// The callback is invoked with the User that was just updated and the type of update it experienced.
+        /// The callback will be invoked with the user from the list that received an update.
         /// </summary>
         /// <param name="users">List of users to listen to.</param>
         /// <param name="listener">The listener callback to invoke on user updates.</param>
-        public static void StreamUpdatesOn(List<User> users, Action<User, ChatEntityChangeType> listener){
+        public static void StreamUpdatesOn(List<User> users, Action<User> listener){
             foreach (var user in users)
             {
                 user.StreamUpdates(true);
-                user.OnUpdate += listener;
+                user.OnUpdated += listener;
             }
         }
         
@@ -239,7 +244,10 @@ namespace PubnubChatApi
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Mention, out var mentionEvent))
                     {
-                        OnMentionEvent?.Invoke(mentionEvent);
+                        if (ChatParsers.TryParseMentionEvent(chat, mentionEvent, out var mention))
+                        {
+                            OnMentioned?.Invoke(mention);
+                        }
                         chat.BroadcastAnyEvent(mentionEvent);
                     }
                 }));
@@ -274,7 +282,10 @@ namespace PubnubChatApi
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Invite, out var inviteEvent))
                     {
-                        OnInviteEvent?.Invoke(inviteEvent);
+                        if (ChatParsers.TryParseInviteEvent(chat, inviteEvent, out var invite))
+                        {
+                            OnInvited?.Invoke(invite);
+                        }
                         chat.BroadcastAnyEvent(inviteEvent);
                     }
                 }));
@@ -309,7 +320,10 @@ namespace PubnubChatApi
                 {
                     if (ChatParsers.TryParseEvent(chat, m, PubnubChatEventType.Moderation, out var moderationEvent))
                     {
-                        OnModerationEvent?.Invoke(moderationEvent);
+                        if (ChatParsers.TryParseUserModerationEvent(chat, moderationEvent, out var moderation))
+                        {
+                            OnRestrictionChanged?.Invoke(moderation);
+                        }
                         chat.BroadcastAnyEvent(moderationEvent);
                     }
                 }));
@@ -418,22 +432,8 @@ namespace PubnubChatApi
             UpdateLocalData(getUserData.Result);
             return result;
         }
-
-        /// <summary>
-        /// Deletes the user.
-        /// <para>
-        /// This method deletes the user from the chat.
-        /// It will remove the user from all the channels and delete the user's data.
-        /// </para>
-        /// </summary>
-        /// <param name="soft">Whether to perform a soft delete (true) or hard delete (false).</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var user = // ...;
-        /// await user.DeleteUser();
-        /// </code>
-        /// </example>
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> DeleteUser(bool soft = false)
         {
             var result = new ChatOperationResult("User.DeleteUser()", chat);
@@ -446,26 +446,27 @@ namespace PubnubChatApi
         }
         
         /// <summary>
-        /// Restores a previously deleted user.
+        /// Deletes the user.
         /// <para>
-        /// Undoes the soft deletion of this user.
-        /// This only works for users that were soft deleted.
+        /// This method deletes the user from the chat.
+        /// It will remove the user from all the channels and delete the user's data.
         /// </para>
         /// </summary>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         /// <example>
         /// <code>
         /// var user = // ...;
-        /// if (user.IsDeleted) {
-        ///     var result = await user.Restore();
-        ///     if (!result.Error) {
-        ///         // User has been restored
-        ///     }
-        /// }
+        /// await user.Delete();
         /// </code>
         /// </example>
-        /// <seealso cref="DeleteUser"/>
-        /// <seealso cref="IsDeleted"/>
+        public async Task<ChatOperationResult> Delete()
+        {
+            var result = new ChatOperationResult("User.Delete()", chat);
+            result.RegisterOperation(await chat.DeleteUser(Id));
+            return result;
+        }
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> Restore()
         {
             var result = new ChatOperationResult("User.Restore()", chat);

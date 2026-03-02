@@ -41,7 +41,7 @@ public class MembershipSample
         {
             var membership = membershipsResult.Result.Memberships[0];
             
-            membership.OnMembershipUpdated += (membership) =>
+            membership.OnUpdated += (membership) =>
             {
                 Debug.Log("Membership metadata updated!");
             };

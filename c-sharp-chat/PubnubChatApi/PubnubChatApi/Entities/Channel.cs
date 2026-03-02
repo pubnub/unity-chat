@@ -221,6 +221,20 @@ namespace PubnubChatApi
                 channel.OnUpdated += delegate { listener.Invoke(channels); };
             }
         }
+        
+        /// <summary>
+        /// Adds a listener for channel update events on multiple channels.
+        /// The callback will be invoked with the channel from the list that received an update.
+        /// </summary>
+        /// <param name="channels">List of channels to listen to.</param>
+        /// <param name="listener">The listener callback to invoke on channel updates.</param>
+        public static void StreamUpdatesOn(List<Channel> channels, Action<Channel> listener){
+            foreach (var channel in channels)
+            {
+                channel.StreamUpdates(true);
+                channel.OnUpdated += listener;
+            }
+        }
 
         internal void UpdateLocalData(ChatChannelData? newData)
         {
@@ -662,9 +676,45 @@ namespace PubnubChatApi
         /// <seealso cref="Join"/>
         /// <seealso cref="Connect"/>
         /// <seealso cref="Disconnect"/>
+        [Obsolete("Please use LeaveChannel() to destroy the membership and Disconnect() to stop receiving messages instead")]
         public async Task<ChatOperationResult> Leave()
         {
             Disconnect();
+            var currentUserId = chat.PubnubInstance.GetCurrentUserId();
+            return (await chat.PubnubInstance.RemoveMemberships().Uuid(currentUserId).Include(new[]
+                {
+                    PNMembershipField.TYPE,
+                    PNMembershipField.CUSTOM,
+                    PNMembershipField.STATUS,
+                    PNMembershipField.CHANNEL,
+                    PNMembershipField.CHANNEL_CUSTOM,
+                    PNMembershipField.CHANNEL_TYPE,
+                    PNMembershipField.CHANNEL_STATUS
+                }).Channels(new List<string>() { Id })
+                .ExecuteAsync().ConfigureAwait(false)).ToChatOperationResult("Channel.Leave()", chat);
+        }
+        
+        /// <summary>
+        /// Leaves the channel.
+        /// <para>
+        /// Leaves the channel (removes the membership).
+        /// Additionally, all the other listeners gets the presence update that the user has left the channel.
+        /// </para>
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// var channel = //...
+        /// channel.JoinChannel();
+        /// //...
+        /// channel.LeaveChannel();
+        /// </code>
+        /// </example>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <seealso cref="Join"/>
+        /// <seealso cref="Connect"/>
+        /// <seealso cref="Disconnect"/>
+        public async Task<ChatOperationResult> LeaveChannel()
+        {
             var currentUserId = chat.PubnubInstance.GetCurrentUserId();
             return (await chat.PubnubInstance.RemoveMemberships().Uuid(currentUserId).Include(new[]
                 {

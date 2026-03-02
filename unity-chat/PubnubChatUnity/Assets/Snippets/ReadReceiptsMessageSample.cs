@@ -44,7 +44,8 @@ public class ReadReceiptsMessageSample
             Debug.Log($"Found channel with name {channel.Name}");
 
             // join the channel and start listening to read receipt events
-            await channel.Join();
+            await channel.JoinChannel();
+            channel.Connect();
             channel.StreamReadReceipts(true);
 
             // subscribe to the OnReadReceiptEvent event
@@ -56,12 +57,12 @@ public class ReadReceiptsMessageSample
         }
         
         // the event handler
-        void OnReadHandler((string MessageTimetoken, string UserId) readEvent)
+        void OnReadHandler(ReadReceipt readReceipt)
         {
             // print the message details to the console
             Debug.Log(
-                $"Received a read receipt event for timetoken {readEvent.MessageTimetoken}" +
-                $" from user {readEvent.UserId}");  
+                $"Received a read receipt event for timetoken {readReceipt.LastReadTimeToken}" +
+                $" from user {readReceipt.UserId}");  
             // you can add additional logic here, such as confirming receipt to the user or processing the message further
         }
         // snippet.end

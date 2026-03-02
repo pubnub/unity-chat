@@ -78,7 +78,7 @@ public class UpdatesChannelSample
         }
         var channel = channelResult.Result;
         channel.StreamUpdates(true);
-        channel.OnChannelUpdate += OnChannelUpdateHandler; // or use lambda
+        channel.OnUpdated += OnChannelUpdateHandler; // or use lambda
 
         void OnChannelUpdateHandler(Channel channel)
         {
@@ -98,11 +98,10 @@ public class UpdatesChannelSample
             channels.Add(channel1.Result);
             channels.Add(channel2.Result);
         }
-        Action<Channel, ChatEntityChangeType> listener = (channel, changeType) => 
+        Action<Channel> listener = (channel) => 
             {
                 // Print the updated channel name and the change type
                 Debug.Log("Updated Channel Name: " + channel.Name);
-                Debug.Log("Channel update type: " + changeType);
             };
 
         Channel.StreamUpdatesOn(channels, listener);

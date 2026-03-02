@@ -162,7 +162,7 @@ public class MentionsUserSample
         }
         var user = userResult.Result;
         user.StreamMentionEvents(true);
-        user.OnMentionEvent += mentionEvent => 
+        user.OnMentioned += mentionEvent => 
         {
             if(mentionEvent.ChannelId == "support")
             {

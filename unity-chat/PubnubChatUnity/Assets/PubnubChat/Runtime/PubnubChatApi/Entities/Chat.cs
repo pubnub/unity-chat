@@ -129,7 +129,7 @@ namespace PubnubChatApi
                 var getResult = await GetChannel(channelId).ConfigureAwait(false);
                 if (!getResult.Error)
                 {
-                    getResult.Result.OnChannelUpdate += listener;
+                    getResult.Result.OnUpdated += listener;
                 }
             }
         }
@@ -573,21 +573,7 @@ namespace PubnubChatApi
             return result;
         }
 
-        /// <summary>
-        /// Deletes the channel with the provided channel ID.
-        /// <para>
-        /// The channel is deleted with all the messages and users.
-        /// </para>
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="soft">Bool specifying the type of deletion.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// var result = await chat.DeleteChannel("channel_id", true);
-        /// </code>
-        /// </example>
+        [Obsolete("Soft deletion for Channels has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the channel's custom data.")]
         public async Task<ChatOperationResult> DeleteChannel(string channelId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteChannel()", this);
@@ -610,6 +596,27 @@ namespace PubnubChatApi
             }
             return result;
         }
+        
+        /// <summary>
+        /// Deletes the channel with the provided channel ID.
+        /// <para>
+        /// The channel is deleted with all the messages and users.
+        /// </para>
+        /// </summary>
+        /// <param name="channelId">The channel ID.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var chat = // ...
+        /// var result = await chat.DeleteChannel("channel_id");
+        /// </code>
+        /// </example>
+        public async Task<ChatOperationResult> DeleteChannel(string channelId)
+        {
+            var result = new ChatOperationResult("Chat.DeleteChannel()", this);
+            result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
+            return result;
+        }
 
         #endregion
 
@@ -622,13 +629,13 @@ namespace PubnubChatApi
             while (storeActivity)
             {
                 var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);
-                var data = (ChatUserData)getResult.Result;
                 if (getResult.Status.Error)
                 {
                     Logger.Error($"Error when trying to store user activity timestamp: {getResult.Status.ErrorData}");
                     await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
                     continue;
                 }
+                var data = (ChatUserData)getResult.Result;
                 data.CustomData ??= new Dictionary<string, object>();
                 data.CustomData["lastActiveTimestamp"] = ChatUtils.TimeTokenNow();
                 var setData = await User.UpdateUserData(this, currentUserId, data).ConfigureAwait(false);
@@ -816,7 +823,7 @@ namespace PubnubChatApi
                 var getUser = await GetUser(userId).ConfigureAwait(false);
                 if (!getUser.Error)
                 {
-                    getUser.Result.OnUserUpdated += listener;
+                    getUser.Result.OnUpdated += listener;
                 }
             }
         }
@@ -1097,22 +1104,8 @@ namespace PubnubChatApi
         {
             return (await User.UpdateUserData(this, userId, updatedData).ConfigureAwait(false)).ToChatOperationResult("Chat.UpdateUser()", this);
         }
-
-        /// <summary>
-        /// Deletes the user with the provided user ID.
-        /// <para>
-        /// The user is deleted with all the messages and channels.
-        /// </para>
-        /// </summary>
-        /// <param name="userId">The user ID.</param>
-        /// <param name="soft">Bool specifying the type of deletion.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// var result = await chat.DeleteUser("user_id");
-        /// </code>
-        /// </example>
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> DeleteUser(string userId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteUser()", this);
@@ -1133,6 +1126,27 @@ namespace PubnubChatApi
                 var updateResult =  await User.UpdateUserData(this, userId, userData).ConfigureAwait(false);
                 result.RegisterOperation(updateResult);
             }
+            return result;
+        }
+        
+        /// <summary>
+        /// Deletes the user with the provided user ID.
+        /// <para>
+        /// The user is deleted with all the messages and channels.
+        /// </para>
+        /// </summary>
+        /// <param name="userId">The user ID.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var chat = // ...
+        /// var result = await chat.DeleteUser("user_id");
+        /// </code>
+        /// </example>
+        public async Task<ChatOperationResult> DeleteUser(string userId)
+        {
+            var result = new ChatOperationResult("Chat.DeleteUser()", this);
+            result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
             return result;
         }
 
@@ -1581,7 +1595,7 @@ namespace PubnubChatApi
                 var getMessage = await GetMessage(channelId, messageTimeToken).ConfigureAwait(false);
                 if (!getMessage.Error)
                 {
-                    getMessage.Result.OnMessageUpdated += listener;
+                    getMessage.Result.OnUpdated += listener;
                 }
             }
         }
@@ -1705,7 +1719,7 @@ namespace PubnubChatApi
             var getHistory = await PubnubInstance.FetchHistory().Channels(new[] { channelId })
                 .Start(long.Parse(startTimeToken)).End(long.Parse(endTimeToken)).MaximumPerChannel(count)
                 .ExecuteAsync().ConfigureAwait(false);
-            if (result.RegisterOperation(getHistory) || !getHistory.Result.Messages.ContainsKey(channelId))
+            if (result.RegisterOperation(getHistory) || getHistory.Result.Messages == null || !getHistory.Result.Messages.ContainsKey(channelId))
             {
                 return result;
             }
@@ -1728,23 +1742,23 @@ namespace PubnubChatApi
             return result;
         }
         
-        /// <summary>
-        /// Emits a chat event on the specified channel.
-        /// </summary>
-        /// <param name="type">The type of event to emit.</param>
-        /// <param name="channelId">The channel ID where to emit the event.</param>
-        /// <param name="jsonPayload">The JSON payload of the event.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        public async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload)
+        internal async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload, string? messageType = null, bool storeInHistory = true)
         {
             var result = new ChatOperationResult("Chat.EmitEvent()", this);
             jsonPayload = jsonPayload.Remove(0, 1);
             jsonPayload = jsonPayload.Remove(jsonPayload.Length - 1);
             var fullPayload = $"{{{jsonPayload}, \"type\": \"{ChatEnumConverters.ChatEventTypeToString(type)}\"}}";
             var emitOperation = PubnubInstance.Publish().Channel(channelId).Message(fullPayload);
+            if (messageType != null)
+            {
+                emitOperation.CustomMessageType(messageType);
+            }
             if (type is PubnubChatEventType.Receipt or PubnubChatEventType.Typing)
             {
                 emitOperation.ShouldStore(false);
+            }else if (type is PubnubChatEventType.Custom)
+            {
+                emitOperation.ShouldStore(storeInHistory);
             }
             result.RegisterOperation(await emitOperation.ExecuteAsync().ConfigureAwait(false));
             return result;

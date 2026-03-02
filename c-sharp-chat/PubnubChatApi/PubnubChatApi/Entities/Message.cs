@@ -218,6 +218,7 @@ namespace PubnubChatApi
 
         /// <summary>
         /// Event that is triggered when the message is updated.
+        /// Call StreamUpdates(true) to start receiving this callback.
         /// <para>
         /// This event is triggered when the message is updated by the server.
         /// Every time the message is updated, this event is triggered.
@@ -226,7 +227,7 @@ namespace PubnubChatApi
         /// <example>
         /// <code>
         /// var message = // ...;
-        /// message.OnMessageUpdated += (message) =>
+        /// message.OnUpdated += (message) =>
         /// {
         ///   Console.WriteLine("Message updated!");
         /// };
@@ -234,7 +235,7 @@ namespace PubnubChatApi
         /// </example>
         /// <seealso cref="EditMessageText"/>
         /// <seealso cref="Delete"/>
-        public event Action<Message> OnMessageUpdated;
+        public event Action<Message> OnUpdated;
 
         protected override string UpdateChannelId => ChannelId;
 
@@ -256,7 +257,7 @@ namespace PubnubChatApi
             {
                 if (ChatParsers.TryParseMessageUpdate(chat, this, e))
                 {
-                    OnMessageUpdated?.Invoke(this);
+                    OnUpdated?.Invoke(this);
                 }
             });
         }
@@ -271,7 +272,7 @@ namespace PubnubChatApi
             foreach (var message in messages)
             {
                 message.StreamUpdates(true);
-                message.OnMessageUpdated += delegate { listener.Invoke(messages); };
+                message.OnUpdated += delegate { listener.Invoke(messages); };
             }
         }
         
@@ -280,16 +281,14 @@ namespace PubnubChatApi
         /// Adds a listener for message update events on multiple messages.
         /// The callback is invoked with the Message that was just updated and the type of update it experienced.
         /// </para>
-        /// <b>WARNING</b>: Messages currently don't receive hard deletion callbacks, so only Delete(soft:true) will yield a
-        /// callback with ChatEntityChangeType "Updated"
         /// </summary>
         /// <param name="messages">List of messages to listen to.</param>
         /// <param name="listener">The listener callback to invoke on message updates.</param>
-        public static void StreamUpdatesOn(List<Message> messages, Action<Message, ChatEntityChangeType> listener){
+        public static void StreamUpdatesOn(List<Message> messages, Action<Message> listener){
             foreach (var message in messages)
             {
                 message.StreamUpdates(true);
-                message.OnMessageUpdated += delegate { listener.Invoke(message, ChatEntityChangeType.Updated); };
+                message.OnUpdated += listener;
             }
         }
 
@@ -330,7 +329,7 @@ namespace PubnubChatApi
         /// var result = await message.EditMessageText("New text");
         /// </code>
         /// </example>
-        /// <seealso cref="OnMessageUpdated"/>
+        /// <seealso cref="OnUpdated"/>
         public async Task<ChatOperationResult> EditMessageText(string newText)
         {
             var result = new ChatOperationResult("Message.EditMessageText()", chat);
@@ -732,7 +731,7 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         /// <seealso cref="IsDeleted"/>
-        /// <seealso cref="OnMessageUpdated"/>
+        /// <seealso cref="OnUpdated"/>
         public async Task<ChatOperationResult> Delete(bool soft = false)
         {
             var result = new ChatOperationResult("Message.Delete()", chat);

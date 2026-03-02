@@ -42,7 +42,7 @@ public class DeleteUserSample
             return;
         }
         var user = userResult.Result;
-        await user.DeleteUser();
+        await user.Delete();
         // snippet.end
     }
     

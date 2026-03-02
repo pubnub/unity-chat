@@ -59,7 +59,7 @@ namespace Snippets
             // snippet.end
         }
     
-        public static async Task CheckMutedExample()
+        public static void CheckMutedExample()
         {
             // snippet.check_muted
             var mutedUsersManager = chat.MutedUsersManager;
