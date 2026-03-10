@@ -952,6 +952,11 @@ namespace PubnubChatApi
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
         public virtual async Task<ChatOperationResult> SendText(string message, SendTextParams sendTextParams)
         {
+            return await SendTextInternal(message, new SendTextParamsInternal(sendTextParams));
+        }
+        
+        internal async Task<ChatOperationResult> SendTextInternal(string message, SendTextParamsInternal sendTextParams)
+        {
             var result = new ChatOperationResult("Channel.SendText()", chat);
             var jsonLibrary = chat.PubnubInstance.JsonPluggableLibrary;
             
@@ -1291,15 +1296,17 @@ namespace PubnubChatApi
             var result = new ChatOperationResult<List<string>>("Channel.WhoIsPresent()", chat) { Result = new List<string>() };
             var response = await chat.PubnubInstance.HereNow().Channels(new[] { Id }).IncludeState(true)
                 .IncludeUUIDs(true).Limit(limit).Offset(offset).ExecuteAsync().ConfigureAwait(false);
-            if (result.RegisterOperation(response))
+            if (result.RegisterOperation(response) 
+                || response.Result?.Channels == null 
+                || !response.Result.Channels.TryGetValue(Id, out var channelResult) 
+                || channelResult.Occupants == null)
             {
                 return result;
             }
-
             foreach (var occupant in response.Result.Channels[Id].Occupants)
             {
                 result.Result.Add(occupant.Uuid);
-            }
+            }   
             return result;
         }
 

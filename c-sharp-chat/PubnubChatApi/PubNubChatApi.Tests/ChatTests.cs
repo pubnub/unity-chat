@@ -48,24 +48,21 @@ public class ChatTests
     public async Task TestGetCurrentUserMentions()
     {
         var messageContent = "wololo";
-        await channel.SendText(messageContent, new SendTextParams()
+        var draft = channel.CreateMessageDraft();
+        draft.InsertText(0, messageContent);
+        draft.AddMention(0, 6, new MentionTarget()
         {
-            MentionedUsers = new Dictionary<int, MentionedUser>()
-            {
-                {0, new MentionedUser()
-                {
-                    Id = currentUser.Id,
-                    Name = currentUser.UserName
-                }}
-            }
+            Type = MentionType.User,
+            Target = currentUser.Id
         });
+        await draft.Send();
 
         await Task.Delay(3000);
 
         var mentions = TestUtils.AssertOperation(await chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10));
         
         Assert.True(mentions != null);
-        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText == messageContent));
+        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText.Contains(messageContent)));
     }
 
     [Test]

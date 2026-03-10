@@ -353,26 +353,19 @@ public class ChannelTests
         await Task.Delay(3000);
         user.OnMentioned += mentionEvent =>
         {
-            Assert.True(mentionEvent.Text == "heyyy");
+            Assert.True(mentionEvent.Text.Contains("heyyy"));
             Assert.True(mentionEvent.MentionedByUserId == user.Id);
             Assert.True(mentionEvent.ChannelId == channel.Id);
             receivedManualEvent.Set();
         };
-        await channel.SendText("heyyy",
-            new SendTextParams()
-            {
-                MentionedUsers = new Dictionary<int, MentionedUser>()
-                {
-                    { 
-                        0, 
-                        new MentionedUser()
-                        {
-                            Id = user.Id, 
-                            Name = user.UserName
-                        } 
-                    }
-                }
-            });
+        var draft = channel.CreateMessageDraft();
+        draft.InsertText(0, "heyyy");
+        draft.AddMention(0, 5, new MentionTarget()
+        {
+            Type = MentionType.User,
+            Target = user.Id
+        });
+        await draft.Send();
         var received = receivedManualEvent.WaitOne(7000);
         Assert.True(received);
     }
@@ -457,6 +450,9 @@ public class ChannelTests
         var presenceReceived = reset.WaitOne(12000);
         
         Assert.True(presenceReceived, "did not receive presence callback");
+        
+        //Cleanup
+        await someChannel.Delete();
     }
 
     [Test]

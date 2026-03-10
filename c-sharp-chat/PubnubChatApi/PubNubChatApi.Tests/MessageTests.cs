@@ -61,17 +61,17 @@ public class MessageTests
         {
             if (message.MessageText == "message_to_be_quoted")
             {
-                await testChannel.SendText("message_with_data", new SendTextParams()
+                var draft = testChannel.CreateMessageDraft();
+                draft.QuotedMessage = message;
+                draft.InsertText(0, "message_with_data");
+                draft.AddMention(0, 17, new MentionTarget()
                 {
-                    MentionedUsers = new Dictionary<int, MentionedUser>() { { 0, new MentionedUser()
-                    {
-                        Id = user.Id,
-                        Name = user.UserName
-                    } } },
-                    QuotedMessage = message
+                    Type = MentionType.User,
+                    Target = user.Id
                 });
+                await draft.Send();
             }
-            else if (message.MessageText == "message_with_data")
+            else if (message.MessageText.Contains("message_with_data"))
             {
                 Assert.True(message.MentionedUsers.Any(x => x.Id == user.Id));
                 var quoted = TestUtils.AssertOperation(await message.GetQuotedMessage());
