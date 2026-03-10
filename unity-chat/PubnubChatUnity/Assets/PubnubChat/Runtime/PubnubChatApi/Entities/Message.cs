@@ -505,6 +505,14 @@ namespace PubnubChatApi
         }
 
         /// <summary>
+        /// Parses the Markdown text of this message into a list of MessageElement objects (like text, links, references, and user mentions)
+        /// </summary>
+        public List<MessageElement> GetMessageElements()
+        {
+            return MessageDraft.GetMessageElements(MessageText);
+        } 
+
+        /// <summary>
         /// Pins this message to its channel.
         /// <para>
         /// Marks this message as the pinned message for the channel it belongs to.
