@@ -438,7 +438,7 @@ public class ChannelTests
     public async Task TestPresenceCallback()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.SetListeningForPresence(true);
+        someChannel.StreamPresence(true);
 
         var reset = new ManualResetEvent(false);
         someChannel.OnPresenceUpdate += userIds =>
@@ -448,10 +448,10 @@ public class ChannelTests
         };
         await someChannel.Join();
         var presenceReceived = reset.WaitOne(12000);
-        
         Assert.True(presenceReceived, "did not receive presence callback");
         
         //Cleanup
+        someChannel.StreamPresence(false);
         await someChannel.Delete();
     }
 
