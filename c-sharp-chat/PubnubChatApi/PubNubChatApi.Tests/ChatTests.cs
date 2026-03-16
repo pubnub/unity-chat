@@ -159,6 +159,62 @@ public class ChatTests
     }
 
     [Test]
+    public async Task TestStatusListener()
+    {
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        
+        chat.StreamSubscriptionStatus(true);
+        await Task.Delay(2500);
+        
+        var connectedReset = new ManualResetEvent(false);
+        chat.OnSubscriptionStatusChanged += (status) =>
+        {
+            if (status.Category == PNStatusCategory.PNSubscriptionChangedCategory &&
+                status.AffectedChannels.Contains(testChannel.Id))
+            {
+                connectedReset.Set();   
+            }
+        };
+        
+        testChannel.Connect();
+        
+        var receivedConnected = connectedReset.WaitOne(15000);
+        Assert.True(receivedConnected, "Didn't receive PNSubscriptionChangedCategory status");
+        
+        var disconnectedReset = new ManualResetEvent(false);
+        chat.OnSubscriptionStatusChanged += (status) =>
+        {
+            if (status.Category == PNStatusCategory.PNSubscriptionChangedCategory &&
+                !status.AffectedChannels.Contains(testChannel.Id))
+            {
+                disconnectedReset.Set();   
+            }
+        };
+        testChannel.Disconnect();
+        
+        var receivedDisconnected = disconnectedReset.WaitOne(15000);
+        Assert.True(receivedDisconnected, "Didn't receive PNSubscriptionChangedCategory status");
+        
+        chat.StreamSubscriptionStatus(false);
+        await Task.Delay(2000);
+        
+        connectedReset = new ManualResetEvent(false);
+        testChannel.Connect();
+        
+        receivedConnected = connectedReset.WaitOne(5000);
+        Assert.False(receivedConnected, "Received PNSubscriptionChangedCategory despite unsubscribing");
+        
+        disconnectedReset = new ManualResetEvent(false);
+        testChannel.Disconnect();
+
+        receivedDisconnected = disconnectedReset.WaitOne(15000);
+        Assert.False(receivedDisconnected, "Received PNSubscriptionChangedCategory despite unsubscribing");
+        
+        //Cleanup
+        await testChannel.Delete();
+    }
+
+    [Test]
     public async Task TestGetUnreadMessagesCounts()
     {
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());

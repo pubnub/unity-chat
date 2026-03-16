@@ -28,6 +28,11 @@ namespace PubnubChatApi
         internal ChatListenerFactory ListenerFactory { get; }
 
         public event Action<ChatEvent> OnAnyEvent;
+        private SubscribeCallback? statusListener = null;
+        /// <summary>
+        /// Callback to core Pubnub SDK subscription status.
+        /// </summary>
+        public event Action<PNStatus> OnSubscriptionStatusChanged;
 
         public ChatAccessManager ChatAccessManager { get; }
         public MutedUsersManager MutedUsersManager { get; }
@@ -112,6 +117,45 @@ namespace PubnubChatApi
             ChatAccessManager = new ChatAccessManager(this);
             MutedUsersManager = new MutedUsersManager(this);
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
+        }
+
+        /// <summary>
+        /// Attempts to reconnect all Pubnub subscriptions used by this Chat instance.
+        /// </summary>
+        public async Task ReconnectSubscriptions()
+        {
+            await PubnubInstance.Reconnect<object>();
+        }
+        
+        /// <summary>
+        /// Attempts to disconnect all Pubnub subscriptions used by this Chat instance.
+        /// </summary>
+        public async Task DisconnectSubscriptions()
+        {
+            await PubnubInstance.Disconnect<object>();
+        }
+
+        public void StreamSubscriptionStatus(bool stream)
+        {
+            switch (stream)
+            {
+                //We're already listening
+                case true when statusListener != null:
+                    return;
+                case true:
+                    statusListener = ListenerFactory.ProduceListener(statusCallback: delegate(Pubnub pn, PNStatus status)
+                    {
+                        OnSubscriptionStatusChanged?.Invoke(status);
+                    });
+                    PubnubInstance.AddListener(statusListener);
+                    break;
+                //We're already not listening
+                case false when statusListener == null:
+                    return;
+                case false:
+                    PubnubInstance.RemoveListener(statusListener);
+                    break;
+            }
         }
         
         #region Channels
