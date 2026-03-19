@@ -179,4 +179,30 @@ public class MembershipChannelSample
         }
         // snippet.end
     }
+
+    public static async Task DeleteMembershipExample()
+    {
+        // snippet.delete_membership_example
+        // reference the "support_agent_15" user
+        var userResult = await chat.GetUser("support_agent_15");
+        if (userResult.Error)
+        {
+            Debug.Log("Couldn't find user!");
+            return;
+        }
+        var user = userResult.Result;
+
+        // get the list of all user memberships and filter out the right channel
+        var membershipsWrapperResult = await user.GetMemberships(
+            filter: "channel.id == 'high-priority-incidents'"
+        );
+
+        // get the membership and delete it
+        if(!membershipsWrapperResult.Error && membershipsWrapperResult.Result.Memberships.Any())
+        {
+            var membership = membershipsWrapperResult.Result.Memberships[0];
+            await membership.Delete();
+        }
+        // snippet.end
+    }
 }
