@@ -155,6 +155,8 @@ namespace PubnubChatApi
                 case false:
                     PubnubInstance.RemoveListener(statusListener);
                     break;
+                default:
+                    break;
             }
         }
         
