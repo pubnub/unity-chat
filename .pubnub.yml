@@ -1,6 +1,39 @@
 --- 
-version: v1.3.0
+version: v2.0.0
 changelog:
+  - date: 2026-04-01
+    version: v2.0.0
+    changes:
+      - type: feature
+        text: "Added an option in the chat config to specify which channel types publish read receipt events."
+      - type: feature
+        text: "Memberships can now be hard-deleted."
+      - type: feature
+        text: "Added new arguments to CreateDirectConversation and CreateGroupConversation that allow to specify starting membership data of the invite memberships."
+      - type: feature
+        text: "Added a set of method for getting/checking for singular memberships of users and channels."
+      - type: feature
+        text: "The Unity package samples section now contains a simple UI chat prefab example."
+      - type: feature
+        text: "Added an utility AppendText() method to Membership."
+      - type: feature
+        text: "Added a GetMessageElements() method to Message that returns the same data as the one in MessageDraft."
+      - type: feature
+        text: "Added new subcription status management methods to Chat."
+      - type: improvement
+        text: "The Join() method has been deprecated in favor of separate JoinChannel() and Connect()."
+      - type: improvement
+        text: "BREAKINF CHANGE: Aligned callbacks names with other Chat SDKs and introduced new objects to replace the raw ChatEvent."
+      - type: improvement
+        text: "BREAKING CHANGE: Read receipts functionality has been optimized to provide per-user read events instead of aggregates for each event."
+      - type: improvement
+        text: "BREAKING CHANGE: Message reactions have a new, easier to use format."
+      - type: improvement
+        text: "BREAKING CHANGE: Most advanced message sending features like Files, Quotes, Mentions, etc. have are now available only through MessageDraft."
+      - type: improvement
+        text: "User and Channel objects had their soft deletion logic marked as deprecated."
+      - type: improvement
+        text: "BREAKING CHANGE: Events such as invites or mentions can no longer be sent manually, only ones with type Custom."
   - date: 2025-12-08
     version: v1.3.0
     changes:
