@@ -60,7 +60,7 @@ public class UserTests
         testUser.SetListeningForUpdates(true);
         await Task.Delay(3000);
         var newRandomUserName = Guid.NewGuid().ToString();
-        testUser.OnUserUpdated += updatedUser =>
+        testUser.OnUpdated += updatedUser =>
         {
             Assert.True(updatedUser.UserName == newRandomUserName);
             Assert.True(updatedUser.CustomData.TryGetValue("some_key", out var value) && value.ToString() == "some_value");
@@ -152,6 +152,24 @@ public class UserTests
     }
     
     [Test]
+    public async Task TestDeletionCallback()
+    {
+        var someUser = TestUtils.AssertOperation(await chat.CreateUser(Guid.NewGuid().ToString()));
+        someUser.StreamUpdates(true);
+
+        await Task.Delay(2500);
+
+        var deleteReset = new ManualResetEvent(false);
+        someUser.OnDeleted += () =>
+        {
+            deleteReset.Set();
+        };
+        TestUtils.AssertOperation(await someUser.Delete());
+        var deleted = deleteReset.WaitOne(15000);
+        Assert.True(deleted, "Didn't receive OnDeleted callback!");
+    }
+    
+    [Test]
     public async Task TestUserIsPresentOn()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
@@ -162,5 +180,21 @@ public class UserTests
         var isOn = TestUtils.AssertOperation(await user.IsPresentOn(someChannel.Id));
         
         Assert.True(isOn, "user.IsPresentOn() doesn't return true for most recently joined channel!");
+    }
+    
+    [Test]
+    public async Task TestUserIsAndGetMember()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var isMember = TestUtils.AssertOperation(await user.IsMemberOn(someChannel.Id));
+        Assert.True(isMember, "user.IsMemberOn() doesn't return true for most recently joined channel!");
+
+        var getMembership = TestUtils.AssertOperation(await user.GetMembership(someChannel.Id));
+        Assert.True(getMembership.ChannelId == someChannel.Id, "Wrong GetMembership() channel id");
+        Assert.True(getMembership.UserId == user.Id, "Wrong GetMembership() user id");
     }
 }

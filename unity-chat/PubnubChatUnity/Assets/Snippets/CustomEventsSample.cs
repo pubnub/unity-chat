@@ -37,10 +37,14 @@ public class CustomEventsSample
     public static async Task EmitCustomEventExample()
     {
         // snippet.emit_custom_event_example
-        await chat.EmitEvent(
-            type: PubnubChatEventType.Custom,
-            channelId: "CUSTOMER-SATISFACTION-CREW",
-            jsonPayload: 
+        var channelResult = await chat.GetChannel("CUSTOMER-SATISFACTION-CREW");
+        if (channelResult.Error)
+        {
+            return;
+        }
+        var channel = channelResult.Result;
+        
+        await channel.EmitCustomEvent(
                 "{\"chatID\": \"chat1234\"," +
                 "\"timestamp\": \"2022-04-30T10:30:00Z\"," +
                 "\"customerID\": \"customer5678\"," + 

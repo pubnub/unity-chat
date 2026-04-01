@@ -20,14 +20,14 @@ namespace PubnubChatApi
         public string Updated { get; internal set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        
+
         public static implicit operator ChatChannelData(PNChannelMetadataResult metadataResult)
         {
             return new ChatChannelData()
             {
                 Name = metadataResult.Name,
                 Description = metadataResult.Description,
-                CustomData = metadataResult.Custom,
+                CustomData = metadataResult.Custom ?? new Dictionary<string, object>(),
                 Status = metadataResult.Status,
                 Updated = metadataResult.Updated,
                 Type = metadataResult.Type

@@ -28,6 +28,11 @@ namespace PubnubChatApi
         internal ChatListenerFactory ListenerFactory { get; }
 
         public event Action<ChatEvent> OnAnyEvent;
+        private SubscribeCallback? statusListener = null;
+        /// <summary>
+        /// Callback to core Pubnub SDK subscription status.
+        /// </summary>
+        public event Action<PNStatus> OnSubscriptionStatusChanged;
 
         public ChatAccessManager ChatAccessManager { get; }
         public MutedUsersManager MutedUsersManager { get; }
@@ -113,6 +118,47 @@ namespace PubnubChatApi
             MutedUsersManager = new MutedUsersManager(this);
             RateLimiter = new ExponentialRateLimiter(chatConfig.RateLimitFactor);
         }
+
+        /// <summary>
+        /// Attempts to reconnect all Pubnub subscriptions used by this Chat instance.
+        /// </summary>
+        public async Task ReconnectSubscriptions()
+        {
+            await PubnubInstance.Reconnect<object>();
+        }
+        
+        /// <summary>
+        /// Attempts to disconnect all Pubnub subscriptions used by this Chat instance.
+        /// </summary>
+        public async Task DisconnectSubscriptions()
+        {
+            await PubnubInstance.Disconnect<object>();
+        }
+
+        public void StreamSubscriptionStatus(bool stream)
+        {
+            switch (stream)
+            {
+                //We're already listening
+                case true when statusListener != null:
+                    return;
+                case true:
+                    statusListener = ListenerFactory.ProduceListener(statusCallback: delegate(Pubnub pn, PNStatus status)
+                    {
+                        OnSubscriptionStatusChanged?.Invoke(status);
+                    });
+                    PubnubInstance.AddListener(statusListener);
+                    break;
+                //We're already not listening
+                case false when statusListener == null:
+                    return;
+                case false:
+                    PubnubInstance.RemoveListener(statusListener);
+                    break;
+                default:
+                    break;
+            }
+        }
         
         #region Channels
 
@@ -129,7 +175,7 @@ namespace PubnubChatApi
                 var getResult = await GetChannel(channelId).ConfigureAwait(false);
                 if (!getResult.Error)
                 {
-                    getResult.Result.OnChannelUpdate += listener;
+                    getResult.Result.OnUpdated += listener;
                 }
             }
         }
@@ -213,7 +259,8 @@ namespace PubnubChatApi
             List<User> users, 
             string channelId = "", 
             ChatChannelData? channelData = null, 
-            ChatMembershipData? membershipData = null)
+            ChatMembershipData? hostMembershipData = null,
+            List<ChatMembershipData>? inviteesMembershipData = null)
         {
             var result = new ChatOperationResult<CreatedChannelWrapper>($"Chat.CreateConversation-{type}", this){Result = new CreatedChannelWrapper()};
             
@@ -238,7 +285,7 @@ namespace PubnubChatApi
                 return result;
             }
             
-            membershipData ??= new ChatMembershipData();
+            hostMembershipData ??= new ChatMembershipData();
             var currentUserId = PubnubInstance.GetCurrentUserId();
             var setMembershipResult = await PubnubInstance.SetMemberships()
                 .Uuid(currentUserId)
@@ -254,9 +301,9 @@ namespace PubnubChatApi
                 .Channels(new List<PNMembership>() { new ()
                 {
                     Channel = channelId,
-                    Custom = membershipData.CustomData,
-                    Status = membershipData.Status,
-                    Type = membershipData.Type
+                    Custom = hostMembershipData.CustomData,
+                    Status = hostMembershipData.Status,
+                    Type = hostMembershipData.Type
                 }})
                 .ExecuteAsync().ConfigureAwait(false);
 
@@ -265,7 +312,7 @@ namespace PubnubChatApi
                 return result;
             }
             
-            var hostMembership = new Membership(this, currentUserId, channelId, membershipData);
+            var hostMembership = new Membership(this, currentUserId, channelId, hostMembershipData, updated.Result);
             result.Result.HostMembership = hostMembership;
             
             var channel = new Channel(this, channelId, channelData);
@@ -273,7 +320,7 @@ namespace PubnubChatApi
 
             if (type == "direct")
             {
-                var inviteMembership = await InviteToChannel(channelId, users[0].Id).ConfigureAwait(false);
+                var inviteMembership = await InviteToChannel(channelId, users[0].Id, inviteesMembershipData?[0]).ConfigureAwait(false);
                 if (result.RegisterOperation(inviteMembership))
                 {
                     return result;
@@ -281,7 +328,7 @@ namespace PubnubChatApi
                 result.Result.InviteesMemberships = new List<Membership>() { inviteMembership.Result };
             }else if (type == "group")
             {
-                var inviteMembership = await InviteMultipleToChannel(channelId, users).ConfigureAwait(false);
+                var inviteMembership = await InviteMultipleToChannel(channelId, users, inviteesMembershipData).ConfigureAwait(false);
                 if (result.RegisterOperation(inviteMembership))
                 {
                     return result;
@@ -297,13 +344,14 @@ namespace PubnubChatApi
         /// <param name="user">The user to create a direct conversation with.</param>
         /// <param name="channelId">Optional channel ID. If not provided, a new GUID will be used.</param>
         /// <param name="channelData">Optional additional channel data.</param>
-        /// <param name="membershipData">Optional membership data for the conversation.</param>
+        /// <param name="hostMembershipData">Optional host membership data for the conversation.</param>
+        /// <param name="inviteesMembershipData">Optional invitees membership data for the conversation.</param>
         /// <returns>A ChatOperationResult containing the created channel wrapper with channel and membership information.</returns>
         public async Task<ChatOperationResult<CreatedChannelWrapper>> CreateDirectConversation(User user, string channelId = "",
-            ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
+            ChatChannelData? channelData = null, ChatMembershipData? hostMembershipData = null, ChatMembershipData? inviteeMembershipData = null)
         {
             return await CreateConversation("direct", new List<User>() { user }, channelId, channelData,
-                membershipData).ConfigureAwait(false);
+                hostMembershipData, inviteeMembershipData == null ? null : new List<ChatMembershipData>(){inviteeMembershipData}).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -312,13 +360,14 @@ namespace PubnubChatApi
         /// <param name="users">The list of users to include in the group conversation.</param>
         /// <param name="channelId">Optional channel ID. If not provided, a new GUID will be used.</param>
         /// <param name="channelData">Optional additional channel data.</param>
-        /// <param name="membershipData">Optional membership data for the conversation.</param>
+        /// <param name="hostMembershipData">Optional host membership data for the conversation.</param>
+        /// <param name="inviteeMembershipData">Optional invitee membership data for the conversation.</param>
         /// <returns>A ChatOperationResult containing the created channel wrapper with channel and membership information.</returns>
         public async Task<ChatOperationResult<CreatedChannelWrapper>> CreateGroupConversation(List<User> users, string channelId = "",
-            ChatChannelData? channelData = null, ChatMembershipData? membershipData = null)
+            ChatChannelData? channelData = null, ChatMembershipData? hostMembershipData = null, List<ChatMembershipData>? inviteesMembershipData = null)
         {
             return await CreateConversation("group", users, channelId, channelData,
-                membershipData).ConfigureAwait(false);
+                hostMembershipData, inviteesMembershipData).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -326,8 +375,9 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="channelId">The ID of the channel to invite the user to.</param>
         /// <param name="userId">The ID of the user to invite.</param>
+        /// <param name="membershipData">Optional - membership data for the created invitee Membership.</param>
         /// <returns>A ChatOperationResult containing the created membership for the invited user.</returns>
-        public async Task<ChatOperationResult<Membership>> InviteToChannel(string channelId, string userId)
+        public async Task<ChatOperationResult<Membership>> InviteToChannel(string channelId, string userId, ChatMembershipData? membershipData = null)
         {
             var result = new ChatOperationResult<Membership>("Chat.InviteToChannel()", this);
             //Check if already a member first
@@ -357,11 +407,9 @@ namespace PubnubChatApi
                 new()
                 {
                     Channel = channelId,
-                    Status = "pending"
-                    //TODO: these too here?
-                    //TODO: again, should ChatMembershipData from Create(...)Channel also be passed here?
-                    /*Custom = ,
-                    Type = */
+                    Status = "pending",
+                    Type = membershipData?.Type,
+                    Custom = membershipData?.CustomData
                 }
             }).ExecuteAsync().ConfigureAwait(false);
 
@@ -370,20 +418,21 @@ namespace PubnubChatApi
                 return result;
             }
             
-            var newMataData = setMemberships.Result.Memberships?.FirstOrDefault(x => x.ChannelMetadata.Channel == channelId)?
+            var newMetaData = setMemberships.Result.Memberships?.FirstOrDefault(x => x.ChannelMetadata.Channel == channelId)?
                 .ChannelMetadata;
-            if (newMataData != null)
+            if (newMetaData != null)
             {
-                channel.Result.UpdateLocalData(newMataData);
+                channel.Result.UpdateLocalData(newMetaData);
             }
 
             var inviteEventPayload = $"{{\"channelType\": \"{channel.Result.Type}\", \"channelId\": {channelId}}}";
             await EmitEvent(PubnubChatEventType.Invite, userId, inviteEventPayload).ConfigureAwait(false);
-            
+
+            var channelData = newMetaData ?? new ChatChannelData();
             var newMembership = new Membership(this, userId, channelId, new ChatMembershipData()
             {
                 Status = "pending"
-            });
+            }, channelData);
             await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
 
             result.Result = newMembership;
@@ -395,14 +444,40 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="channelId">The ID of the channel to invite users to.</param>
         /// <param name="users">The list of users to invite.</param>
+        /// <param name="membershipsData">Optional - membership datas for the created invitee Memberships.</param>
         /// <returns>A ChatOperationResult containing a list of created memberships for the invited users.</returns>
-        public async Task<ChatOperationResult<List<Membership>>> InviteMultipleToChannel(string channelId, List<User> users)
+        public async Task<ChatOperationResult<List<Membership>>> InviteMultipleToChannel(string channelId, List<User> users, List<ChatMembershipData>? membershipsData = null)
         {
             var result = new ChatOperationResult<List<Membership>>("Chat.InviteMultipleToChannel()", this) { Result = new List<Membership>() };
+            if (membershipsData != null && membershipsData.Count != users.Count)
+            {
+                result.Error = true;
+                result.Exception = new PNException("Users and MembershipsData have different sizes!");
+                return result;
+            }
             var channel = await GetChannel(channelId).ConfigureAwait(false);
             if (result.RegisterOperation(channel))
             {
                 return result;
+            }
+            var members = new List<PNChannelMember>();
+            if (membershipsData == null)
+            {
+                members = users.Select(x => new PNChannelMember()
+                    { Uuid = x.Id, Status = "pending" }).ToList();
+            }
+            else
+            {
+                for (int i = 0; i < users.Count; i++)
+                {
+                    members.Add(new PNChannelMember()
+                    {
+                        Status = "pending",
+                        Uuid = users[i].Id,
+                        Custom = membershipsData[i].CustomData,
+                        Type = membershipsData[i].Type
+                    });
+                }
             }
             var inviteResponse = await PubnubInstance.SetChannelMembers().Channel(channelId)
                 .Include(
@@ -415,8 +490,7 @@ namespace PubnubChatApi
                         PNChannelMemberField.UUID_TYPE,
                         PNChannelMemberField.UUID_STATUS
                     })
-                //TODO: again, should ChatMembershipData from Create(...)Channel  also be passed here?
-                .Uuids(users.Select(x => new PNChannelMember() { Custom = x.CustomData, Uuid = x.Id, Status = "pending"}).ToList())
+                .Uuids(members)
                 .ExecuteAsync().ConfigureAwait(false);
             
             if (result.RegisterOperation(inviteResponse))
@@ -431,7 +505,7 @@ namespace PubnubChatApi
                 {
                     continue;
                 }
-                var newMembership = new Membership(this, userId, channelId, channelMember);
+                var newMembership = new Membership(this, userId, channelId, channelMember, channel.Result.ChannelData);
                 await newMembership.SetLastReadMessageTimeToken(ChatUtils.TimeTokenNow()).ConfigureAwait(false);
                 result.Result.Add(newMembership);
                 
@@ -545,21 +619,7 @@ namespace PubnubChatApi
             return result;
         }
 
-        /// <summary>
-        /// Deletes the channel with the provided channel ID.
-        /// <para>
-        /// The channel is deleted with all the messages and users.
-        /// </para>
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="soft">Bool specifying the type of deletion.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// var result = await chat.DeleteChannel("channel_id", true);
-        /// </code>
-        /// </example>
+        [Obsolete("Soft deletion for Channels has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the channel's custom data.")]
         public async Task<ChatOperationResult> DeleteChannel(string channelId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteChannel()", this);
@@ -582,6 +642,27 @@ namespace PubnubChatApi
             }
             return result;
         }
+        
+        /// <summary>
+        /// Deletes the channel with the provided channel ID.
+        /// <para>
+        /// The channel is deleted with all the messages and users.
+        /// </para>
+        /// </summary>
+        /// <param name="channelId">The channel ID.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var chat = // ...
+        /// var result = await chat.DeleteChannel("channel_id");
+        /// </code>
+        /// </example>
+        public async Task<ChatOperationResult> DeleteChannel(string channelId)
+        {
+            var result = new ChatOperationResult("Chat.DeleteChannel()", this);
+            result.RegisterOperation(await PubnubInstance.RemoveChannelMetadata().Channel(channelId).ExecuteAsync().ConfigureAwait(false));
+            return result;
+        }
 
         #endregion
 
@@ -594,13 +675,13 @@ namespace PubnubChatApi
             while (storeActivity)
             {
                 var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);
-                var data = (ChatUserData)getResult.Result;
                 if (getResult.Status.Error)
                 {
                     Logger.Error($"Error when trying to store user activity timestamp: {getResult.Status.ErrorData}");
                     await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
                     continue;
                 }
+                var data = (ChatUserData)getResult.Result;
                 data.CustomData ??= new Dictionary<string, object>();
                 data.CustomData["lastActiveTimestamp"] = ChatUtils.TimeTokenNow();
                 var setData = await User.UpdateUserData(this, currentUserId, data).ConfigureAwait(false);
@@ -788,7 +869,7 @@ namespace PubnubChatApi
                 var getUser = await GetUser(userId).ConfigureAwait(false);
                 if (!getUser.Error)
                 {
-                    getUser.Result.OnUserUpdated += listener;
+                    getUser.Result.OnUpdated += listener;
                 }
             }
         }
@@ -1069,22 +1150,8 @@ namespace PubnubChatApi
         {
             return (await User.UpdateUserData(this, userId, updatedData).ConfigureAwait(false)).ToChatOperationResult("Chat.UpdateUser()", this);
         }
-
-        /// <summary>
-        /// Deletes the user with the provided user ID.
-        /// <para>
-        /// The user is deleted with all the messages and channels.
-        /// </para>
-        /// </summary>
-        /// <param name="userId">The user ID.</param>
-        /// <param name="soft">Bool specifying the type of deletion.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <example>
-        /// <code>
-        /// var chat = // ...
-        /// var result = await chat.DeleteUser("user_id");
-        /// </code>
-        /// </example>
+        
+        [Obsolete("Soft deletion for Users has been deprecated - if you need to replicate this functionality you can manually add a \"deleted\" flag in the users' custom data.")]
         public async Task<ChatOperationResult> DeleteUser(string userId, bool soft = false)
         {
             var result = new ChatOperationResult("Chat.DeleteUser()", this);
@@ -1105,6 +1172,27 @@ namespace PubnubChatApi
                 var updateResult =  await User.UpdateUserData(this, userId, userData).ConfigureAwait(false);
                 result.RegisterOperation(updateResult);
             }
+            return result;
+        }
+        
+        /// <summary>
+        /// Deletes the user with the provided user ID.
+        /// <para>
+        /// The user is deleted with all the messages and channels.
+        /// </para>
+        /// </summary>
+        /// <param name="userId">The user ID.</param>
+        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
+        /// <example>
+        /// <code>
+        /// var chat = // ...
+        /// var result = await chat.DeleteUser("user_id");
+        /// </code>
+        /// </example>
+        public async Task<ChatOperationResult> DeleteUser(string userId)
+        {
+            var result = new ChatOperationResult("Chat.DeleteUser()", this);
+            result.RegisterOperation(await PubnubInstance.RemoveUuidMetadata().Uuid(userId).ExecuteAsync().ConfigureAwait(false));
             return result;
         }
 
@@ -1183,7 +1271,7 @@ namespace PubnubChatApi
                     CustomData = membershipResult.Custom,
                     Status = membershipResult.Status,
                     Type = membershipResult.Type
-                }));
+                }, membershipResult.ChannelMetadata));
             }
             result.Result = new MembersResponseWrapper()
             {
@@ -1257,6 +1345,11 @@ namespace PubnubChatApi
             {
                 return result;
             }
+            var getChannel = await GetChannel(channelId).ConfigureAwait(false);
+            if (result.RegisterOperation(getChannel))
+            {
+                return result;
+            }
 
             var memberships = new List<Membership>();
             foreach (var channelMemberResult in getResult.Result.ChannelMembers)
@@ -1266,7 +1359,7 @@ namespace PubnubChatApi
                     CustomData = channelMemberResult.Custom,
                     Status = channelMemberResult.Status,
                     Type = channelMemberResult.Type
-                }));
+                }, getChannel.Result.ChannelData));
             }
             result.Result = new MembersResponseWrapper()
             {
@@ -1372,8 +1465,11 @@ namespace PubnubChatApi
             }
             foreach (var membership in memberships)
             {
-                await EmitEvent(PubnubChatEventType.Receipt, membership.ChannelId,
-                    $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false);
+                if (membership.EmitReadReceiptEvents)
+                {
+                    await EmitEvent(PubnubChatEventType.Receipt, membership.ChannelId,
+                        $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false);
+                }
             }
             result.Result = new MarkMessagesAsReadWrapper()
             {
@@ -1545,7 +1641,7 @@ namespace PubnubChatApi
                 var getMessage = await GetMessage(channelId, messageTimeToken).ConfigureAwait(false);
                 if (!getMessage.Error)
                 {
-                    getMessage.Result.OnMessageUpdated += listener;
+                    getMessage.Result.OnUpdated += listener;
                 }
             }
         }
@@ -1669,7 +1765,7 @@ namespace PubnubChatApi
             var getHistory = await PubnubInstance.FetchHistory().Channels(new[] { channelId })
                 .Start(long.Parse(startTimeToken)).End(long.Parse(endTimeToken)).MaximumPerChannel(count)
                 .ExecuteAsync().ConfigureAwait(false);
-            if (result.RegisterOperation(getHistory) || !getHistory.Result.Messages.ContainsKey(channelId))
+            if (result.RegisterOperation(getHistory) || getHistory.Result.Messages == null || !getHistory.Result.Messages.ContainsKey(channelId))
             {
                 return result;
             }
@@ -1692,23 +1788,23 @@ namespace PubnubChatApi
             return result;
         }
         
-        /// <summary>
-        /// Emits a chat event on the specified channel.
-        /// </summary>
-        /// <param name="type">The type of event to emit.</param>
-        /// <param name="channelId">The channel ID where to emit the event.</param>
-        /// <param name="jsonPayload">The JSON payload of the event.</param>
-        /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        public async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload)
+        internal async Task<ChatOperationResult> EmitEvent(PubnubChatEventType type, string channelId, string jsonPayload, string? messageType = null, bool storeInHistory = true)
         {
             var result = new ChatOperationResult("Chat.EmitEvent()", this);
             jsonPayload = jsonPayload.Remove(0, 1);
             jsonPayload = jsonPayload.Remove(jsonPayload.Length - 1);
             var fullPayload = $"{{{jsonPayload}, \"type\": \"{ChatEnumConverters.ChatEventTypeToString(type)}\"}}";
             var emitOperation = PubnubInstance.Publish().Channel(channelId).Message(fullPayload);
+            if (messageType != null)
+            {
+                emitOperation.CustomMessageType(messageType);
+            }
             if (type is PubnubChatEventType.Receipt or PubnubChatEventType.Typing)
             {
                 emitOperation.ShouldStore(false);
+            }else if (type is PubnubChatEventType.Custom)
+            {
+                emitOperation.ShouldStore(storeInHistory);
             }
             result.RegisterOperation(await emitOperation.ExecuteAsync().ConfigureAwait(false));
             return result;

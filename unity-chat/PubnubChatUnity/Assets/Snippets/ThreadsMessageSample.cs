@@ -270,7 +270,7 @@ public class ThreadsMessageSample
                     Debug.Log($"Thread channel successfully retrieved: {threadChannel.Name}");
 
                     // subscribe to updates on the thread channel
-                    threadChannel.OnChannelUpdate += OnThreadChannelUpdateHandler;
+                    threadChannel.OnUpdated += OnThreadChannelUpdateHandler;
                 }
                 else
                 {

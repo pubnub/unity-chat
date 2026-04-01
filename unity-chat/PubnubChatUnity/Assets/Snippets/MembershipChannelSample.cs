@@ -60,6 +60,49 @@ public class MembershipChannelSample
         // snippet.end
     }
     
+    public static async Task GetMembershipExample()
+    {
+        // snippet.get_membership_example
+        var userResult = await chat.GetUser("support_agent_15");
+        if (userResult.Error)
+        {
+            Debug.Log("User not found.");
+            return;
+        }
+        var user = userResult.Result;
+        Debug.Log($"Found user with name {user.UserName}");
+        
+        // Check for and then get the memberships of the user
+        var isMember = await user.IsMemberOn("some_channel");
+        if (!isMember.Error && isMember.Result)
+        {
+            // If you call this method and they aren't a member then the operation result will contain an error message
+            var getMember = await user.GetMembership("some_channel");
+        }
+        // snippet.end
+    }
+    
+    public static async Task GetMembershipFromChannelExample()
+    {
+        // snippet.get_membership_channel_example
+        var getChannel = await chat.GetChannel("some_channel");
+        if (getChannel.Error)
+        {
+            Debug.Log("Channel not found.");
+            return;
+        }
+        var channel = getChannel.Result;
+        
+        // Check for and then get the memberships of the user
+        var hasMember = await channel.HasMember("some_user");
+        if (!hasMember.Error && hasMember.Result)
+        {
+            // If you call this method and they aren't a member then the operation result will contain an error message
+            var getMember = await channel.GetMember("some_user");
+        }
+        // snippet.end
+    }
+    
     public static async Task GetMembershipUpdatesExample()
     {
         // snippet.get_membership_updates_example
@@ -89,7 +132,7 @@ public class MembershipChannelSample
                     firstMembership.StreamUpdates(true);
                     
                     // attach an event handler for membership updates
-                    firstMembership.OnMembershipUpdated += OnMembershipUpdatedHandler;
+                    firstMembership.OnUpdated += OnMembershipUpdatedHandler;
 
                     // example event handler for membership updates
                     void OnMembershipUpdatedHandler(Membership updatedMembership)
@@ -133,6 +176,32 @@ public class MembershipChannelSample
             membership.MembershipData.CustomData["role"] = "premium-support";
             // add custom metadata to the user membership
             await membership.Update(membership.MembershipData);
+        }
+        // snippet.end
+    }
+
+    public static async Task DeleteMembershipExample()
+    {
+        // snippet.delete_membership_example
+        // reference the "support_agent_15" user
+        var userResult = await chat.GetUser("support_agent_15");
+        if (userResult.Error)
+        {
+            Debug.Log("Couldn't find user!");
+            return;
+        }
+        var user = userResult.Result;
+
+        // get the list of all user memberships and filter out the right channel
+        var membershipsWrapperResult = await user.GetMemberships(
+            filter: "channel.id == 'high-priority-incidents'"
+        );
+
+        // get the membership and delete it
+        if(!membershipsWrapperResult.Error && membershipsWrapperResult.Result.Memberships.Any())
+        {
+            var membership = membershipsWrapperResult.Result.Memberships[0];
+            await membership.Delete();
         }
         // snippet.end
     }

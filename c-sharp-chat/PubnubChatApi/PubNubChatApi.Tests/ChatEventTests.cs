@@ -38,9 +38,9 @@ public class ChatEventTests
     public async Task TestModerationEvents()
     {
         var manualModerationEvent = new ManualResetEvent(false);
-        user.OnModerationEvent += moderationEvent =>
+        user.OnRestrictionChanged += moderationEvent =>
         {
-            Assert.True(moderationEvent.Payload.Contains("some_reason"));
+            Assert.True(moderationEvent.Reason == "some_reason");
             manualModerationEvent.Set();
         };
         user.SetListeningForModerationEvents(true);

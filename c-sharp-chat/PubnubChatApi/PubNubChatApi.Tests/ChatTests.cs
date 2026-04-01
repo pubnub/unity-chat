@@ -13,13 +13,21 @@ public class ChatTests
     [SetUp]
     public async Task Setup()
     {
-        chat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(storeUserActivityTimestamp: true), 
+        chat = TestUtils.AssertOperation(await Chat.CreateInstance(
+            new PubnubChatConfig(
+                storeUserActivityTimestamp: true, 
+                emitReadReceiptEvents:new Dictionary<string, bool>()
+                    {
+                        {"public", true},
+                        {"group", true},
+                        {"direct", true},
+                    }), 
             new PNConfiguration(new UserId("chats_tests_user_fresh_3"))
         {
             PublishKey = PubnubTestsParameters.PublishKey,
             SubscribeKey = PubnubTestsParameters.SubscribeKey
         }));
-        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("chat_tests_channel_2"));
+        channel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         currentUser = TestUtils.AssertOperation(await chat.GetCurrentUser());
         await channel.Join();
         await Task.Delay(3500);
@@ -30,6 +38,8 @@ public class ChatTests
     {
         await channel.Leave();
         await Task.Delay(1000);
+        await channel.Delete();
+        await Task.Delay(1000);
         chat.Destroy();
         await Task.Delay(1000);
     }
@@ -38,24 +48,21 @@ public class ChatTests
     public async Task TestGetCurrentUserMentions()
     {
         var messageContent = "wololo";
-        await channel.SendText(messageContent, new SendTextParams()
+        var draft = channel.CreateMessageDraft();
+        draft.InsertText(0, messageContent);
+        draft.AddMention(0, 6, new MentionTarget()
         {
-            MentionedUsers = new Dictionary<int, MentionedUser>()
-            {
-                {0, new MentionedUser()
-                {
-                    Id = currentUser.Id,
-                    Name = currentUser.UserName
-                }}
-            }
+            Type = MentionType.User,
+            Target = currentUser.Id
         });
+        await draft.Send();
 
         await Task.Delay(3000);
 
         var mentions = TestUtils.AssertOperation(await chat.GetCurrentUserMentions("99999999999999999", "00000000000000000", 10));
         
         Assert.True(mentions != null);
-        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText == messageContent));
+        Assert.True(mentions.Mentions.Any(x => x.ChannelId == channel.Id && x.Message.MessageText.Contains(messageContent)));
     }
 
     [Test]
@@ -69,7 +76,7 @@ public class ChatTests
     public async Task TestGetEventHistory()
     {
         var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        await chat.EmitEvent(PubnubChatEventType.Custom, testChannel.Id, "{\"test\":\"some_nonsense\"}");
+        await testChannel.EmitCustomEvent("{\"test\":\"some_nonsense\"}");
 
         await Task.Delay(5000);
 
@@ -152,21 +159,59 @@ public class ChatTests
     }
 
     [Test]
-    public async Task TestEmitEvent()
+    public async Task TestStatusListener()
     {
-        var reportManualEvent = new ManualResetEvent(false);
-        channel.OnCustomEvent += customEvent =>
-        {
-            Assert.True(customEvent.Payload.Contains("test"));
-            Assert.True(customEvent.Payload.Contains("some_nonsense"));
-            reportManualEvent.Set();
-        };
-        channel.SetListeningForCustomEvents(true);
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        
+        chat.StreamSubscriptionStatus(true);
         await Task.Delay(2500);
-        await chat.EmitEvent(PubnubChatEventType.Custom, channel.Id, "{\"test\":\"some_nonsense\"}");
+        
+        var connectedReset = new ManualResetEvent(false);
+        chat.OnSubscriptionStatusChanged += (status) =>
+        {
+            if (status.Category == PNStatusCategory.PNSubscriptionChangedCategory &&
+                status.AffectedChannels.Contains(testChannel.Id))
+            {
+                connectedReset.Set();   
+            }
+        };
+        
+        testChannel.Connect();
+        
+        var receivedConnected = connectedReset.WaitOne(15000);
+        Assert.True(receivedConnected, "Didn't receive PNSubscriptionChangedCategory status");
+        
+        var disconnectedReset = new ManualResetEvent(false);
+        chat.OnSubscriptionStatusChanged += (status) =>
+        {
+            if (status.Category == PNStatusCategory.PNSubscriptionChangedCategory &&
+                !status.AffectedChannels.Contains(testChannel.Id))
+            {
+                disconnectedReset.Set();   
+            }
+        };
+        testChannel.Disconnect();
+        
+        var receivedDisconnected = disconnectedReset.WaitOne(15000);
+        Assert.True(receivedDisconnected, "Didn't receive PNSubscriptionChangedCategory status");
+        
+        chat.StreamSubscriptionStatus(false);
+        await Task.Delay(2000);
+        
+        connectedReset = new ManualResetEvent(false);
+        testChannel.Connect();
+        
+        receivedConnected = connectedReset.WaitOne(5000);
+        Assert.False(receivedConnected, "Received PNSubscriptionChangedCategory despite unsubscribing");
+        
+        disconnectedReset = new ManualResetEvent(false);
+        testChannel.Disconnect();
 
-        var eventReceived = reportManualEvent.WaitOne(8000);
-        Assert.True(eventReceived);
+        receivedDisconnected = disconnectedReset.WaitOne(15000);
+        Assert.False(receivedDisconnected, "Received PNSubscriptionChangedCategory despite unsubscribing");
+        
+        //Cleanup
+        await testChannel.Delete();
     }
 
     [Test]
@@ -231,13 +276,9 @@ public class ChatTests
         await Task.Delay(2500);
 
         var receiptReset = new ManualResetEvent(false);
-        otherChatChannel.OnReadReceiptEvent += readReceipts =>
+        otherChatChannel.OnReadReceiptEvent += readReceipt =>
         {
-            if (readReceipts.Count == 0)
-            {
-                return;
-            }
-            Assert.True(readReceipts.Values.Any(x => x != null && x.Contains(currentUser.Id)));
+            Assert.True(readReceipt.UserId == currentUser.Id);
             receiptReset.Set();
         };
         await otherChatChannel.SendText("READ MEEEE");
@@ -247,6 +288,43 @@ public class ChatTests
         await chat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
         var receipt = receiptReset.WaitOne(15000);
         Assert.True(receipt);
+    }
+    
+    [Test]
+    public async Task TestDisableReadReceiptsInChatConfig()
+    {
+        var otherUserId = "other_chat_user";
+        var otherChat = TestUtils.AssertOperation(await Chat.CreateInstance(new PubnubChatConfig(
+                storeUserActivityTimestamp: true, 
+                emitReadReceiptEvents: new Dictionary<string, bool>()
+                {
+                    {"public", false}
+                }), 
+            new PNConfiguration(new UserId(otherUserId))
+        {
+            PublishKey = PubnubTestsParameters.PublishKey,
+            SubscribeKey = PubnubTestsParameters.SubscribeKey
+        }));
+        var otherChatChannel = TestUtils.AssertOperation(await otherChat.GetChannel(channel.Id));
+        await otherChatChannel.Join();
+        await Task.Delay(2500);
+        
+        channel.StreamReadReceipts(true);
+        await Task.Delay(2500);
+
+        var receiptReset = new ManualResetEvent(false);
+        channel.OnReadReceiptEvent += readReceipt =>
+        {
+            Assert.True(readReceipt.UserId == otherUserId);
+            receiptReset.Set();
+        };
+        await channel.SendText("READ MEEEE");
+
+        await Task.Delay(5000);
+
+        await otherChat.MarkAllMessagesAsRead(filter:$"channel.id LIKE \"{channel.Id}\"");
+        var receipt = receiptReset.WaitOne(15000);
+        Assert.False(receipt, "Received read receipt even with config set not to send events");
     }
 
     [Test]

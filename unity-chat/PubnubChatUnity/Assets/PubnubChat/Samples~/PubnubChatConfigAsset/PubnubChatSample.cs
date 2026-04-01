@@ -66,7 +66,7 @@ public class PubnubChatSample : MonoBehaviour
         user.SetListeningForUpdates(true);
         await Task.Delay(2500);
         
-        user.OnUserUpdated += updatedUser =>
+        user.OnUpdated += updatedUser =>
             Debug.Log($"{updatedUser.Id} has been updated! Their name is now {updatedUser.UserName}");
         //Update our user data
         await user.Update(new ChatUserData()

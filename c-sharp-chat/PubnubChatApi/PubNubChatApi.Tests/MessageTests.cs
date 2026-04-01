@@ -61,17 +61,17 @@ public class MessageTests
         {
             if (message.MessageText == "message_to_be_quoted")
             {
-                await testChannel.SendText("message_with_data", new SendTextParams()
+                var draft = testChannel.CreateMessageDraft();
+                draft.QuotedMessage = message;
+                draft.InsertText(0, "message_with_data");
+                draft.AddMention(0, 17, new MentionTarget()
                 {
-                    MentionedUsers = new Dictionary<int, MentionedUser>() { { 0, new MentionedUser()
-                    {
-                        Id = user.Id,
-                        Name = user.UserName
-                    } } },
-                    QuotedMessage = message
+                    Type = MentionType.User,
+                    Target = user.Id
                 });
+                await draft.Send();
             }
-            else if (message.MessageText == "message_with_data")
+            else if (message.MessageText.Contains("message_with_data"))
             {
                 Assert.True(message.MentionedUsers.Any(x => x.Id == user.Id));
                 var quoted = TestUtils.AssertOperation(await message.GetQuotedMessage());
@@ -118,7 +118,7 @@ public class MessageTests
             message.SetListeningForUpdates(true);
             await Task.Delay(2000);
             
-            message.OnMessageUpdated += updatedMessage =>
+            message.OnUpdated += updatedMessage =>
             {
                 manualUpdatedEvent.Set();
                 Assert.True(updatedMessage.MessageText == "new-text");
@@ -140,7 +140,7 @@ public class MessageTests
         {
             message.SetListeningForUpdates(true);
             await Task.Delay(2000);
-            message.OnMessageUpdated += updatedMessage =>
+            message.OnUpdated += updatedMessage =>
             {
                 originalTextAfterUpdate = updatedMessage.OriginalMessageText;
                 manualUpdatedEvent.Set();
@@ -247,6 +247,30 @@ public class MessageTests
         var reacted = manualReset.WaitOne(10000);
         Assert.True(reacted);
     }
+    
+    [Test]
+    public async Task TestNewMessageReactions()
+    {
+        var manualReset = new ManualResetEvent(false);
+        channel.OnMessageReceived += async message =>
+        {
+            await message.ToggleReaction("happy");
+
+            await Task.Delay(3000);
+
+            var has = message.HasUserReaction("happy");
+            Assert.True(has);
+            var newReactions = message.MessageReactions();
+            Assert.True(newReactions.Count == 1 
+                        && newReactions.Any(
+                            x => x is { Value: "happy", IsMine: true, UserIds.Count: 1 } 
+                                && x.UserIds.Contains(chat.PubnubInstance.GetCurrentUserId())));
+            manualReset.Set();
+        };
+        await channel.SendText("a_message");
+        var reacted = manualReset.WaitOne(10000);
+        Assert.True(reacted);
+    }
 
     [Test]
     public async Task TestMessageReport()
@@ -254,9 +278,9 @@ public class MessageTests
         var reportManualEvent = new ManualResetEvent(false);
         channel.SetListeningForReportEvents(true);
         await Task.Delay(3000);
-        channel.OnReportEvent += reportEvent =>
+        channel.OnMessageReported += reportEvent =>
         {
-            Assert.True(reportEvent.Payload.Contains("bad_message"));
+            Assert.True(reportEvent.Reason == "bad_message");
             reportManualEvent.Set();
         };
         channel.OnMessageReceived += async message => { await message.Report("bad_message"); };

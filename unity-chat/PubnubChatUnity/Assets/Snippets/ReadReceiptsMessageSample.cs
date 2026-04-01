@@ -44,7 +44,8 @@ public class ReadReceiptsMessageSample
             Debug.Log($"Found channel with name {channel.Name}");
 
             // join the channel and start listening to read receipt events
-            await channel.Join();
+            await channel.JoinChannel();
+            channel.Connect();
             channel.StreamReadReceipts(true);
 
             // subscribe to the OnReadReceiptEvent event
@@ -56,21 +57,43 @@ public class ReadReceiptsMessageSample
         }
         
         // the event handler
-        void OnReadHandler(Dictionary<string, List<string>> readEvent)
+        void OnReadHandler(ReadReceipt readReceipt)
         {
             // print the message details to the console
-            foreach (var kvp in readEvent)
-            {
-                var channel = kvp.Key;
-                foreach (var user in kvp.Value)
-                {
-                    Debug.Log(
-                        $"Received a read receipt event on channel {channel}" +
-                        $" from user {user}");   
-                }
-            }
+            Debug.Log(
+                $"Received a read receipt event for timetoken {readReceipt.LastReadTimeToken}" +
+                $" from user {readReceipt.UserId}");  
             // you can add additional logic here, such as confirming receipt to the user or processing the message further
         }
+        // snippet.end
+    }
+
+    public static async Task ReadReceiptsConfigExample()
+    {
+        // snippet.read_receipts_config_example
+        // set read receipt emission rules per channel type when creating Chat object
+        var chatConfig = new PubnubChatConfig()
+        {
+            EmitReadReceiptEvents =
+            {
+                { "public", false },
+                { "group", true },
+                { "direct", true },
+                { "some_custom_type", true },
+            }
+        };
+        var pubnubConfig = new PNConfiguration(new UserId("some_user"))
+        {
+            PublishKey = "your_publish_key",
+            SubscribeKey = "your_subscribe_key",
+        };
+        var createChat = await UnityChat.CreateInstance(chatConfig, pubnubConfig);
+        if (createChat.Error)
+        {
+            Debug.LogError($"Error when trying to create Chat instance: {createChat.Exception.Message}");
+            return;
+        }
+        var chat = createChat.Result;
         // snippet.end
     }
 }

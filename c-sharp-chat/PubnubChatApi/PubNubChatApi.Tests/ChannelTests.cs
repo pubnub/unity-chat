@@ -51,7 +51,7 @@ public class ChannelTests
             Status = "yes",
             Type = "sometype"
         };
-        channel.OnChannelUpdate += updatedChannel =>
+        channel.OnUpdated += updatedChannel =>
         {
             Assert.True(updatedChannel.Description == updatedData.Description, "updatedChannel.Description != updatedData.ChannelDescription");
             Assert.True(updatedChannel.CustomData.TryGetValue("key", out var value) && value.ToString() == "value", "updatedChannel.CustomDataJson != updatedData.ChannelCustomDataJson");
@@ -351,14 +351,44 @@ public class ChannelTests
         var receivedManualEvent = new ManualResetEvent(false);
         user.SetListeningForMentionEvents(true);
         await Task.Delay(3000);
-        user.OnMentionEvent += mentionEvent =>
+        user.OnMentioned += mentionEvent =>
         {
-            Assert.True(mentionEvent.Payload.Contains("heyyy"));
+            Assert.True(mentionEvent.Text.Contains("heyyy"));
+            Assert.True(mentionEvent.MentionedByUserId == user.Id);
+            Assert.True(mentionEvent.ChannelId == channel.Id);
             receivedManualEvent.Set();
         };
-        await channel.EmitUserMention(user.Id, "99999999999999999", "heyyy");
+        var draft = channel.CreateMessageDraft();
+        draft.InsertText(0, "heyyy");
+        draft.AddMention(0, 5, new MentionTarget()
+        {
+            Type = MentionType.User,
+            Target = user.Id
+        });
+        await draft.Send();
         var received = receivedManualEvent.WaitOne(7000);
         Assert.True(received);
+    }
+    
+    [Test]
+    public async Task TestEmitCustomEvent()
+    {
+        var channel = TestUtils.AssertOperation(await chat.CreatePublicConversation("channel_custom_event_test"));
+        await channel.Join();
+        await Task.Delay(2500);
+        var reportManualEvent = new ManualResetEvent(false);
+        channel.OnCustomEvent += customEvent =>
+        {
+            Assert.True(customEvent.Payload.Contains("test"));
+            Assert.True(customEvent.Payload.Contains("some_nonsense"));
+            reportManualEvent.Set();
+        };
+        channel.SetListeningForCustomEvents(true);
+        await Task.Delay(2500);
+        await channel.EmitCustomEvent("{\"test\":\"some_nonsense\"}");
+
+        var eventReceived = reportManualEvent.WaitOne(8000);
+        Assert.True(eventReceived);
     }
     
     [Test]
@@ -372,6 +402,23 @@ public class ChannelTests
         var isPresent = TestUtils.AssertOperation(await someChannel.IsUserPresent(user.Id));
         
         Assert.True(isPresent, "someChannel.IsUserPresent() doesn't return true for most recently joined channel!");
+    }
+    
+    [Test]
+    public async Task TestChannelHasAndGetMember()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await someChannel.Join();
+
+        await Task.Delay(4000);
+
+        var hasMember = TestUtils.AssertOperation(await someChannel.HasMember(user.Id));
+        Assert.True(hasMember, "someChannel.HasMember() doesn't return true for most recently joined channel!");
+
+        var getMember = TestUtils.AssertOperation(await someChannel.GetMember(user.Id));
+        Assert.True(getMember.ChannelId == someChannel.Id, "Wrong GetMember() channel id");
+        Assert.True(getMember.UserId == user.Id, "Wrong GetMember() user id");
+        
     }
     
     [Test]
@@ -391,7 +438,7 @@ public class ChannelTests
     public async Task TestPresenceCallback()
     {
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
-        someChannel.SetListeningForPresence(true);
+        someChannel.StreamPresence(true);
 
         var reset = new ManualResetEvent(false);
         someChannel.OnPresenceUpdate += userIds =>
@@ -401,8 +448,61 @@ public class ChannelTests
         };
         await someChannel.Join();
         var presenceReceived = reset.WaitOne(12000);
-        
         Assert.True(presenceReceived, "did not receive presence callback");
+        
+        //Cleanup
+        someChannel.StreamPresence(false);
+        await someChannel.Delete();
+    }
+
+    [Test]
+    public async Task TestDeletionCallback()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        someChannel.StreamUpdates(true);
+
+        await Task.Delay(2500);
+
+        var deleteReset = new ManualResetEvent(false);
+        someChannel.OnDeleted += () =>
+        {
+            deleteReset.Set();
+        };
+        TestUtils.AssertOperation(await someChannel.Delete());
+        var deleted = deleteReset.WaitOne(15000);
+        Assert.True(deleted, "Didn't receive OnDeleted callback!");
+    }
+
+    [Test]
+    public async Task TestFetchReadReceipts()
+    {
+        var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
+        await someChannel.Join();
+        await Task.Delay(2500);
+
+        var reset = new ManualResetEvent(false);
+        Message readMessage = null;
+        var messageValue = "READ MEEEE";
+        someChannel.OnMessageReceived += message =>
+        {
+            if (message.MessageText == messageValue)
+            {
+                readMessage = message;
+                reset.Set();
+            }
+        };
+        await someChannel.SendText(messageValue);
+        
+        var gotMessage = reset.WaitOne(20000);
+        Assert.True(gotMessage, "Never received message callback.");
+
+        var membership = TestUtils.AssertOperation(await user.GetMembership(someChannel.Id));
+        TestUtils.AssertOperation(await membership.SetLastReadMessage(readMessage));
+        await Task.Delay(8000);
+
+        var receipts = TestUtils.AssertOperation(await someChannel.GetReadReceipts());
+        
+        Assert.True(receipts.Any(x => x.LastReadTimeToken == readMessage.TimeToken && x.UserId == user.Id));
     }
     
     [Test]
@@ -411,10 +511,9 @@ public class ChannelTests
         var someChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         someChannel.SetListeningForReportEvents(true);
         var reset = new ManualResetEvent(false);
-        someChannel.OnReportEvent += reportEvent =>
+        someChannel.OnMessageReported += reportEvent =>
         {
-            var data = chat.PubnubInstance.JsonPluggableLibrary.DeserializeToDictionaryOfObject(reportEvent.Payload);
-            Assert.True(data.TryGetValue("reason", out var reason) && reason.ToString() == "some_reason", "incorrect report reason received");
+            Assert.True(reportEvent.Reason == "some_reason", "incorrect report reason received");
             reset.Set();
         };
         

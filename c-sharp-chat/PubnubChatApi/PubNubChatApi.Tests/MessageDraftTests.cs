@@ -178,6 +178,58 @@ public class MessageDraftTests
     }
 
     [Test]
+    public async Task TestGetMessageElementsFromMessage()
+    {
+        var messageDraft = channel.CreateMessageDraft();
+
+        messageDraft.InsertText(0, "Hello JohnDoe check general and click here for more");
+        messageDraft.AddMention(6, 7, new MentionTarget { Type = MentionType.User, Target = "mock_user" });
+        messageDraft.AddMention(20, 7, new MentionTarget { Type = MentionType.Channel, Target = "message_draft_tests_channel" });
+        messageDraft.AddMention(32, 10, new MentionTarget { Type = MentionType.Url, Target = "https://www.pubnub.com" });
+
+        var draftElements = messageDraft.GetMessageElements();
+
+        var messageReset = new ManualResetEvent(false);
+        List<MessageElement> receivedElements = null;
+        channel.OnMessageReceived += message =>
+        {
+            receivedElements = message.GetMessageElements();
+            messageReset.Set();
+        };
+
+        await messageDraft.Send();
+        var receivedMessage = messageReset.WaitOne(10000);
+        Assert.True(receivedMessage, "didn't receive message callback");
+
+        Assert.NotNull(receivedElements);
+        Assert.AreEqual(draftElements.Count, receivedElements.Count, "element count mismatch");
+        for (int i = 0; i < draftElements.Count; i++)
+        {
+            Assert.AreEqual(draftElements[i].Text, receivedElements[i].Text, $"text mismatch at index {i}");
+            if (draftElements[i].MentionTarget == null)
+            {
+                Assert.IsNull(receivedElements[i].MentionTarget, $"expected null MentionTarget at index {i}");
+            }
+            else
+            {
+                Assert.NotNull(receivedElements[i].MentionTarget, $"expected non-null MentionTarget at index {i}");
+                Assert.AreEqual(draftElements[i].MentionTarget.Type, receivedElements[i].MentionTarget.Type, $"MentionTarget type mismatch at index {i}");
+                Assert.AreEqual(draftElements[i].MentionTarget.Target, receivedElements[i].MentionTarget.Target, $"MentionTarget target mismatch at index {i}");
+            }
+        }
+    }
+
+    [Test]
+    public async Task TestAppendText()
+    {
+        var messageDraft = channel.CreateMessageDraft();
+        messageDraft.InsertText(0, "some text goes here");
+        messageDraft.AppendText(", and some more goes at the end");
+        var text = messageDraft.Text;
+        Assert.True(text == "some text goes here, and some more goes at the end", "Wrong text in MD after AppendText()");
+    }
+
+    [Test]
     public async Task TestUpdate()
     {
         var messageDraft = channel.CreateMessageDraft();

@@ -42,6 +42,45 @@ public class MembershipTests
         var memberships = TestUtils.AssertOperation(await user.GetMemberships());
         Assert.True(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
+    
+    [Test]
+    public async Task TestDeleteMemberships()
+    {
+        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var membership = allMemberships.Memberships.FirstOrDefault(x => x.ChannelId == channel.Id && x.UserId == user.Id);
+        if (membership == null)
+        {
+            Assert.Fail("Did not find specified membership!");
+            return;
+        }
+        TestUtils.AssertOperation(await membership.Delete());
+        var memberships = TestUtils.AssertOperation(await user.GetMemberships());
+        Assert.False(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
+    }
+    
+    [Test]
+    public async Task TestDeletionCallback()
+    {
+        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var membership = allMemberships.Memberships.FirstOrDefault(x => x.ChannelId == channel.Id && x.UserId == user.Id);
+        if (membership == null)
+        {
+            Assert.Fail("Did not find specified membership!");
+            return;
+        }
+        membership.StreamUpdates(true);
+        await Task.Delay(2500);
+
+        var deletionReset = new ManualResetEvent(false);
+        membership.OnDeleted += () =>
+        {
+            deletionReset.Set();
+        };
+        TestUtils.AssertOperation(await membership.Delete());
+
+        var deleted = deletionReset.WaitOne(15000);
+        Assert.True(deleted, "Didn't receive OnDeleted callback!");
+    }
 
     [Test]
     public async Task TestUpdateMemberships()
@@ -65,7 +104,7 @@ public class MembershipTests
         };
 
         var manualUpdatedEvent = new ManualResetEvent(false);
-        testMembership.OnMembershipUpdated += membership =>
+        testMembership.OnUpdated += membership =>
         {
             Assert.True(membership.MembershipData.Type == testMembership.MembershipData.Type);
             Assert.True(membership.MembershipData.Status == testMembership.MembershipData.Status);
@@ -115,12 +154,12 @@ public class MembershipTests
     [Test]
     public async Task TestLastRead()
     {
-        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation("last_read_test_channel_57"));
+        var testChannel = TestUtils.AssertOperation(await chat.CreatePublicConversation());
         await testChannel.Join();
 
         await Task.Delay(4000);
 
-        var membership = TestUtils.AssertOperation(await user.GetMemberships(limit: 20)).Memberships
+        var membership = TestUtils.AssertOperation(await user.GetMemberships(limit: 20, filter:$"channel.id == \"{testChannel.Id}\"")).Memberships
             .FirstOrDefault(x => x.ChannelId == testChannel.Id);
         if (membership == null)
         {
@@ -149,6 +188,9 @@ public class MembershipTests
 
         var received = messageReceivedManual.WaitOne(90000);
         Assert.True(received);
+        
+        //Cleanup
+        await testChannel.Delete();
     }
 
     [Test]

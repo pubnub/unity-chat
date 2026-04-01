@@ -76,7 +76,7 @@ public class UpdatesUserSample
         
         user.StreamUpdates(true);
       
-        user.OnUserUpdated += OnUserUpdatedHandler; // or use lambda
+        user.OnUpdated += OnUserUpdatedHandler; // or use lambda
         void OnUserUpdatedHandler(User user)
         {
             Debug.Log($"User updated: {user.Id}");
@@ -95,11 +95,10 @@ public class UpdatesUserSample
             users.Add(getFirstUser.Result);
             users.Add(getSecondUser.Result);
         }
-        Action<User, ChatEntityChangeType> listener = (user, changeType) => 
+        Action<User> listener = (user) => 
         {
             // Print the updated user name and the type of update
             Debug.Log("Updated user Name: " + user.UserName);
-            Debug.Log("Update type: " + changeType);
         };
         User.StreamUpdatesOn(users, listener);
         // snippet.end

@@ -1,6 +1,6 @@
 {
   "name": "com.pubnub.pubnubchat",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "displayName": "Pubnub Chat",
   "description": "PubNub Unity Chat SDK",
   "unity": "2022.3",
@@ -22,6 +22,11 @@
       "displayName": "Pubnub Chat - Config Asset and Console Example",
       "description": "Contains a ScriptableObject with PubnubChatConfig properties that can be used to initialize a new Chat object and a sample Pubnub Chat MonoBehaviour script that runs a few example tasks in the console.",
       "path": "Samples~/PubnubChatConfigAsset"
+    },
+	{
+      "displayName": "Pubnub Chat - Example UI Prefab",
+      "description": "Contains a simple drag-and-drop UI prefab implementation of Pubnub Chat.",
+      "path": "Samples~/UIChatPrefab"
     }
   ],
   "dependencies": {

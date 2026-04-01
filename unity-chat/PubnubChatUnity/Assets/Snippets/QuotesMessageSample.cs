@@ -43,13 +43,19 @@ public class QuotesMessageSample
         var quotedMessage = quotedMessageResult.Result;
         
         var channelResult = await chat.GetChannel("support");
-        if (channelResult.Error) return;
+        if (channelResult.Error)
+        {
+            Debug.LogError($"Couldn't get channel, error: {channelResult.Exception.Message}");
+            return;
+        }
         var testChannel = channelResult.Result;
         
-        await testChannel.SendText("message with a quote", new SendTextParams()
-            {
-                QuotedMessage = quotedMessage
-            });
+        //Creating a Message Draft to attatch a Quote
+        var messageDraft = testChannel.CreateMessageDraft();
+        messageDraft.InsertText(0, "message with a quote");
+        messageDraft.QuotedMessage = quotedMessage;
+        
+        await messageDraft.Send();
         // snippet.end
     }
     

@@ -227,4 +227,21 @@ public class DraftsMessageSample
         await messageDraft.Send();
         // snippet.end
     }
+
+    public static void MessageElementsSample()
+    {
+        Message message = null;
+        MessageDraft messageDraft = null;
+        
+        // snippet.get_message_elements
+        // Parse elements from a draft before sending
+        var elements = messageDraft.GetMessageElements();
+
+        // Parse elements from a received message
+        elements = message.GetMessageElements();
+
+        // Parse any markdown string directly
+        elements = MessageDraft.GetMessageElements("[Alex](pn-user://alex_d) check the [#general](pn-channel://group.general) channel");
+        // snippet.end
+    }
 }

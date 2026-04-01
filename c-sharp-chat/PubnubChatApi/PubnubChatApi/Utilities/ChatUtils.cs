@@ -4,11 +4,16 @@ using PubnubApi;
 
 namespace PubnubChatApi
 {
-    internal static class ChatUtils
+    public static class ChatUtils
     {
-        internal static string TimeTokenNow()
+        public static string TimeTokenNow()
         {
-            var timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return TimeToken(DateTime.UtcNow);
+        }
+        
+        public static string TimeToken(DateTime date)
+        {
+            var timeSpan = date - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             var timeStamp = Convert.ToInt64(timeSpan.TotalSeconds  * 10000000);
             return timeStamp.ToString(CultureInfo.InvariantCulture);
         }

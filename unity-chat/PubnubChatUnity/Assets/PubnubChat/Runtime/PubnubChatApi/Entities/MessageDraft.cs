@@ -74,15 +74,10 @@ namespace PubnubChatApi
     
     public class MessageDraft
     {
-        private class DraftCallbackDataHelper
-        {
-            public List<MessageElement> MessageElements;
-            public List<SuggestedMention> SuggestedMentions;
-        }
-        
         // Static regex patterns for mention detection
         private static readonly Regex UserMentionRegex = new Regex(@"((?=\s?)@[a-zA-Z0-9_]+)", RegexOptions.Compiled);
         private static readonly Regex ChannelReferenceRegex = new Regex(@"((?=\s?)#[a-zA-Z0-9_]+)", RegexOptions.Compiled);
+        private static readonly Regex LinkRegex = new Regex(@"\[(?<text>(?:[^\]]*?(?:\\\\)*(?:\\\])*)+?)\]\((?<link>(?:[^)]*?(?:\\\\)*(?:\\\))*)+?)\)", RegexOptions.Compiled);
         
         // Schema prefixes for rendering mentions
         private static readonly string SchemaUser = "pn-user://";
@@ -114,6 +109,11 @@ namespace PubnubChatApi
         /// Can be used to attach files to send with this MessageDraft.
         /// </summary>
         public List<ChatInputFile> Files { get; set; } = new();
+        
+        /// <summary>
+        /// Can be used to quote a specific message (it will be referenced in the metadata of the sent Message)
+        /// </summary>
+        public Message QuotedMessage { get; set; }
         
         private Channel channel;
         private Chat chat;
@@ -322,6 +322,15 @@ namespace PubnubChatApi
             
             _mentions = newMentions;
             BroadcastDraftUpdate();
+        }
+
+        /// <summary>
+        /// Adds text into the MessageDraft text at the end.
+        /// </summary>
+        /// <param name="text">Text to be appended.</param>
+        public void AppendText(string text)
+        {
+            InsertText(_value.Length, text);
         }
 
         /// <summary>
@@ -586,9 +595,13 @@ namespace PubnubChatApi
                         break;
                 }
             }
-            sendTextParams.MentionedUsers = mentions;
-            sendTextParams.Files = Files;
-            return await channel.SendText(Render(), sendTextParams).ConfigureAwait(false);
+            var fullParams = new SendTextParamsInternal(sendTextParams)
+            {
+                MentionedUsers = mentions,
+                Files = Files,
+                QuotedMessage = QuotedMessage
+            };
+            return await channel.SendTextInternal(Render(), fullParams).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -670,6 +683,72 @@ namespace PubnubChatApi
         }
 
         /// <summary>
+        /// Parses text from a received message that includes Markdown links into a list of <see cref="MessageElement"/>.
+        /// </summary>
+        /// <param name="markdownText">The markdown text containing links to parse.</param>
+        /// <returns>A list of <see cref="MessageElement"/> representing plain text segments and links.</returns>
+        public static List<MessageElement> GetMessageElements(string markdownText)
+        {
+            var elements = new List<MessageElement>();
+            if (string.IsNullOrEmpty(markdownText))
+            {
+                return elements;
+            }
+
+            int offset = 0;
+            var match = LinkRegex.Match(markdownText, offset);
+            while (match.Success)
+            {
+                var linkText = UnEscapeLinkText(match.Groups["text"].Value);
+                var linkTarget = UnEscapeLinkUrl(match.Groups["link"].Value);
+
+                var plainTextBefore = markdownText.Substring(offset, match.Index - offset);
+                if (!string.IsNullOrEmpty(plainTextBefore))
+                {
+                    elements.Add(new MessageElement { Text = plainTextBefore, MentionTarget = null });
+                }
+
+                MentionTarget mentionTarget;
+                if (linkTarget.StartsWith(SchemaUser))
+                {
+                    mentionTarget = new MentionTarget
+                    {
+                        Type = MentionType.User,
+                        Target = linkTarget.Substring(SchemaUser.Length)
+                    };
+                }
+                else if (linkTarget.StartsWith(SchemaChannel))
+                {
+                    mentionTarget = new MentionTarget
+                    {
+                        Type = MentionType.Channel,
+                        Target = linkTarget.Substring(SchemaChannel.Length)
+                    };
+                }
+                else
+                {
+                    mentionTarget = new MentionTarget
+                    {
+                        Type = MentionType.Url,
+                        Target = linkTarget
+                    };
+                }
+
+                elements.Add(new MessageElement { Text = linkText, MentionTarget = mentionTarget });
+                offset = match.Index + match.Length;
+                match = LinkRegex.Match(markdownText, offset);
+            }
+
+            var remainingText = markdownText.Substring(offset);
+            if (!string.IsNullOrEmpty(remainingText))
+            {
+                elements.Add(new MessageElement { Text = remainingText, MentionTarget = null });
+            }
+
+            return elements;
+        }
+
+        /// <summary>
         /// Renders the draft text with mentions converted to their appropriate schema format.
         /// <para>
         /// Renders the message with markdown-style links.
@@ -734,6 +813,16 @@ namespace PubnubChatApi
         private static string EscapeLinkUrl(string url)
         {
             return url?.Replace("\\", "\\\\").Replace(")", "\\)") ?? string.Empty;
+        }
+
+        private static string UnEscapeLinkText(string text)
+        {
+            return text?.Replace("\\]", "]").Replace("\\\\", "\\") ?? string.Empty;
+        }
+
+        private static string UnEscapeLinkUrl(string url)
+        {
+            return url?.Replace("\\)", ")").Replace("\\\\", "\\") ?? string.Empty;
         }
     }
 }

@@ -52,7 +52,9 @@ public class JoinChannelSample
         }
 
         // join the channel and add metadata to the newly created membership
-        await channel.Join();
+        await channel.JoinChannel();
+        // connect to start receiving messages in OnMessageReceived
+        channel.Connect();
         // snippet.end
     }
 }

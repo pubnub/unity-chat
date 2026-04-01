@@ -41,4 +41,26 @@ public class ChatSample
         };
         // snippet.end
     }
+
+    public static void StatusListenerExample()
+    {
+        // snippet.status_listener_example
+        chat.StreamSubscriptionStatus(true);
+        chat.OnSubscriptionStatusChanged += status =>
+        {
+            Debug.Log($"Staus categoru: {status.Category}, affected channels: {status.AffectedChannels}");
+        };
+        // snippet.end
+    }
+    
+    public static async void ReconnectExample()
+    {
+        // snippet.disconnect_and_reconnect_example
+        //Will reconnect all existing subscriptions
+        await chat.ReconnectSubscriptions();
+
+        //Will disconnect all existing subscriptions
+        await chat.DisconnectSubscriptions();
+        // snippet.end
+    }
 }

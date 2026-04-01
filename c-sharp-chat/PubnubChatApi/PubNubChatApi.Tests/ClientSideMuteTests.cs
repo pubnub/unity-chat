@@ -119,19 +119,19 @@ public class ClientSideMuteTests
 
         await Task.Delay(3000);
         
-        await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"not-muted\"}");
+        await channel2.EmitCustomEvent("{\"test\":\"not-muted\"}");
         var received = eventReset.WaitOne(10000);
         Assert.True(received, "Didn't receive event from not-yet-muted user.");
 
         eventReset = new ManualResetEvent(false);
         await chat1.MutedUsersManager.MuteUser(user2.Id);
-        await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"muted\"}");
+        await channel2.EmitCustomEvent("{\"test\":\"muted\"}");
         received = eventReset.WaitOne(10000);
         Assert.False(received, "Received event from muted user.");
         
         eventReset = new ManualResetEvent(false);
         await chat1.MutedUsersManager.UnMuteUser(user2.Id);
-        await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"un-muted\"}");
+        await channel2.EmitCustomEvent("{\"test\":\"un-muted\"}");
         received = eventReset.WaitOne(10000);
         Assert.True(received, "Didn't receive event from un-muted user.");
     }
@@ -139,9 +139,9 @@ public class ClientSideMuteTests
     [Test]
     public async Task TestMuteInEventsHistory()
     {
-        await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"one\"}");
-        await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"two\"}");
-        await chat2.EmitEvent(PubnubChatEventType.Custom, channel2.Id, "{\"test\":\"three\"}");
+        await channel2.EmitCustomEvent("{\"test\":\"one\"}");
+        await channel2.EmitCustomEvent("{\"test\":\"two\"}");
+        await channel2.EmitCustomEvent("{\"test\":\"three\"}");
 
         var history = TestUtils.AssertOperation(await chat1.GetEventsHistory(channel1.Id,"99999999999999999", "00000000000000000", 3));
         Assert.True(history.Events.Count == 3, "Didn't get events history for non-muted user");

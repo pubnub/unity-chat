@@ -80,19 +80,19 @@ public class FilesTests
             }
         };
 
+        var draft = channel.CreateMessageDraft();
+        draft.InsertText(0, "FILE");
+        draft.Files =
+        [
+            new ChatInputFile()
+            {
+                Name = FILE_NAME,
+                Type = "text",
+                Source = FILE_LOCATION
+            }
+        ];
         //Add file to SendTextParams and send message
-        TestUtils.AssertOperation(await channel.SendText("FILE", new SendTextParams()
-        {
-            Files =
-            [
-                new ChatInputFile()
-                {
-                    Name = FILE_NAME,
-                    Type = "text",
-                    Source = FILE_LOCATION
-                }
-            ]
-        }));
+        TestUtils.AssertOperation(await draft.Send());
 
         //Receive message and check message.Files
         var received = receivedMessageReset.WaitOne(10000);
@@ -182,18 +182,19 @@ public class FilesTests
             }
         };
         
-        var sendResult = await channel.SendText("FILE TOO BIG", new SendTextParams()
-        {
-            Files =
-            [
-                new ChatInputFile()
-                {
-                    Name = LARGE_FILE_NAME,
-                    Type = "image",
-                    Source = LARGE_FILE_LOCATION
-                }
-            ]
-        });
+        var draft = channel.CreateMessageDraft();
+        draft.InsertText(0, "FILE TOO BIG");
+        draft.Files =
+        [
+            new ChatInputFile()
+            {
+                Name = LARGE_FILE_NAME,
+                Type = "image",
+                Source = LARGE_FILE_LOCATION
+            }
+        ];
+        var sendResult = await draft.Send();
+        
         Assert.True(sendResult.Error, "sendResult.Error should be true for file over size limit");
         Assert.True(sendResult.Exception.Message.Contains("Your proposed upload exceeds the maximum allowed size"), "Error message should contain info about file size");
 

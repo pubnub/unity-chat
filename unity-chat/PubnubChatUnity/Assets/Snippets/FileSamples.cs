@@ -45,19 +45,20 @@ public class FileSamples
         }
         var channel = getChannel.Result;
         
-        var sendResult = await channel.SendText("some message", new SendTextParams()
+        //Creating a Message Draft to attach files
+        var messageDraft = channel.CreateMessageDraft();
+        messageDraft.InsertText(0, "some message");
+        messageDraft.Files = new List<ChatInputFile>()
         {
-            Files = new List<ChatInputFile>()
+            new ChatInputFile()
             {
-                new ChatInputFile()
-                {
-                    Name = "some_file.txt",
-                    //Same as above because assuming it's in the same directory as the script
-                    Source = "some_file.txt",
-                    Type = "text"
-                }
+                Name = "some_file.txt",
+                //Same as above because assuming it's in the same directory as the script
+                Source = "some_file.txt",
+                Type = "text"
             }
-        });
+        };
+        var sendResult = await messageDraft.Send();
         
         //Checking sendResult in case there was an issue with the file e.g. it didn't exist, was too large,
         //or the keyset didn't have Files functionality enabled

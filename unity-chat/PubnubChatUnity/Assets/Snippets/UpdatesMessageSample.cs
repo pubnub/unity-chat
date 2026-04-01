@@ -60,7 +60,7 @@ public class UpdatesMessageSample
         }
         var message = messageResult.Result.First();
         message.StreamUpdates(true);
-        message.OnMessageUpdated += OnMessageUpdatedHandler; // or use lambda
+        message.OnUpdated += OnMessageUpdatedHandler; // or use lambda
 
         void OnMessageUpdatedHandler(Message message)
         {
@@ -90,9 +90,9 @@ public class UpdatesMessageSample
         
         // WARNING: Messages currently don't receive hard deletion callbacks, so only Delete(soft:true) will yield a
         // callback with ChatEntityChangeType "Updated"
-        void OnMessageUpdatedHandler(Message message, ChatEntityChangeType chatEntityChangeType)
+        void OnMessageUpdatedHandler(Message message)
         {
-            Debug.Log($"Message with timetoken {message.TimeToken} updated! Change type: {chatEntityChangeType}");
+            Debug.Log($"Message with timetoken {message.TimeToken} updated!");
         }
         Message.StreamUpdatesOn(messages, OnMessageUpdatedHandler);
         // snippet.end

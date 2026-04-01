@@ -96,11 +96,23 @@ public class ReactionsMessageSample
 
         if (lastMessage != null)
         {
-            // output all reactions added to the last message
+            // output all reactions added to the last message (in MessageAction format)
             var reactions = lastMessage.Reactions;
             foreach (var reaction in reactions)
             {
                 Debug.Log($"Reaction: {reaction.Value}");
+            }
+
+            // output all reactions added to the last message (in MessageReaction format)
+            var messageReactions = lastMessage.MessageReactions();
+            foreach (var messageReaction in messageReactions)
+            {
+                Debug.Log($"Reaction: {messageReaction.Value}, {messageReaction.Count}, {messageReaction.IsMine}");
+                Debug.Log("Users who gave the reaction:");
+                foreach (var id in messageReaction.UserIds)
+                {
+                    Debug.Log(id);
+                }
             }
         }
         else

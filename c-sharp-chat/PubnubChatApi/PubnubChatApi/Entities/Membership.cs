@@ -57,34 +57,38 @@ namespace PubnubChatApi
         /// </code>
         /// </example>
         /// <seealso cref="Update"/>
-        public event Action<Membership> OnMembershipUpdated;
-        
+        public event Action<Membership> OnUpdated;
+
         /// <summary>
-        /// Event that is triggered when the membership is updated.
-        /// <para>
-        /// This event is triggered when the membership is updated by the server.
-        /// Every time the membership is updated, this event is triggered.
-        /// </para>
+        /// Is invoked when the entity is hard-deleted from App Context.
+        /// Call StreamUpdates(true) to enable this callback.
         /// </summary>
-        /// <value>Reference to the updated Membership and the type of update that has occured</value>
-        /// <example>
-        /// <code>
-        /// membership.OnMembershipUpdated += (membership, changeType) =>
-        /// {
-        ///    Console.WriteLine($"Membership updated! Type of change: {changeType}");
-        /// };
-        /// </code>
-        /// </example>
-        /// <seealso cref="Update"/>
-        public event Action<Membership, ChatEntityChangeType> OnUpdate;
+        public event Action OnDeleted;
 
         protected override string UpdateChannelId => ChannelId;
 
-        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData) : base(chat, userId+channelId)
+        //TODO: currently this is only set in constructor so it doesn't react to channel type changes
+        internal bool EmitReadReceiptEvents { get; private set; }
+
+        internal Membership(Chat chat, string userId, string channelId, ChatMembershipData membershipData, ChatChannelData channelData) : base(chat, userId+channelId)
         {
             UserId = userId;
             ChannelId = channelId;
             UpdateLocalData(membershipData);
+            SetReadReceiptEventsEmission(channelData);
+        }
+
+        private void SetReadReceiptEventsEmission(ChatChannelData channelData)
+        {
+            var channelType = channelData.Type;
+            if (string.IsNullOrEmpty(channelType) || chat.Config.EmitReadReceiptEvents == null)
+            {
+                return;
+            }
+            if (chat.Config.EmitReadReceiptEvents.TryGetValue(channelType, out var emit))
+            {
+                EmitReadReceiptEvents = emit;
+            }
         }
 
         internal void UpdateLocalData(ChatMembershipData newData)
@@ -99,9 +103,14 @@ namespace PubnubChatApi
                 if (ChatParsers.TryParseMembershipUpdate(chat, this, e, out var updatedData, out var changeType))
                 {
                     UpdateLocalData(updatedData);
-                    OnMembershipUpdated?.Invoke(this);
-                    OnUpdate?.Invoke(this, changeType);
-                    
+                    if (changeType == ChatEntityChangeType.Deleted)
+                    {
+                        OnDeleted?.Invoke();
+                    }
+                    else
+                    {
+                        OnUpdated?.Invoke(this);
+                    }
                 }
             });
         }
@@ -116,21 +125,21 @@ namespace PubnubChatApi
             foreach (var membership in memberships)
             {
                 membership.StreamUpdates(true);
-                membership.OnUpdate += delegate { listener.Invoke(memberships); };
+                membership.OnUpdated += delegate { listener.Invoke(memberships); };
             }
         }
         
         /// <summary>
         /// Adds a listener for membership update events on multiple memberships.
-        /// The callback is invoked with the Membership that was just updated and the type of update it experienced.
+        /// The callback will be invoked with the membership from the list that received an update.
         /// </summary>
         /// <param name="memberships">List of memberships to listen to.</param>
         /// <param name="listener">The listener callback to invoke on membership updates.</param>
-        public static void StreamUpdatesOn(List<Membership> memberships, Action<Membership, ChatEntityChangeType> listener){
+        public static void StreamUpdatesOn(List<Membership> memberships, Action<Membership> listener){
             foreach (var membership in memberships)
             {
                 membership.StreamUpdates(true);
-                membership.OnUpdate += listener;
+                membership.OnUpdated += listener;
             }
         }
 
@@ -143,7 +152,7 @@ namespace PubnubChatApi
         /// </summary>
         /// <param name="membershipData">The ChatMembershipData object to update the membership with.</param>
         /// <returns>A ChatOperationResult indicating the success or failure of the operation.</returns>
-        /// <seealso cref="OnMembershipUpdated"/>
+        /// <seealso cref="OnUpdated"/>
         public async Task<ChatOperationResult> Update(ChatMembershipData membershipData)
         {
             var result = (await UpdateMembershipData(membershipData).ConfigureAwait(false)).ToChatOperationResult("Membership.Update()", chat);
@@ -235,8 +244,11 @@ namespace PubnubChatApi
             {
                 return result;
             }
-            result.RegisterOperation(await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId,
-                $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false));
+            if (EmitReadReceiptEvents)
+            {
+                result.RegisterOperation(await chat.EmitEvent(PubnubChatEventType.Receipt, ChannelId,
+                    $"{{\"messageTimetoken\": \"{timeToken}\"}}").ConfigureAwait(false));
+            }
             return result;
         }
         
@@ -267,6 +279,16 @@ namespace PubnubChatApi
             }
             result.Result = countsResponse.Result.Channels[ChannelId];
             return result;
+        }
+
+        /// <summary>
+        /// Hard deletes this membership from App Context.
+        /// </summary>
+        /// <returns>A ChatOperationResult with the result of the operation</returns>
+        public async Task<ChatOperationResult> Delete()
+        {
+            return (await chat.PubnubInstance.RemoveMemberships().Channels(new List<string>() { ChannelId })
+                .Uuid(UserId).ExecuteAsync().ConfigureAwait(false)).ToChatOperationResult("Membership.Delete()", chat);
         }
 
         /// <summary>

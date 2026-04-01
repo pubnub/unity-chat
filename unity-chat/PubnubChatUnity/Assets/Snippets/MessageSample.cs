@@ -46,7 +46,7 @@ public class MessageSample
             {
                 var message = messageResult.Result;
                 
-                message.OnMessageUpdated += (message) =>
+                message.OnUpdated += (message) =>
                 {
                     Debug.Log("Message was edited!");
                 };

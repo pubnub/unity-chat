@@ -41,7 +41,7 @@ public class UserSample
         {
             var user = userResult.Result;
             
-            user.OnUserUpdated += (user) =>
+            user.OnUpdated += (user) =>
             {
                 Debug.Log("User metadata updated!");
             };

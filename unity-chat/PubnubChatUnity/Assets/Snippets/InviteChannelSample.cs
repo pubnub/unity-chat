@@ -107,9 +107,9 @@ public class InviteChannelSample
         //start listening
         user.StreamInviteEvents(true);
         //lambda event handler
-        user.OnInviteEvent += (inviteEvent) => 
+        user.OnInvited += (inviteEvent) => 
             {
-                if(inviteEvent.ChannelId == "support" && inviteEvent.UserId == "support-agent-2")
+                if(inviteEvent.ChannelId == "support")
                 {
                     Debug.Log("User support-agent-2 has been invited to the support channel!");
                 }    
