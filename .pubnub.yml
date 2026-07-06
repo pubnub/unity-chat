@@ -1,6 +1,11 @@
 --- 
-version: v2.0.0
+version: v2.0.1
 changelog:
+  - date: 2026-07-06
+    version: v2.0.1
+    changes:
+      - type: bug
+        text: "Implemented minor fixes to error handling, logging, and cryptor logic."
   - date: 2026-04-01
     version: v2.0.0
     changes:
