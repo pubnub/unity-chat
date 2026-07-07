@@ -695,7 +695,6 @@ namespace PubnubChatApi
                 catch (Exception e)
                 {
                     Logger.Error($"Exception occured when trying to store activity timestamp: {e.Message}");
-                    throw;
                 }
                 await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
             }
