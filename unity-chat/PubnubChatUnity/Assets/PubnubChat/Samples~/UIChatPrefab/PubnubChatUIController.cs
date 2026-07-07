@@ -16,7 +16,6 @@ public class PubnubChatUIController : MonoBehaviour
     [Header("Pubnub settings")]
     [SerializeField] private string publishKey;
     [SerializeField] private string subscribeKey;
-    [SerializeField] private string secretKey;
     [SerializeField] private string userId;
     [SerializeField] private string channelId;
     [SerializeField] private bool fetchChannelHistoryOnStart;
@@ -43,8 +42,7 @@ public class PubnubChatUIController : MonoBehaviour
             new PNConfiguration(new UserId(userId))
             {
                 PublishKey = publishKey, 
-                SubscribeKey = subscribeKey, 
-                SecretKey = secretKey
+                SubscribeKey = subscribeKey
             }, false);
         if (createChat.Error)
         {

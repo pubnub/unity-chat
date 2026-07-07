@@ -674,20 +674,27 @@ namespace PubnubChatApi
             storeActivity = true;
             while (storeActivity)
             {
-                var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);
-                if (getResult.Status.Error)
+                try
                 {
-                    Logger.Error($"Error when trying to store user activity timestamp: {getResult.Status.ErrorData}");
-                    await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
-                    continue;
+                    var getResult = await User.GetUserData(this, currentUserId).ConfigureAwait(false);
+                    if (getResult.Status.Error)
+                    {
+                        Logger.Error($"Error when trying to store user activity timestamp: {getResult.Status.ErrorData}");
+                        await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
+                        continue;
+                    }
+                    var data = (ChatUserData)getResult.Result;
+                    data.CustomData ??= new Dictionary<string, object>();
+                    data.CustomData["lastActiveTimestamp"] = ChatUtils.TimeTokenNow();
+                    var setData = await User.UpdateUserData(this, currentUserId, data).ConfigureAwait(false);
+                    if (setData.Status.Error)
+                    {
+                        Logger.Error($"Error when trying to store user activity timestamp: {setData.Status.ErrorData}");
+                    }
                 }
-                var data = (ChatUserData)getResult.Result;
-                data.CustomData ??= new Dictionary<string, object>();
-                data.CustomData["lastActiveTimestamp"] = ChatUtils.TimeTokenNow();
-                var setData = await User.UpdateUserData(this, currentUserId, data).ConfigureAwait(false);
-                if (setData.Status.Error)
+                catch (Exception e)
                 {
-                    Logger.Error($"Error when trying to store user activity timestamp: {setData.Status.ErrorData}");
+                    Logger.Error($"Exception occured when trying to store activity timestamp: {e.Message}");
                 }
                 await Task.Delay(Config.StoreUserActivityInterval).ConfigureAwait(false);
             }

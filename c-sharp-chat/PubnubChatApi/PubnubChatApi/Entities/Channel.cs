@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -86,7 +87,7 @@ namespace PubnubChatApi
 
         protected Subscription? subscription;
         
-        private Dictionary<string, Timer> typingIndicators = new();
+        private ConcurrentDictionary<string, Timer> typingIndicators = new();
 
         /// <summary>
         /// Event that is triggered when a message is received.
@@ -439,7 +440,7 @@ namespace PubnubChatApi
                                 if (typingIndicators.TryGetValue(userId, out var timer))
                                 {
                                     timer.Stop();
-                                    typingIndicators.Remove(userId);
+                                    typingIndicators.Remove(userId, out _);
                                     timer.Dispose();
                                 }
                             }
@@ -456,7 +457,7 @@ namespace PubnubChatApi
                                 var newTimer = new Timer(chat.Config.TypingTimeout);
                                 newTimer.Elapsed += (_, _) =>
                                 {
-                                    typingIndicators.Remove(userId);
+                                    typingIndicators.Remove(userId, out _);
                                     OnUsersTyping?.Invoke(typingIndicators.Keys.ToList());
                                 };
                                 typingIndicators[userId] = newTimer;
