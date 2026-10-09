@@ -210,6 +210,20 @@ public class DraftsMessageSample
         // snippet.end
     }
     
+    public static void AppendMessageTextExample(MessageDraft messageDraft)
+    {
+        // snippet.append_text_example
+        // The message reads:
+        // Check this support article
+        
+        // Add text at the end of the draft
+        messageDraft.AppendText(" https://www.support-article.com/.");
+        
+        // The message now reads:
+        // Check this support article https://www.support-article.com/.
+        // snippet.end
+    }
+    
     public static async Task SendDraftMessageExample()
     {
         // snippet.send_draft_message_example
