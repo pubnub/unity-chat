@@ -36,7 +36,7 @@ public class ListChannelSample
     {
         // snippet.get_all_channels_example
         // fetch all channels
-        var channelsWrapper = await chat.GetChannels();
+        var channelsWrapper = (await chat.GetChannels()).Result;
 
         // print all channel IDs
         foreach (var channel in channelsWrapper.Channels)
@@ -50,7 +50,7 @@ public class ListChannelSample
     {
         // snippet.pagination_example
         // fetch the initial 25 channels
-        var channelsWrapper = await chat.GetChannels(limit: 25);
+        var channelsWrapper = (await chat.GetChannels(limit: 25)).Result;
 
         Debug.Log("Initial 25 channels:");
         foreach (var channel in channelsWrapper.Channels)
@@ -59,7 +59,7 @@ public class ListChannelSample
         }
 
         // fetch the next set of channels using the page object from returned wrapper
-        var nextChannelsWrapper = await chat.GetChannels(limit: 25, page: channelsWrapper.Page);
+        var nextChannelsWrapper = (await chat.GetChannels(limit: 25, page: channelsWrapper.Page)).Result;
 
         Debug.Log("\nNext set of channels:");
         foreach (var channel in nextChannelsWrapper.Channels)

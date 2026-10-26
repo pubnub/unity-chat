@@ -187,9 +187,9 @@ namespace PubnubChatApi
                     case MentionType.Channel:
                         var channelsWrapper = await chat.GetChannels(filter: $"name LIKE \"{rawMention.Target.Target}*\"",
                             limit: channelLimit).ConfigureAwait(false);
-                        if (channelsWrapper.Channels != null && channelsWrapper.Channels.Any())
+                        if (channelsWrapper.Result.Channels != null && channelsWrapper.Result.Channels.Any())
                         {
-                            var mentionedChannel = channelsWrapper.Channels[0];
+                            var mentionedChannel = channelsWrapper.Result.Channels[0];
                             suggestion.Target = new MentionTarget() { Target = channel.Id, Type = rawMention.Target.Type };
                             suggestion.ReplaceTo = mentionedChannel.Name;
                         }
