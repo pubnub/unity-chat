@@ -97,7 +97,7 @@ public class ChatTests
     public async Task TestGetChannels()
     {
         await Task.Delay(4000);
-        var channels = await chat.GetChannels();
+        var channels = TestUtils.AssertOperation(await chat.GetChannels());
         Assert.True(channels.Channels.Any());
     }
 
