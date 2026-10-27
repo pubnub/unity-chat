@@ -36,10 +36,16 @@ public class ListChannelSample
     {
         // snippet.get_all_channels_example
         // fetch all channels
-        var channelsWrapper = (await chat.GetChannels()).Result;
+        var getChannels = await chat.GetChannels();
+
+        if (getChannels.Error)
+        {
+            Debug.LogError($"An error has occured when trying to fetch channels: {getChannels.Exception.Message}");
+            return;
+        }
 
         // print all channel IDs
-        foreach (var channel in channelsWrapper.Channels)
+        foreach (var channel in getChannels.Result.Channels)
         {
             Debug.Log(channel.Id);
         }
@@ -50,7 +56,15 @@ public class ListChannelSample
     {
         // snippet.pagination_example
         // fetch the initial 25 channels
-        var channelsWrapper = (await chat.GetChannels(limit: 25)).Result;
+        var getChannels = await chat.GetChannels(limit: 25);
+        
+        if (getChannels.Error)
+        {
+            Debug.LogError($"An error has occured when trying to fetch channels: {getChannels.Exception.Message}");
+            return;
+        }
+
+        var channelsWrapper = getChannels.Result;
 
         Debug.Log("Initial 25 channels:");
         foreach (var channel in channelsWrapper.Channels)
@@ -59,10 +73,16 @@ public class ListChannelSample
         }
 
         // fetch the next set of channels using the page object from returned wrapper
-        var nextChannelsWrapper = (await chat.GetChannels(limit: 25, page: channelsWrapper.Page)).Result;
+        var nextGetChannels = await chat.GetChannels(limit: 25, page: channelsWrapper.Page);
 
+        if (nextGetChannels.Error)
+        {
+            Debug.LogError($"An error has occured when trying to fetch next channels: {getChannels.Exception.Message}");
+            return;
+        }
+        
         Debug.Log("\nNext set of channels:");
-        foreach (var channel in nextChannelsWrapper.Channels)
+        foreach (var channel in nextGetChannels.Result.Channels)
         {
             Debug.Log($"Id: {channel.Id}");
         }
