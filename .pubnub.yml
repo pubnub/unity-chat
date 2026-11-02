@@ -1,6 +1,11 @@
 --- 
-version: v2.0.1
+version: v2.0.2
 changelog:
+  - date: 2026-11-02
+    version: v2.0.2
+    changes:
+      - type: bug
+        text: "Fixed GetChannels() returning a raw wrapper object instead of a ChatOperationResult<>."
   - date: 2026-07-06
     version: v2.0.1
     changes:
