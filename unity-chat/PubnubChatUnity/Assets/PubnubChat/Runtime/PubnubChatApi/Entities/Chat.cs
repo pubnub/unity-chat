@@ -551,10 +551,11 @@ namespace PubnubChatApi
         /// <param name="sort">Sort criteria for channels.</param>
         /// <param name="limit">The maximum number of channels to get.</param>
         /// <param name="page">Pagination object for retrieving specific page results.</param>
-        /// <returns>A wrapper containing the list of channels and pagination information.</returns>
-        public async Task<ChannelsResponseWrapper> GetChannels(string filter = "", string sort = "", int limit = 0,
+        /// <returns>A ChatOperationResult with the wrapper containing the list of channels and pagination information.</returns>
+        public async Task<ChatOperationResult<ChannelsResponseWrapper>> GetChannels(string filter = "", string sort = "", int limit = 0,
             PNPageObject page = null)
         {
+            var result = new ChatOperationResult<ChannelsResponseWrapper>("Chat.GetChannels()", this);
             var operation = PubnubInstance.GetAllChannelMetadata().IncludeCustom(true).IncludeCount(true).IncludeStatus(true).IncludeType(true);
             if (!string.IsNullOrEmpty(filter))
             {
@@ -573,11 +574,9 @@ namespace PubnubChatApi
                 operation = operation.Page(page);
             }
             var response = await operation.ExecuteAsync().ConfigureAwait(false);
-            
-            if (response.Status.Error)
+            if (result.RegisterOperation(response))
             {
-                Logger.Error($"Error when trying to GetChannels(): {response.Status.ErrorData.Information}");
-                return default;
+                return result;
             }
             var wrapper = new ChannelsResponseWrapper()
             {
@@ -590,7 +589,8 @@ namespace PubnubChatApi
                 var channel = new Channel(this, resultMetadata.Channel, resultMetadata);
                 wrapper.Channels.Add(channel);
             }
-            return wrapper;
+            result.Result = wrapper;
+            return result;
         }
 
         /// <summary>
