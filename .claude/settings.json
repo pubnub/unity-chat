@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .claude/skills/sync-unity-chat/scripts/Sync-UnityChat.ps1:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Test-ConfigureAwait.ps1:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Compare-ChatConfigAsset.ps1:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Test-UnityCompile.ps1:*)",
+      "Bash(pwsh -File .claude/skills/sync-unity-chat/scripts/Sync-UnityChat.ps1:*)",
+      "Bash(pwsh -File .claude/skills/run-checks/scripts/Test-ConfigureAwait.ps1:*)",
+      "Bash(pwsh -File .claude/skills/run-checks/scripts/Compare-ChatConfigAsset.ps1:*)",
+      "Bash(pwsh -File .claude/skills/run-checks/scripts/Test-UnityCompile.ps1:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "deny": [
+      "Edit(./unity-chat/PubnubChatUnity/Assets/PubnubChat/Runtime/PubnubChatApi/**)",
+      "Edit(./unity-chat/PubnubChatUnity/Library/**)",
+      "Edit(./unity-chat/PubnubChatUnity/Temp/**)",
+      "Edit(./unity-chat/PubnubChatUnity/Logs/**)",
+      "Edit(./unity-chat/PubnubChatUnity/UserSettings/**)",
+      "Edit(./**/bin/**)",
+      "Edit(./**/obj/**)"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+---
+description: Version, changelog and CI files maintained by the PubNub release tooling for the Unity Chat SDK
+globs: .pubnub.yml, .github/workflows/**, unity-chat/PubnubChatUnity/Assets/PubnubChat/package.json, unity-chat/PubnubChatUnity/Assets/PubnubChat/Runtime/UnityChatPNSDKSource.cs
+alwaysApply: false
+---
+
+# Release files
+
+- **The release bot** runs when someone comments on a PR (`commands-handler.yml`).
+  - Following `.github/workflows/release/versions.json`, it bumps `version` in `.pubnub.yml`, `"version"` in `Assets/PubnubChat/package.json`, and `private const string build` in `UnityChatPNSDKSource.cs`.
+  - It writes the changelog entry into `.pubnub.yml`.
+- **Merging to `master`** triggers `release.yml`, which creates a GitHub release and tag. Nothing is built or packed: customers install the package folder from git, so whatever is merged is what ships.
+- **Don't edit versions or changelog entries by hand** unless the user explicitly asks. Propose the changelog line for the PR description instead.
+  - `.pubnub.yml` change types are `feature`, `bug` and `improvement`.
+  - Breaking changes start with `BREAKING CHANGE:`.
+  - Base SDK updates read "Updated Unity SDK dependency to latest version - X.Y.Z."
+- **Hand-edited version references:** the `com.pubnub.sdk` dependency in `package.json` and `PubnubPCL` in `PubnubChatApi.csproj` aren't touched by the bot. They change together in a base SDK update (the `update-unity-sdk` skill).
+- **CI:**
+  - `run-tests.yml` runs `dotnet test` on `PubNubChatApi.Tests` on a Windows runner, on every push.
+  - `run-validations.yml` validates `.pubnub.yml`.
+  - Neither opens the Unity project.
+  - The workflows call private PubNub actions (`pubnub/client-engineering-deployment-tools`); don't restructure them unless asked.
+- **Don't modify `.github/.release/`;** CI checks it out at run time.
