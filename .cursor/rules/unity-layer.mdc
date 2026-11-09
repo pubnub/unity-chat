@@ -56,5 +56,5 @@ None of these files are compiled by the .NET build. Check them with `powershell 
   - The release bot owns `"version"`.
   - `"unity": "2022.3"` is the minimum editor version.
   - `dependencies` holds `com.pubnub.sdk`, changed by hand only when updating the base SDK (the `update-unity-sdk` skill).
-- **`Packages/manifest.json`** (dev project only) takes `com.pubnub.sdk` from the Unity SDK's git HEAD, and `packages-lock.json` pins the commit. Don't update or re-resolve them outside a base SDK update, because HEAD may be a newer major version.
+- **`Packages/manifest.json`** (dev project only) pins `com.pubnub.sdk` to a git tag (`#v9.3.0`) matching the `package.json` dependency, and `packages-lock.json` records the commit. Change them only in a base SDK update; the 10.x line needs Data Sync support in the Chat first.
 - **Don't modify** `Assets/TextMesh Pro/`, `ProjectSettings/`, `.idea/`, or Unity's generated folders and project files.

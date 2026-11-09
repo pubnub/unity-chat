@@ -17,7 +17,7 @@ namespace PubnubChatApi
         
         [field: SerializeField] public int TypingTimeout { get; private set; } = 5000;
         [field: SerializeField] public int TypingTimeoutDifference { get; private set; } = 1000;
-        [field: SerializeField] public int RateLimitFactor { get; private set; }
+        [field: SerializeField] public int RateLimitFactor { get; private set; } = 2;
         [field: SerializeField] public PubnubChatConfig.RateLimitPerChannel RateLimitPerChannel { get; private set; }
         [field: SerializeField] public bool StoreUserActivityTimestamp { get; private set; }
         [field: SerializeField] public int StoreUserActivityInterval { get; private set; } = 60000;

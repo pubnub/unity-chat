@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.pubnub.sdk": {
-      "version": "https://github.com/pubnub/unity.git?path=/PubNubUnity/Assets/PubNub",
+      "version": "https://github.com/pubnub/unity.git?path=/PubNubUnity/Assets/PubNub#v9.3.0",
       "depth": 0,
       "source": "git",
       "dependencies": {

@@ -19,9 +19,7 @@ powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Compa
 - **`Test-ConfigureAwait.ps1`** reports awaits without `.ConfigureAwait(false)` on lines changed against `origin/master`, plus untracked files.
   - `-All` lists the 24 older ones in the library; leave those alone unless asked.
   - A new violation is a failure, unless the user agreed to it for a listener callback (see `.cursor/rules/async-and-events.mdc`).
-- **`Compare-ChatConfigAsset.ps1`** must print no FAIL lines.
-  - The WARN for `RateLimitFactor` (asset 0, C# 2) is known.
-  - Any other WARN is a new default mismatch between `PubnubChatConfig` and `PubnubChatConfigAsset`.
+- **`Compare-ChatConfigAsset.ps1`** must print no FAIL lines. A WARN is a default mismatch between `PubnubChatConfig` and `PubnubChatConfigAsset`; fix it unless the user wants the difference.
 
 ## 2. Build
 

@@ -183,17 +183,14 @@ These are existing behaviors. Don't copy them into new code, and only fix them w
   - `Channel.OnUsersTyping` when a typing timer expires (it is a `System.Timers.Timer`).
   - `Channel.OnPresenceUpdate`, which is raised after `await WhoIsPresent().ConfigureAwait(false)`.
   - `MessageDraft.OnDraftUpdated` when mention suggestions are searched.
-- **`UnityChat.CreateInstance(chatConfig, pubnub)`** (the overload taking an existing `Pubnub`) doesn't pass `UnityListenerFactory`, so every event from that chat arrives on thread-pool threads.
-- **Unity SDK 10.0.0 broke `UnityListenerFactory`.**
+- **The Unity SDK stays on 9.x until Data Sync support is added.**
   - 10.0.0 replaced `SubscribeCallbackListener`'s 7-parameter constructor with an 8-parameter one that adds a Data Sync callback. `UnityListenerFactory` calls the 9.x constructor, so it must change when the dependency moves to 10.x.
-  - The dev project's `Packages/manifest.json` points at the Unity SDK's git HEAD, and only `packages-lock.json` pins it to 9.3.0 (commit `71217ab`). Updating the package in the Package Manager pulls HEAD and breaks compilation.
+  - `package.json` depends on 9.3.0, and the dev project's `Packages/manifest.json` pins the git URL to the `v9.3.0` tag. Don't move either to 10.x outside a planned base SDK update.
 - **`ChatOperationResult.Error` reflects the last registered operation.** Code relies on this: a failed existence check (`GetChannel`) followed by a successful create reports success. An early failure that the method doesn't return on is hidden by later successes.
 - **Payloads aren't escaped.** Event payloads are built with string interpolation: `reason` in restriction events isn't escaped, and `channelId` in the invite payload (`InviteToChannel`, `InviteMultipleToChannel`) isn't quoted.
 - **`Chat` has a finalizer that calls `Destroy()`.** `Destroy()` also destroys a `Pubnub` instance that the caller created and passed in. `Chat` isn't `IDisposable`.
 - **Events stall while a Unity game is paused.** The Unity SDK's dispatcher drains its queue in `FixedUpdate`, which doesn't run while `Time.timeScale == 0`.
-- **The sample config asset is out of date.**
-  - `PubnubChatConfigAsset.RateLimitFactor` defaults to 0, while `PubnubChatConfig` defaults to 2.
-  - The committed `SamplePubNubChatConfigAsset.asset` still has fields from an older version (`PublishKey`, `SubscribeKey`, `UserId`, `AuthKey`), which Unity ignores.
+- **The committed `SamplePubNubChatConfigAsset.asset` is out of date.** It still has fields from an older version (`PublishKey`, `SubscribeKey`, `UserId`, `AuthKey`), which Unity ignores, and lacks the newer ones, which Unity fills with the asset's defaults.
 - **`Samples~` is never compiled.** Unity skips folders ending in `~`, so sample code can only be checked by copying it into `Assets/` temporarily or importing the package into another project.
 
 ## Where to find more

@@ -33,11 +33,9 @@ The Chat compiles against the C# SDK twice: in .NET through the `PubnubPCL` NuGe
 ## 3. Unity side
 
 - **The package:** set `"com.pubnub.sdk": "<version>"` under `dependencies` in `unity-chat/PubnubChatUnity/Assets/PubnubChat/package.json`.
-- **The dev project:** `Packages/manifest.json` takes `com.pubnub.sdk` from the Unity SDK's git HEAD, and `Packages/packages-lock.json` pins the commit in its `hash`. Move the dev project to the target version in one of three ways:
-  - **Update the package in the Package Manager.** This only works if the Unity SDK's HEAD is the target release.
-  - **Set `hash` in `packages-lock.json`** to the target release's commit.
-  - **Pin the revision in the manifest URL** (`...?path=/PubNubUnity/Assets/PubNub#<tag-or-commit>`). This changes how the dev project is set up, so ask the user first.
-- **Re-import:** run `Test-UnityCompile.ps1`, which re-resolves packages and re-imports the project. The first run takes several minutes.
+- **The dev project:** `Packages/manifest.json` pins `com.pubnub.sdk` to a release tag (`...?path=/PubNubUnity/Assets/PubNub#v9.3.0`). Change the tag to the target release (`git ls-remote --tags https://github.com/pubnub/unity.git` lists them), keeping it equal to the `package.json` dependency.
+- **Re-import:** run `Test-UnityCompile.ps1`, which re-resolves packages, updates `Packages/packages-lock.json` and re-imports the project. The first run takes several minutes. Commit the lock file change.
+- **Unity SDK 10.x adds Data Sync** and changes `SubscribeCallbackListener`. Moving to it is a planned change that comes with Data Sync support in the Chat; confirm with the user before doing it.
 
 ## 4. Unity-only API changes
 
