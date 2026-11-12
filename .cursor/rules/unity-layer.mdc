@@ -1,0 +1,60 @@
+---
+description: Unity-only Chat files (UnityChat, UnityListenerFactory, PNSDK source, asmref), samples, docs snippets and package manifests
+globs: unity-chat/PubnubChatUnity/Assets/PubnubChat/Runtime/*, unity-chat/PubnubChatUnity/Assets/PubnubChat/Samples~/**, unity-chat/PubnubChatUnity/Assets/PubnubChat/package.json, unity-chat/PubnubChatUnity/Assets/Snippets/**, unity-chat/PubnubChatUnity/Packages/**
+alwaysApply: false
+---
+
+# Unity layer
+
+None of these files are compiled by the .NET build. Check them with `powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Test-UnityCompile.ps1`, or ask the user to open the project in Unity 2022.3.57f1 and read the Console.
+
+## Runtime
+
+- **`PubnubUnitySDKReference.asmref`** references `PubNubAPI`, so `Runtime/` (Unity-only files and the library copy) compiles into the Unity SDK's assembly.
+  - That gives it direct access to `PubnubApi.Unity` (`PubnubUnityUtils`, `SubscribeCallbackListener`, `PNConfigAsset`, `UnityPNSDKSource`).
+  - Don't add an `.asmdef` under `Runtime/`.
+  - The code is C# 9, and Unity compiles this assembly with warnings off.
+- **`UnityChat.cs`:** the `UnityChat.CreateInstance(...)` overloads are the Unity entry points.
+  - They create the `Pubnub` instance with `PubnubUnityUtils.NewUnityPubnub(..., new UnityChatPNSDKSource())`, which sets the Unity transport, JSON adapter and logger, and pass `new UnityListenerFactory()` to `Chat.CreateInstance`.
+  - When `Chat.CreateInstance` gains an overload or parameter, add the Unity overload here.
+  - These methods return straight to user code, so they await without `ConfigureAwait(false)`.
+- **`UnityListenerFactory.cs`** (global namespace; keep it there, since it is public) maps `ProduceListener`'s callbacks onto the Unity SDK's `SubscribeCallbackListener` constructor.
+  - That constructor has 7 callbacks in Unity SDK 9.x and 8 in 10.x, with a Data Sync callback inserted fifth.
+  - Pass arguments by name, so a reordered constructor fails to compile instead of silently mismatching.
+- **`UnityChatPNSDKSource.cs`** produces `PubNub-CSharp-Unity{platform}/{unitySdkVersion}/CA-Unity/{build}`. The release bot writes `build`; keep the line format (`private const string build = "X.Y.Z";`).
+- **`.meta` files:** commit one with every new file or folder under `Assets/`, and never regenerate existing ones. Unity creates them when it imports the project, and so does `Test-UnityCompile.ps1`. Assets without one are ignored when the package is installed from git.
+
+## Samples (`Samples~/`)
+
+- **What's there:**
+  - `PubnubChatConfigAsset/`: the `PubnubChatConfigAsset` ScriptableObject, a console sample and `SamplePubNubChatConfigAsset.asset`
+  - `UIChatPrefab/`: a uGUI and TextMesh Pro chat prefab with its controllers
+
+  Each sample is listed in `package.json` under `samples`.
+- **Never compiled here:** Unity skips folders ending in `~`. To check a sample:
+  1. Copy its folder, without the `.meta` files, into a temporary folder under `Assets/`.
+  2. Run `Test-UnityCompile.ps1`.
+  3. Delete the folder and the `.meta` files Unity created.
+- **`PubnubChatConfigAsset` mirrors the `PubnubChatConfig` constructor:**
+  - one member per parameter, declared as `[field: SerializeField] public T Name { get; private set; } = <C# default>;`
+  - each member passed by name in `implicit operator PubnubChatConfig`
+  - check with `powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Compare-ChatConfigAsset.ps1`
+  - only Unity-serializable types: primitives, strings, enums, and `[System.Serializable]` classes or structs. Convert others in the operator, as `EmitReadReceiptEvents` turns a list of structs into a `Dictionary`.
+  - renaming a member loses existing values unless you add `[field: FormerlySerializedAs("<OldName>k__BackingField")]`
+- **Committed `.asset` files** keep only empty or `demo` keys.
+
+## Snippets (`Assets/Snippets/`)
+
+- **What they are:** docs snippets for the Unity Chat SDK docs. They compile into `Assembly-CSharp`, and only Unity compiles them.
+- **Markers:** code between `// snippet.<name>` and `// snippet.end` is extracted by name. Never rename or remove existing markers.
+- **Keep them compiling.** After public API changes, update every snippet that uses the changed API. Snippets for `[Obsolete]` APIs may stay; their warnings are expected.
+- **Content:** idiomatic customer code that creates the chat with `UnityChat.CreateInstance(...)`, uses `"demo"` or placeholder keys and logs with `Debug.Log`. `ConfigureAwait(false)` isn't needed.
+
+## Packages
+
+- **`Assets/PubnubChat/package.json`:**
+  - The release bot owns `"version"`.
+  - `"unity": "2022.3"` is the minimum editor version.
+  - `dependencies` holds `com.pubnub.sdk`, changed by hand only when updating the base SDK (the `update-unity-sdk` skill).
+- **`Packages/manifest.json`** (dev project only) pins `com.pubnub.sdk` to a git tag (`#v9.3.0`) matching the `package.json` dependency, and `packages-lock.json` records the commit. Change them only in a base SDK update; the 10.x line needs Data Sync support in the Chat first.
+- **Don't modify** `Assets/TextMesh Pro/`, `ProjectSettings/`, `.idea/`, or Unity's generated folders and project files.

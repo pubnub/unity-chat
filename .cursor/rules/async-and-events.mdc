@@ -1,0 +1,52 @@
+---
+description: ConfigureAwait, listener factories and the thread user-facing Chat events are raised on (Unity main thread)
+globs: c-sharp-chat/PubnubChatApi/PubnubChatApi/**/*.cs, unity-chat/PubnubChatUnity/Assets/PubnubChat/Runtime/*.cs
+alwaysApply: false
+---
+
+# Async code and events
+
+## Events reach Unity through the listener factory
+
+- **The constraint:** the C# SDK raises listener callbacks on thread-pool threads, but Unity APIs only work on the main thread.
+- **The solution:** `Chat.ListenerFactory` decides which thread listener callbacks run on.
+  - `DotNetListenerFactory` returns a plain `SubscribeCallbackExt`; .NET users get thread-pool threads.
+  - `UnityListenerFactory` (Unity-only) returns the Unity SDK's `SubscribeCallbackListener`, which queues every callback on the main thread.
+- **Raise every user-facing event synchronously inside a `chat.ListenerFactory.ProduceListener(...)` callback:**
+
+```csharp
+// Right: OnUpdated runs on Unity's main thread
+return chat.ListenerFactory.ProduceListener(objectEventCallback: delegate(Pubnub pn, PNObjectEventResult e)
+{
+    if (ChatParsers.TryParseChannelUpdate(chat, this, e, out var updatedData, out var changeType))
+    {
+        UpdateLocalData(updatedData);
+        OnUpdated?.Invoke(this);
+    }
+});
+
+// Wrong: a thread-pool thread in Unity
+return new SubscribeCallbackExt(objectEventCallback: (pn, e) => OnUpdated?.Invoke(this));
+```
+
+- **Never `new SubscribeCallbackExt(...)` in library code.** Only `DotNetListenerFactory` does that.
+- **Events after async work:** an event raised after `await ... .ConfigureAwait(false)`, or from a timer, runs on a thread-pool thread, even inside a listener callback. `Channel.OnPresenceUpdate`, `Channel.OnUsersTyping` (on timer expiry) and `MessageDraft.OnDraftUpdated` already behave this way.
+  - Don't add more without asking the user.
+  - The options are to await without `ConfigureAwait(false)` inside that listener callback, so Unity's synchronization context resumes on the main thread (and mark it with a comment); or to add a dispatch hook to `ChatListenerFactory`, which is a public API change.
+- **A new callback type** (for example the C# SDK's Data Sync events) changes `ChatListenerFactory.ProduceListener`, `DotNetListenerFactory` and the Unity-only `UnityListenerFactory`.
+  - `UnityListenerFactory` must call a `SubscribeCallbackListener` constructor that exists in the Unity SDK version in use; the 9.x constructor has 7 callbacks and the 10.x one has 8.
+  - Pass arguments by name there, so a reordered constructor fails to compile instead of silently mismatching.
+- **Listener exceptions** are caught and logged by the C# SDK, or by the Unity dispatcher with `Debug.LogError`, so a callback that throws silently loses its event. Parse with the `ChatParsers.TryParse*` pattern, and catch and log with `chat.Logger` in callbacks that do more, as `StreamTyping` does.
+
+## Awaits
+
+- **Every `await` in the library ends with `.ConfigureAwait(false)`**, including `return await`, `await Task.Delay(...)` and awaits on Chat's own methods.
+  - In Unity, a Chat call starts on the main thread. Without `ConfigureAwait(false)`, each step resumes through Unity's synchronization context (once per frame), and a caller that blocks on the task deadlocks.
+  - The caller's own `await` still resumes on the main thread.
+- **Check** with `powershell -ExecutionPolicy Bypass -File .claude/skills/run-checks/scripts/Test-ConfigureAwait.ps1`. It reports awaits on lines changed against `origin/master`; `-All` lists the 24 older ones. Don't fix those as a side effect of unrelated work, since a few sit in listener callbacks where the thread matters.
+- **The Unity-only files** (`UnityChat.cs`) return straight to user code and await without `ConfigureAwait(false)`, following the Unity SDK's rule. `Test-ConfigureAwait.ps1` doesn't scan them.
+- **No blocking:** never use `.Result`, `.Wait()` or `GetAwaiter().GetResult()` on tasks. On Unity's main thread they freeze the game or deadlock. `ExponentialRateLimiter.Dispose()` waits on its processor task; don't copy it.
+- **No new `async void`.** An exception escaping one crashes the host. The existing ones are `Chat.StoreActivityTimeStamp`, `MessageDraft.BroadcastDraftUpdate`, `MessageDraft.TriggerTypingIndicator`, `ExponentialRateLimiter.RunWithinLimits` and the obsolete `Chat.AddListenerToUsersUpdate`/`AddListenerToMessagesUpdate`. Async listener lambdas (`async delegate`) are also `async void`, so wrap their bodies in `try`/`catch`.
+- **Threads and timers:** prefer `async` methods with `Task.Delay` to `Task.Run` loops, `Thread` and `System.Timers.Timer`. WebGL builds have no background threads. The rate limiter's processor loop and the typing timers already depend on them.
+- **Shared state** touched from listener callbacks and user calls must stay safe across threads. Use concurrent collections or locks, as `typingIndicators` (a `ConcurrentDictionary`) and the rate limiter's queues do.
+- **Cleanup:** `Chat.Destroy()` stops the activity loop, destroys the `Pubnub` instance and disposes the rate limiter. New background work must stop there too.

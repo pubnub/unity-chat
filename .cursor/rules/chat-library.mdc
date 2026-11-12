@@ -1,0 +1,49 @@
+---
+description: C# Chat library conventions (language level, operation pattern, entities, wire compatibility, public API)
+globs: c-sharp-chat/PubnubChatApi/PubnubChatApi/**/*.cs, c-sharp-chat/PubnubChatApi/PubnubChatApi/*.csproj
+alwaysApply: false
+---
+
+# C# Chat library
+
+- **This is the source of truth.** Unity compiles a copy of these files. After any change, run `powershell -ExecutionPolicy Bypass -File .claude/skills/sync-unity-chat/scripts/Sync-UnityChat.ps1` and commit the copy with the change (see the `sync-unity-chat` skill).
+- **Language and targets:**
+  - `netstandard2.1`, `LangVersion 9`, `Nullable enable`, no `ImplicitUsings`. Unity 2022.3 compiles the copy with C# 9 too, so don't raise `LangVersion` or use C# 10+ syntax such as file-scoped namespaces, `global using` or `record struct`.
+  - Nullable annotations are fine: Unity compiles without a nullable context and suppresses the warnings.
+- **Dependencies:** only `Newtonsoft.Json` and `PubnubPCL`. Keep `PubnubPCL` at the C# SDK version bundled in the `com.pubnub.sdk` version in `package.json` (the `update-unity-sdk` skill). Don't add packages; Unity can't resolve NuGet.
+- **Namespace:** everything is in the block-scoped `namespace PubnubChatApi { }`. Inside it, `Channel` means `PubnubChatApi.Channel`, not the C# SDK's `PubnubApi.Channel` entity.
+
+## Operations
+
+- **Shape:** public async methods return `Task<ChatOperationResult>` or `Task<ChatOperationResult<T>>`.
+  1. Create the result with the name `"Class.Method()"`.
+  2. Pass every C# SDK call or nested Chat operation to `result.RegisterOperation(...)`, and return as soon as it returns `true`.
+  3. Set `result.Result` last.
+- **Validation:** on invalid input, set `result.Error = true` and `result.Exception = new PNException("...")`, then return; don't throw. `Message.EditMessageText` and `Message.CreateThread` show the pattern.
+- **`RegisterOperation` overwrites `Error`**, so registering a later success after an expected failure (an existence check) clears it. Don't rely on it to accumulate failures: return on the first real error.
+- **Reuse the internal helpers** that wrap C# SDK calls and return `PNResult<T>`, such as `Channel.UpdateChannelData`, `Channel.GetChannelData`, `User.GetUserData` and `User.UpdateUserData`.
+- **List calls** take `filter = "", sort = "", limit = 0, page = null` like the App Context calls they wrap. They return a `*Wrapper` class in `Entities/Data/` holding the entities plus `Total` and `Page`.
+- **Overloads:** an operation that takes an entity usually also has an overload taking its ID (`SetRestriction(userId, channelId, ...)` alongside `User.SetRestriction(channelId, ...)`). Keep the pairs consistent.
+
+## Entities and data
+
+- **Entities** (`Channel`, `User`, `Membership`, `Message`, `ThreadChannel`, `ThreadMessage`) derive from `ChatEntity`/`UniqueChatEntity`.
+  - They have `internal` constructors; users get them from `Chat` methods.
+  - They keep a local copy of their data, refreshed by `Refresh()` and by update listeners (`UpdateLocalData`).
+  - New entity state should come from server data, not only from local mutation.
+- **Data classes** (`ChatChannelData`, `ChatUserData`, `ChatMembershipData`) are public inputs with settable properties and implicit conversions from the C# SDK metadata results. Their properties map one to one onto App Context fields; `CustomData` maps onto `custom`.
+- **Parsing** of message and event payloads lives in `Utilities/ChatParsers.cs` (`TryParse*` methods that catch, log at debug level and return `false`), and string mappings in `Utilities/ChatEnumConverters.cs`.
+- **Wire compatibility:** payload fields, event `type` strings, message action types, internal channel prefixes (`PUBNUB_INTERNAL_MODERATION`, `PUBNUB_INTERNAL_THREAD`, `PN_PRV.`) and custom-data keys are shared with the JavaScript, Kotlin and Swift Chat SDKs.
+  - Keep existing strings exactly as they are, odd ones included.
+  - For new ones, use the other SDKs' names.
+  - Build JSON payloads from a `Dictionary<string, object>` with `chat.PubnubInstance.JsonPluggableLibrary.SerializeToJsonString(...)`, not with string interpolation.
+- **Enums:** append new members at the end, and add the matching string cases to `ChatEnumConverters`.
+
+## Public API is a contract
+
+- **Don't remove or rename public members, or change their signatures.** Add an overload, or keep the old member as an `[Obsolete("Please use X instead")]` wrapper, as `SetListeningForXxx`, `Join()` and the soft-delete methods are.
+- **Before changing a signature,** search the tests, `unity-chat/PubnubChatUnity/Assets/Snippets/`, `Samples~/` and the Unity-only `Runtime/*.cs` files. The .NET build doesn't compile the last three.
+- **XML doc comments** go on every new public member. Follow the existing `<summary>`, `<param>`, `<returns>` and `<example><code>` style; the Release build generates `PubnubChatApi.xml`.
+- **Style:** 4 spaces; PascalCase for public members; camelCase for private fields (`ExponentialRateLimiter` uses `_camelCase`). Format numbers and timetokens with `CultureInfo.InvariantCulture`, as `ChatUtils` does.
+- **Logging:** use `chat.Logger.Debug/Warn/Error(...)`. Never log keys or tokens.
+- **`DiffMatchPatch.cs`** is third-party code; leave it alone.

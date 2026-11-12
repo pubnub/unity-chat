@@ -59,7 +59,7 @@ namespace PubnubChatApi
         /// </remarks>
         public static async Task<ChatOperationResult<Chat>> CreateInstance(PubnubChatConfig chatConfig, Pubnub pubnub)
         {
-            return await Chat.CreateInstance(chatConfig, pubnub);
+            return await Chat.CreateInstance(chatConfig, pubnub, new UnityListenerFactory());
         }
     }
 }

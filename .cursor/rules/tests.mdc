@@ -1,0 +1,28 @@
+---
+description: How the C# Chat tests are written and run (all live against a PubNub keyset)
+globs: c-sharp-chat/PubnubChatApi/PubNubChatApi.Tests/**
+alwaysApply: false
+---
+
+# Tests
+
+- **The project:** `c-sharp-chat/PubnubChatApi/PubNubChatApi.Tests`, NUnit 3 on `net8.0` with the SDK's default C# version, `ImplicitUsings`, `Nullable` and file-scoped `namespace PubNubChatApi.Tests;`. It references the library project, not the Unity copy.
+  - It is the only test suite. The Unity project has none, and CI (`run-tests.yml`) runs this project with the `PN_*` secrets on every push.
+- **Every test is live.** Tests create a `Chat` with `Chat.CreateInstance(new PubnubChatConfig(...), new PNConfiguration(new UserId("...")) { PublishKey = PubnubTestsParameters.PublishKey, SubscribeKey = PubnubTestsParameters.SubscribeKey })`, then create real users, channels and messages.
+  - `PubnubTestsParameters` reads `PN_PUB_KEY`, `PN_SUB_KEY` and `PN_SEC_KEY`, falling back to the public `demo-36` keyset. Never hard-code keys.
+  - Run tests only when the user asks, and then only the fixture you touched: `dotnet test c-sharp-chat/PubnubChatApi/PubNubChatApi.Tests/PubNubChatApi.Tests.csproj --filter "FullyQualifiedName~ChannelTests"`.
+  - Failures without network, or caused by timing, are not regressions from your change; say so instead of retrying until they pass.
+- **Structure:**
+  - one `[TestFixture] public class XxxTests` per area (`ChannelTests`, `MessageTests`, `MessageDraftTests`...), with `async Task` tests
+  - `[SetUp]` creates the chat and entities, and `[TearDown]` calls `chat.Destroy()` followed by a `Task.Delay`
+  - `TestUtils.AssertOperation(...)` unwraps a `ChatOperationResult<T>` or fails the test, and `chat.GetOrCreateUser(id)` reuses test users
+- **Waiting for events:**
+  - subscribe with `StreamXxx(true)` (old tests use the obsolete `SetListeningForXxx`), then wait with `await Task.Delay(...)` for the subscription to connect
+  - trigger the event, and block on a `ManualResetEvent` with `WaitOne(timeout)`
+  - assert inside the handler, and assert the `WaitOne` result after it
+
+  Keep the existing delays; shortening them makes tests flaky on CI.
+- **Names:** use fixed, test-specific user and channel IDs, or `Guid`-based ones for things a test deletes. Every run shares the keyset with leftovers from earlier runs, so don't assume a channel starts empty. CI runs one workflow at a time (`concurrency: unity_run`), but a local run can still collide with CI.
+- **`Channel` is ambiguous** with `PubnubApi.Channel`; add `using Channel = PubnubChatApi.Channel;` as the existing files do.
+- **New behavior needs a test** in the matching fixture. Cover the success path, the error result (`Error`/`Exception`) and the event, if there is one. Test files that read fixtures from disk add them as `None` items with `CopyToOutputDirectory`, as `fileupload.txt` and `file_large.png` are.
+- **Offline tests don't exist yet.** If one is worth adding (parsers, `MessageDraft` text handling), discuss it with the user first. The C# SDK's `Pubnub` constructor accepts a fake `IHttpClientService` (`httpTransportService:`), and `Chat.CreateInstance(config, pubnub)` takes that instance, but `CreateInstance` itself calls App Context first.
