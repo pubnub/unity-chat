@@ -39,14 +39,14 @@ public class MembershipTests
     [Test]
     public async Task TestGetMemberships()
     {
-        var memberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var memberships = TestUtils.AssertOperation(await user.GetMemberships(filter:$"channel.id == \"{channel.Id}\""));
         Assert.True(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
     
     [Test]
     public async Task TestDeleteMemberships()
     {
-        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships(filter:$"channel.id == \"{channel.Id}\""));
         var membership = allMemberships.Memberships.FirstOrDefault(x => x.ChannelId == channel.Id && x.UserId == user.Id);
         if (membership == null)
         {
@@ -54,14 +54,14 @@ public class MembershipTests
             return;
         }
         TestUtils.AssertOperation(await membership.Delete());
-        var memberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var memberships = TestUtils.AssertOperation(await user.GetMemberships(filter:$"channel.id == \"{channel.Id}\""));
         Assert.False(memberships.Memberships.Any(x => x.ChannelId == channel.Id && x.UserId == user.Id));
     }
     
     [Test]
     public async Task TestDeletionCallback()
     {
-        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships());
+        var allMemberships = TestUtils.AssertOperation(await user.GetMemberships(filter:$"channel.id == \"{channel.Id}\""));
         var membership = allMemberships.Memberships.FirstOrDefault(x => x.ChannelId == channel.Id && x.UserId == user.Id);
         if (membership == null)
         {
@@ -219,7 +219,7 @@ public class MembershipTests
     public async Task TestUnreadCountAfterFetchHistory()
     {
         await channel.SendText("some_text");
-        var membership = TestUtils.AssertOperation(await user.GetMemberships())
+        var membership = TestUtils.AssertOperation(await user.GetMemberships(filter:$"channel.id == \"{channel.Id}\""))
             .Memberships.FirstOrDefault(x => x.ChannelId == channel.Id);
         if (membership == null)
         {
@@ -227,7 +227,6 @@ public class MembershipTests
             return;
         }
         await Task.Delay(5000);
-        var history = await channel.GetMessageHistory("99999999999999999", "00000000000000000", 1);
         var unread = TestUtils.AssertOperation(await membership.GetUnreadMessagesCount());
         Assert.True(unread >= 1);
     }

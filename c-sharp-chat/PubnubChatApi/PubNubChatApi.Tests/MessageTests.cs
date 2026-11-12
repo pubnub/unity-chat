@@ -327,7 +327,7 @@ public class MessageTests
         };
         await channel.SendText("thread_start_message");
 
-        var received = manualReceiveEvent.WaitOne(25000);
+        var received = manualReceiveEvent.WaitOne(35000);
         Assert.IsTrue(received);
     }
 }

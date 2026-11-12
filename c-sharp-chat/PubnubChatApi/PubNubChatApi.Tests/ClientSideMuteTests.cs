@@ -30,10 +30,11 @@ public class ClientSideMuteTests
                 PublishKey = PubnubTestsParameters.PublishKey,
                 SubscribeKey = PubnubTestsParameters.SubscribeKey
             }));
+        await Task.Delay(4000);
         user1 = TestUtils.AssertOperation(await chat1.GetCurrentUser());
         user2 = TestUtils.AssertOperation(await chat2.GetCurrentUser());
         channel1 = TestUtils.AssertOperation(await chat1.CreatePublicConversation("mute_tests_channel"));
-        await Task.Delay(3000);
+        await Task.Delay(4000);
         channel2 = TestUtils.AssertOperation(await chat2.GetChannel("mute_tests_channel"));
     }
     
